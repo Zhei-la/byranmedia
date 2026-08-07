@@ -491,3 +491,11 @@ html{scroll-behavior:smooth}
 .kakao-btn:hover{filter:brightness(.96);text-decoration:none;color:#191600}
 .kakao-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .kakao-btn svg{flex-shrink:0}
+
+.kakao-btn.big{padding:15px;font-size:15.5px;border-radius:10px}
+.kakao-note{
+  font-size:12.5px;color:var(--ink-3);line-height:1.7;
+  text-align:center;margin-top:16px;
+}
+.auth-foot .quiet{color:var(--ink-3);font-size:12px}
+.auth-foot .quiet:hover{color:var(--ink-2)}

@@ -9,8 +9,13 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 /* ---------------- 로그인 ---------------- */
 router.get('/login', (req, res) => {
   if (req.user) return res.redirect('/hub');
-  res.render('login', {
-    title: '로그인',
+  res.render('login', { title: '로그인', error: req.query.e || null });
+});
+
+router.get('/login/email', (req, res) => {
+  if (req.user) return res.redirect('/hub');
+  res.render('login-email', {
+    title: '이메일 로그인',
     error: null,
     next: req.query.next || '',
     email: '',
@@ -24,7 +29,9 @@ router.post('/login', async (req, res) => {
   const ip = req.ip;
 
   const fail = (msg) =>
-    res.status(401).render('login', { title: '로그인', error: msg, next: nextUrl, email });
+    res.status(401).render('login-email', {
+      title: '이메일 로그인', error: msg, next: nextUrl, email,
+    });
 
   if (!email || !password) return fail('이메일과 비밀번호를 모두 입력해 주세요.');
 
@@ -72,7 +79,8 @@ router.post('/login', async (req, res) => {
 /* ---------------- 회원가입 ---------------- */
 router.get('/signup', (req, res) => {
   if (req.user) return res.redirect('/hub');
-  res.render('signup', { title: '수강생 등록', error: null, form: {} });
+  // 등록은 카카오 로그인 한 번으로 끝난다
+  res.redirect('/login');
 });
 
 router.post('/signup', async (req, res) => {

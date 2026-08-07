@@ -123,7 +123,23 @@ router.get('/auth/kakao/callback', async (req, res) => {
       rows = created.rows;
     }
 
-    const user = rows[0];
+    let user = rows[0];
+
+    // 운영자 본인 계정은 자동으로 관리자로 만든다.
+    // 카카오만으로 로그인하는 구조라 이 장치가 없으면 아무도 승인할 수 없다.
+    const adminKakao = (process.env.ADMIN_KAKAO_ID || '').trim();
+    const adminEmail = (process.env.ADMIN_EMAIL || '').trim().toLowerCase();
+    const isOwner =
+      (adminKakao && adminKakao === kakaoId) || (adminEmail && email && adminEmail === email);
+    if (isOwner) {
+      const up = await db.query(
+        `UPDATE users SET role='admin', status='active', expires_at=NULL
+          WHERE id=$1 RETURNING id, status`,
+        [user.id]
+      );
+      user = up.rows[0];
+    }
+
     req.session.regenerate((err) => {
       if (err) return fail('로그인 처리 중 문제가 생겼습니다.');
       req.session.userId = user.id;
