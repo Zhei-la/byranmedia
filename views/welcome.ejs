@@ -1,0 +1,37 @@
+<%- include('partials/head') %>
+<body>
+<div class="wrap narrow">
+  <div class="auth-head">
+    <a href="/home" class="auth-logo-link"><img src="/img/logo.png" alt="바이란미디어 홈으로" height="24" class="auth-logo"></a>
+    <h1>가입되었습니다</h1>
+    <p><%= user.name %>님, 반갑습니다.</p>
+  </div>
+
+  <div class="card">
+    <p class="wel-q">혹시 소개해 주신 분이 있나요?</p>
+    <p class="wel-sub">
+      추천인 코드를 받으셨다면 넣어 주세요.<br>
+      누구의 소개인지 확인하는 데만 씁니다.
+    </p>
+
+    <% if (error) { %><div class="alert err"><%= error %></div><% } %>
+
+    <form method="post" action="/welcome">
+      <div class="field">
+        <label class="lb" for="code">추천인 코드</label>
+        <input type="text" id="code" name="code" value="<%= code %>"
+               placeholder="예: BR7K2M" maxlength="12"
+               autocapitalize="characters" autocomplete="off" autofocus
+               class="code-input">
+      </div>
+      <button type="submit" class="btn primary block">확인</button>
+    </form>
+
+    <form method="post" action="/welcome" class="skip-form">
+      <button type="submit" class="btn block skip">소개해 주신 분이 없습니다</button>
+    </form>
+  </div>
+
+  <div class="auth-foot">다음 단계에서 승인 안내를 드립니다.</div>
+</div>
+<%- include('partials/foot') %>

@@ -259,7 +259,7 @@ details.editrow .box{
 .recent{font-size:12.5px;color:var(--ink-2)}
 .recent li{padding:5px 0;border-bottom:1px solid var(--line-soft);list-style:none;display:flex;gap:9px}
 .recent li:last-child{border:none}
-.recent .who{font-weight:600;color:var(--ink);min-width:60px}
+.recent .rname{font-weight:600;color:var(--ink);min-width:64px;flex-shrink:0}
 .recent .when{margin-left:auto;color:var(--ink-3);font-family:var(--mono);font-size:11.5px}
 
 footer{
@@ -611,3 +611,90 @@ html{scroll-behavior:smooth}
   .who-list li{gap:14px;padding:18px 0}
   .who-no{width:26px;font-size:17px}
 }
+
+/* ---- 회원 메모 ---- */
+.memo-form{display:flex;gap:6px;align-items:flex-start}
+.memo-form textarea{
+  flex:1;min-width:0;min-height:44px;padding:7px 9px;font-size:12.5px;
+  line-height:1.5;border:1px solid var(--line);border-radius:6px;
+  background:var(--surface);resize:vertical;
+}
+.memo-form textarea:focus{
+  outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);
+}
+.memo-save{flex-shrink:0;align-self:stretch;padding:6px 10px}
+
+/* ---- 추천인 ---- */
+.ref-form{margin-bottom:4px}
+.ref-form .lb{margin-bottom:6px}
+.ref-form .lb .opt{
+  font-size:10.5px;font-weight:600;color:var(--ink-3);
+  letter-spacing:0;text-transform:none;margin-left:5px;
+}
+.ref-form input{text-transform:uppercase;letter-spacing:.08em;font-weight:600}
+.ref-warn{font-size:12px;color:var(--warn);margin-top:6px;line-height:1.5}
+
+.ref-fixed{
+  background:var(--accent-soft);border:1px solid #CFE5DC;border-radius:10px;
+  padding:15px 16px;margin-bottom:16px;text-align:center;
+}
+.ref-badge{
+  display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.06em;
+  color:#fff;background:var(--accent);padding:3px 10px;border-radius:20px;margin-bottom:9px;
+}
+.ref-fixed p{font-size:13.5px;color:var(--ink-2);margin-bottom:7px}
+.ref-fixed strong{color:var(--ink);font-weight:700}
+.ref-fixed code{
+  font-family:var(--mono);font-size:15px;font-weight:700;letter-spacing:.12em;
+  color:var(--accent);
+}
+
+.refcard{
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  padding:20px;margin-bottom:26px;
+}
+.refcard-lbl{font-size:13px;font-weight:700;letter-spacing:-.02em;margin-bottom:4px}
+.refcard-sub{font-size:12.5px;color:var(--ink-3);line-height:1.6}
+.refcard-sub strong{color:var(--accent);font-weight:700}
+.refcard-row{display:flex;align-items:center;gap:8px;margin-top:14px;flex-wrap:wrap}
+.refcode{
+  font-family:var(--mono);font-size:19px;font-weight:700;letter-spacing:.16em;
+  color:var(--ink);background:var(--bg);padding:9px 16px;border-radius:8px;
+}
+.refcard-link{
+  font-size:11.5px;color:var(--ink-3);margin-top:11px;
+  font-family:var(--mono);word-break:break-all;
+}
+
+.ref-from{font-size:13px;font-weight:600;color:var(--ink-2)}
+.ref-count{
+  display:inline-block;font-size:11px;font-weight:700;color:var(--accent);
+  background:var(--accent-soft);padding:2px 8px;border-radius:20px;margin-top:5px;
+}
+.mini.own{color:var(--ink-3);opacity:.7;margin-top:4px}
+
+@media (max-width:700px){
+  .refcard-row{gap:6px}
+  .refcode{font-size:17px;padding:8px 13px}
+}
+
+/* ---- 가입 완료 화면 ---- */
+.wel-q{font-size:16px;font-weight:650;letter-spacing:-.02em;margin-bottom:7px}
+.wel-sub{font-size:13.5px;color:var(--ink-2);line-height:1.7;margin-bottom:20px}
+.code-input{
+  text-transform:uppercase;letter-spacing:.14em;font-weight:700;
+  font-size:17px;text-align:center;font-family:var(--mono);
+}
+.skip-form{margin-top:9px}
+.btn.skip{background:none;border-color:transparent;color:var(--ink-3);font-weight:550}
+.btn.skip:hover{background:var(--bg);color:var(--ink-2);border-color:transparent}
+
+.pend-ref{
+  display:flex;align-items:center;gap:10px;margin-top:16px;
+  padding:12px 14px;background:var(--accent-soft);border-radius:9px;
+}
+.pend-ref-lbl{
+  font-size:11px;font-weight:700;letter-spacing:.05em;color:#fff;
+  background:var(--accent);padding:3px 9px;border-radius:20px;
+}
+.pend-ref strong{font-size:14px;font-weight:650}

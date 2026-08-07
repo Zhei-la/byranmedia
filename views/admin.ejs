@@ -23,15 +23,14 @@
       <div class="n"><%= stat.pending %></div><div class="l">승인 대기</div>
     </div>
     <div class="stat"><div class="n"><%= stat.active %></div><div class="l">이용 중</div></div>
-    <div class="stat"><div class="n"><%= stat.expired %></div><div class="l">기간 만료</div></div>
     <div class="stat"><div class="n"><%= stat.suspended %></div><div class="l">이용 중지</div></div>
+    <div class="stat"><div class="n"><%= stat.total %></div><div class="l">전체</div></div>
   </div>
 
   <div class="filters">
     <a href="/admin?filter=all" class="<%= filter === 'all' ? 'on' : '' %>">전체</a>
     <a href="/admin?filter=pending" class="<%= filter === 'pending' ? 'on' : '' %>">승인 대기</a>
     <a href="/admin?filter=active" class="<%= filter === 'active' ? 'on' : '' %>">이용 중</a>
-    <a href="/admin?filter=expired" class="<%= filter === 'expired' ? 'on' : '' %>">기간 만료</a>
     <a href="/admin?filter=suspended" class="<%= filter === 'suspended' ? 'on' : '' %>">이용 중지</a>
   </div>
 
@@ -39,8 +38,8 @@
     <table>
       <thead>
         <tr>
-          <th>이름 · 연락처</th><th>이메일</th><th>과정</th>
-          <th>상태</th><th>만료일</th><th>최근 접속</th><th style="width:220px">처리</th>
+          <th style="width:160px">이름</th><th style="width:130px">추천</th><th>메모</th>
+          <th style="width:80px">상태</th><th style="width:90px">가입일</th><th style="width:220px">처리</th>
         </tr>
       </thead>
       <tbody>
@@ -52,19 +51,34 @@
           <td>
             <strong><%= u.name %></strong>
             <% if (u.role === 'admin') { %> <span class="pill admin">관리자</span><% } %>
-            <% if (u.provider === 'kakao') { %><span class="pill kakao">카카오</span><% } %>
+            <% if (u.provider === 'kakao') { %> <span class="pill kakao">카카오</span><% } %>
+            <% if (u.email) { %><div class="mini"><%= u.email %></div><% } %>
             <% if (u.phone) { %><div class="mini"><%= u.phone %></div><% } %>
           </td>
-          <td class="mini"><%= u.email %></td>
-          <td><%= u.course || '-' %></td>
           <td>
-            <% if (u.status === 'pending') { %><span class="pill pending">승인 대기</span>
+            <% if (u.referrer_name) { %>
+              <div class="ref-from"><%= u.referrer_name %></div>
+              <div class="mini"><%= u.referrer_code %></div>
+            <% } else { %>
+              <span class="mini">직접 가입</span>
+            <% } %>
+            <% if (u.invited > 0) { %>
+              <div class="ref-count"><%= u.invited %>명 데려옴</div>
+            <% } %>
+            <% if (u.referral_code) { %><div class="mini own"><%= u.referral_code %></div><% } %>
+          </td>
+          <td>
+            <form method="post" action="/admin/users/<%= u.id %>/memo" class="memo-form">
+              <textarea name="memo" rows="2" placeholder="누구인지 적어두세요. 예: 3기 김영희, 울산, 카톡으로 신청"><%= u.memo || '' %></textarea>
+              <button class="btn sm memo-save">저장</button>
+            </form>
+          </td>
+          <td>
+            <% if (u.status === 'pending') { %><span class="pill pending">대기</span>
             <% } else if (u.status === 'suspended') { %><span class="pill suspended">중지</span>
-            <% } else if (u.expired) { %><span class="pill expired">만료</span>
             <% } else { %><span class="pill active">이용 중</span><% } %>
           </td>
-          <td class="mini"><%= u.expires_at ? new Date(u.expires_at).toLocaleDateString('ko-KR') : '무기한' %></td>
-          <td class="mini"><%= u.last_login_at ? new Date(u.last_login_at).toLocaleDateString('ko-KR') : '-' %></td>
+          <td class="mini"><%= new Date(u.created_at).toLocaleDateString('ko-KR', {month:'numeric', day:'numeric'}) %></td>
           <td>
             <div class="actions">
               <% if (u.status !== 'active') { %>
@@ -75,20 +89,17 @@
               <% } %>
               <% if (u.status === 'active') { %>
                 <form method="post" action="/admin/users/<%= u.id %>/status" class="inline-form"
-                      onsubmit="return confirm('<%= u.name %> 님을 승인 대기 상태로 되돌립니다. 도구를 쓸 수 없게 되고, 다시 승인하면 바로 복구됩니다.')">
-                  <input type="hidden" name="status" value="pending">
-                  <button class="btn sm">승인 취소</button>
-                </form>
-                <form method="post" action="/admin/users/<%= u.id %>/status" class="inline-form"
-                      onsubmit="return confirm('<%= u.name %> 님의 이용을 중지합니다.')">
+                      onsubmit="return confirm('<%= u.name %> 님의 이용을 중지합니다. 계정은 남아 있고 나중에 풀 수 있습니다.')">
                   <input type="hidden" name="status" value="suspended">
                   <button class="btn sm">이용 중지</button>
                 </form>
               <% } %>
-              <form method="post" action="/admin/users/<%= u.id %>/extend" class="inline-form">
-                <input type="hidden" name="months" value="3">
-                <button class="btn sm">3개월 연장</button>
-              </form>
+              <% if (u.id !== user.id) { %>
+                <form method="post" action="/admin/users/<%= u.id %>/delete" class="inline-form"
+                      onsubmit="return confirm('<%= u.name %> 님의 가입을 취소합니다.\n\n계정과 기록이 모두 지워지고, 본인이 카카오로 다시 로그인하면 새로 신청하게 됩니다.\n\n되돌릴 수 없습니다. 진행할까요?')">
+                  <button class="btn sm danger">가입 취소</button>
+                </form>
+              <% } %>
               <% if (u.role === 'admin') { %>
                 <% if (u.id !== user.id) { %>
                   <form method="post" action="/admin/users/<%= u.id %>/role" class="inline-form"
@@ -106,55 +117,6 @@
               <% } %>
             </div>
 
-            <details class="editrow">
-              <summary>자세히 수정</summary>
-              <div class="box">
-                <form method="post" action="/admin/users/<%= u.id %>/update">
-                  <div class="field">
-                    <label class="lb">수강 만료일</label>
-                    <input type="date" name="expires_at" value="<%= u.expires_at ? new Date(u.expires_at).toISOString().slice(0,10) : '' %>">
-                    <div class="hint">비워두면 무기한</div>
-                  </div>
-                  <div class="field">
-                    <label class="lb">과정</label>
-                    <input type="text" name="course" value="<%= u.course || '' %>">
-                  </div>
-                  <div class="field">
-                    <label class="lb">권한</label>
-                    <select name="role">
-                      <option value="member" <%= u.role === 'member' ? 'selected' : '' %>>수강생</option>
-                      <option value="admin" <%= u.role === 'admin' ? 'selected' : '' %>>관리자</option>
-                    </select>
-                  </div>
-                  <div class="field">
-                    <label class="lb">메모</label>
-                    <textarea name="memo" style="min-height:52px"><%= u.memo || '' %></textarea>
-                  </div>
-                  <button class="btn sm primary">저장</button>
-                </form>
-
-                <hr style="border:none;border-top:1px solid var(--line);margin:14px 0">
-
-                <form method="post" action="/admin/users/<%= u.id %>/reset">
-                  <label class="lb">임시 비밀번호로 바꾸기</label>
-                  <div style="display:flex;gap:6px">
-                    <input type="text" name="temp_password" placeholder="8자 이상" minlength="8" required>
-                    <button class="btn sm">변경</button>
-                  </div>
-                  <div class="hint">바꾼 뒤 본인에게 직접 알려 주세요.</div>
-                </form>
-
-                <hr style="border:none;border-top:1px solid var(--line);margin:14px 0">
-
-                <div class="hint" style="margin-bottom:8px">
-                  계정을 지우면 기록이 모두 사라집니다. 본인이 다시 로그인하면 새 계정으로 처음부터 신청하게 됩니다.
-                </div>
-                <form method="post" action="/admin/users/<%= u.id %>/delete"
-                      onsubmit="return confirm('<%= u.name %> 님의 계정을 완전히 삭제합니다. 되돌릴 수 없습니다.')">
-                  <button class="btn sm danger">계정 삭제</button>
-                </form>
-              </div>
-            </details>
           </td>
         </tr>
       <% }); %>
@@ -168,7 +130,7 @@
       <ul class="recent">
         <% recent.forEach(function(r){ %>
           <li>
-            <span class="who"><%= r.name %></span>
+            <span class="rname"><%= r.name %></span>
             <span><%= r.tool_slug %></span>
             <span class="when"><%= new Date(r.created_at).toLocaleString('ko-KR', {month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit'}) %></span>
           </li>

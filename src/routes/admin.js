@@ -18,17 +18,17 @@ router.get('/admin', async (req, res) => {
   try {
     let where = '';
     const params = [];
-    if (filter === 'pending') where = `WHERE status = 'pending'`;
-    else if (filter === 'active') where = `WHERE status = 'active'`;
-    else if (filter === 'suspended') where = `WHERE status = 'suspended'`;
-    else if (filter === 'expired') where = `WHERE expires_at IS NOT NULL AND expires_at < CURRENT_DATE`;
+    if (filter === 'pending') where = `WHERE u.status = 'pending'`;
+    else if (filter === 'active') where = `WHERE u.status = 'active'`;
+    else if (filter === 'suspended') where = `WHERE u.status = 'suspended'`;
 
     const { rows: users } = await db.query(
-      `SELECT id, email, name, phone, course, role, status, expires_at, memo, provider,
-              last_login_at, created_at,
-              (expires_at IS NOT NULL AND expires_at < CURRENT_DATE) AS expired
-         FROM users ${where}
-        ORDER BY (status='pending') DESC, created_at DESC
+      `SELECT u.id, u.email, u.name, u.phone, u.role, u.status, u.memo, u.provider,
+              u.last_login_at, u.created_at, u.referral_code,
+              r.name AS referrer_name, r.referral_code AS referrer_code,
+              (SELECT count(*)::int FROM users c WHERE c.referred_by = u.id) AS invited
+         FROM users u LEFT JOIN users r ON r.id = u.referred_by ${where}
+        ORDER BY (u.status='pending') DESC, u.created_at DESC
         LIMIT 300`,
       params
     );
@@ -38,7 +38,7 @@ router.get('/admin', async (req, res) => {
          count(*) FILTER (WHERE status='pending')   ::int AS pending,
          count(*) FILTER (WHERE status='active')    ::int AS active,
          count(*) FILTER (WHERE status='suspended') ::int AS suspended,
-         count(*) FILTER (WHERE expires_at IS NOT NULL AND expires_at < CURRENT_DATE) ::int AS expired
+         count(*)::int AS total
        FROM users`
     );
 
@@ -94,39 +94,12 @@ router.post('/admin/users/:id/status', async (req, res) => {
   res.redirect('/admin?done=' + encodeURIComponent(msg));
 });
 
-/* 회원 정보 수정 (만료일, 과정, 메모, 권한) */
-router.post('/admin/users/:id/update', async (req, res) => {
+/* 메모 저장 — 누가 누구인지 적어두는 칸 */
+router.post('/admin/users/:id/memo', async (req, res) => {
   const id = parseInt(req.params.id, 10);
-  const expires = req.body.expires_at ? req.body.expires_at : null;
-  const course = String(req.body.course || '').trim() || null;
-  const memo = String(req.body.memo || '').trim() || null;
-  let role = String(req.body.role || 'member');
-  if (!['member', 'admin'].includes(role)) role = 'member';
-
-  if (id === req.user.id && role !== 'admin') {
-    return res.redirect('/admin?done=' + encodeURIComponent('본인 관리자 권한은 해제할 수 없습니다'));
-  }
-
-  await db.query(
-    `UPDATE users SET expires_at = $1, course = $2, memo = $3, role = $4 WHERE id = $5`,
-    [expires, course, memo, role, id]
-  );
-  res.redirect('/admin?done=' + encodeURIComponent('회원 정보를 저장했습니다'));
-});
-
-/* 수강 기간 연장 (개월 단위) */
-router.post('/admin/users/:id/extend', async (req, res) => {
-  const id = parseInt(req.params.id, 10);
-  const months = Math.max(1, Math.min(36, parseInt(req.body.months, 10) || 1));
-  await db.query(
-    `UPDATE users
-        SET expires_at = GREATEST(COALESCE(expires_at, CURRENT_DATE), CURRENT_DATE)
-                         + ($1 || ' months')::interval,
-            status = 'active'
-      WHERE id = $2`,
-    [String(months), id]
-  );
-  res.redirect('/admin?done=' + encodeURIComponent(months + '개월 연장했습니다'));
+  const memo = String(req.body.memo || '').trim().slice(0, 2000) || null;
+  await db.query(`UPDATE users SET memo = $1 WHERE id = $2`, [memo, id]);
+  res.redirect('/admin?done=' + encodeURIComponent('메모를 저장했습니다'));
 });
 
 /* 비밀번호 초기화 */
@@ -246,7 +219,7 @@ router.post('/admin/users/:id/role', async (req, res) => {
 
   // 관리자로 올릴 때는 승인 상태와 기간도 함께 풀어준다
   if (role === 'admin') {
-    await db.query(`UPDATE users SET role='admin', status='active', expires_at=NULL WHERE id=$1`, [id]);
+    await db.query(`UPDATE users SET role='admin', status='active' WHERE id=$1`, [id]);
     return res.redirect('/admin?done=' + encodeURIComponent('관리자로 지정했습니다'));
   }
   await db.query(`UPDATE users SET role='member' WHERE id=$1`, [id]);

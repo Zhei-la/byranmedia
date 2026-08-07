@@ -22,7 +22,7 @@ async function main() {
     const hash = await bcrypt.hash(password, 12);
     if (rows.length) {
       await db.query(
-        `UPDATE users SET password_hash=$1, name=$2, role='admin', status='active', expires_at=NULL WHERE id=$3`,
+        `UPDATE users SET password_hash=$1, name=$2, role='admin', status='active' WHERE id=$3`,
         [hash, name, rows[0].id]
       );
       console.log(`2. 관리자 계정을 갱신했습니다: ${email} (${name})`);

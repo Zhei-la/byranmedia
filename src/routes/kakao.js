@@ -1,6 +1,7 @@
 const express = require('express');
 const crypto = require('crypto');
 const db = require('../db');
+const { ensureCode, findByCode } = require('../referral');
 
 const router = express.Router();
 
@@ -26,7 +27,7 @@ function redirectUri(req) {
 }
 
 /* ---------------- 카카오로 보내기 ---------------- */
-router.get('/auth/kakao', (req, res) => {
+router.get(['/auth/kakao'], (req, res) => {
   if (!kakaoReady()) {
     return res.status(503).render('error', {
       title: '카카오 로그인 준비 중',
@@ -37,6 +38,10 @@ router.get('/auth/kakao', (req, res) => {
   // 요청을 위조당하지 않도록 임의의 값을 만들어 세션에 넣어둔다.
   const state = crypto.randomBytes(16).toString('hex');
   req.session.kakaoState = state;
+
+  // 카카오에 다녀오는 동안 추천 코드를 기억해 둔다
+  const ref = String(req.query.ref || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+  req.session.refCode = ref ? ref.slice(0, 12) : null;
 
   const url = new URL('https://kauth.kakao.com/oauth/authorize');
   url.searchParams.set('client_id', KEY);
@@ -125,14 +130,27 @@ router.get('/auth/kakao/callback', async (req, res) => {
     }
 
     // 5) 그래도 없으면 새로 만든다. 승인 전까지는 도구를 쓸 수 없다.
-    if (rows.length === 0) {
+    const isNew = rows.length === 0;
+    let linkedByRef = false;
+    if (isNew) {
+      // 추천 코드는 새로 가입할 때만 반영한다
+      let referredBy = null;
+      const refCode = req.session.refCode;
+      if (refCode) {
+        const owner = await findByCode(refCode);
+        if (owner) {
+          referredBy = owner.id;
+          linkedByRef = true;
+        }
+      }
       const created = await db.query(
-        `INSERT INTO users (email, password_hash, name, kakao_id, provider, status)
-         VALUES ($1, NULL, $2, $3, 'kakao', 'pending') RETURNING id, status`,
-        [email, nick, kakaoId]
+        `INSERT INTO users (email, password_hash, name, kakao_id, provider, status, referred_by)
+         VALUES ($1, NULL, $2, $3, 'kakao', 'pending', $4) RETURNING id, status`,
+        [email, nick, kakaoId, referredBy]
       );
       rows = created.rows;
     }
+    delete req.session.refCode;
 
     let user = rows[0];
 
@@ -144,18 +162,23 @@ router.get('/auth/kakao/callback', async (req, res) => {
       (adminKakao && adminKakao === kakaoId) || (adminEmail && email && adminEmail === email);
     if (isOwner) {
       const up = await db.query(
-        `UPDATE users SET role='admin', status='active', expires_at=NULL
+        `UPDATE users SET role='admin', status='active'
           WHERE id=$1 RETURNING id, status`,
         [user.id]
       );
       user = up.rows[0];
     }
 
+    await ensureCode(user.id);
+
     req.session.regenerate((err) => {
       if (err) return fail('로그인 처리 중 문제가 생겼습니다.');
       req.session.userId = user.id;
       db.query(`UPDATE users SET last_login_at = now() WHERE id = $1`, [user.id]).catch(() => {});
-      res.redirect(user.status === 'active' ? '/hub' : '/pending');
+      // 막 가입한 사람에게는 추천인을 물어본다. 링크로 이미 연결됐으면 건너뛴다.
+      if (user.status === 'active') return res.redirect('/hub');
+      if (isNew && !linkedByRef) return res.redirect('/welcome');
+      res.redirect('/pending');
     });
   } catch (e) {
     console.error('[카카오 콜백]', e);

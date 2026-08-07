@@ -7,9 +7,19 @@ const router = express.Router();
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 /* ---------------- 로그인 ---------------- */
-router.get('/login', (req, res) => {
+const { findByCode } = require('../referral');
+
+router.get(['/login', '/join'], async (req, res) => {
   if (req.user) return res.redirect('/hub');
-  res.render('login', { title: '로그인', error: req.query.e || null });
+
+  // 추천 링크로 들어오면 코드를 고정해서 보여준다
+  const raw = String(req.query.ref || '').trim().toUpperCase();
+  let ref = null;
+  if (raw) {
+    const owner = await findByCode(raw);
+    if (owner) ref = { code: raw, name: owner.name };
+  }
+  res.render('login', { title: '회원가입', error: req.query.e || null, ref });
 });
 
 router.get('/login/email', (req, res) => {
@@ -121,11 +131,62 @@ router.post('/signup', async (req, res) => {
   }
 });
 
+/* ---------------- 가입 직후: 추천인 입력 ---------------- */
+router.get('/welcome', async (req, res) => {
+  if (!req.user) return res.redirect('/login');
+  if (req.user.status === 'active') return res.redirect('/hub');
+
+  // 이미 추천인이 정해졌으면 다시 묻지 않는다
+  const { rows } = await db.query(`SELECT referred_by FROM users WHERE id = $1`, [req.user.id]);
+  if (rows[0] && rows[0].referred_by) return res.redirect('/pending');
+
+  res.render('welcome', { title: '가입 완료', error: null, code: '' });
+});
+
+router.post('/welcome', async (req, res) => {
+  if (!req.user) return res.redirect('/login');
+
+  const code = String(req.body.code || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (!code) return res.redirect('/pending');
+
+  const owner = await findByCode(code);
+  if (!owner) {
+    return res.status(400).render('welcome', {
+      title: '가입 완료',
+      error: '그런 코드를 찾지 못했습니다. 다시 확인해 주세요.',
+      code,
+    });
+  }
+  if (owner.id === req.user.id) {
+    return res.status(400).render('welcome', {
+      title: '가입 완료',
+      error: '본인 코드는 넣을 수 없습니다.',
+      code,
+    });
+  }
+
+  await db.query(
+    `UPDATE users SET referred_by = $1 WHERE id = $2 AND referred_by IS NULL`,
+    [owner.id, req.user.id]
+  );
+  res.redirect('/pending?ref=1');
+});
+
 /* ---------------- 승인 대기 안내 ---------------- */
-router.get('/pending', (req, res) => {
+router.get('/pending', async (req, res) => {
   if (!req.user) return res.redirect('/login');
   if (req.user.status === 'active' && !req.user.expired) return res.redirect('/hub');
-  res.render('pending', { title: '승인 대기', contact: process.env.CONTACT_INFO || '' });
+  const { rows } = await db.query(
+    `SELECT r.name AS referrer FROM users u
+       LEFT JOIN users r ON r.id = u.referred_by WHERE u.id = $1`,
+    [req.user.id]
+  );
+  res.render('pending', {
+    title: '승인 대기',
+    contact: process.env.CONTACT_INFO || '',
+    referrer: rows[0] ? rows[0].referrer : null,
+    justSet: req.query.ref === '1',
+  });
 });
 
 /* ---------------- 로그아웃 ---------------- */

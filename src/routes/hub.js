@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const db = require('../db');
 const { requireActive } = require('../middleware/auth');
+const { ensureCode } = require('../referral');
 
 const router = express.Router();
 const TOOLS_DIR = path.join(__dirname, '..', '..', 'protected', 'tools');
@@ -64,18 +65,18 @@ router.get('/hub', requireActive, async (req, res) => {
       /* notices 테이블이 아직 없을 수 있다 */
     }
 
-    // 수강 기간
-    let daysLeft = null;
-    let expiresText = '';
-    if (req.user.expires_at) {
-      const end = new Date(req.user.expires_at);
-      const now = new Date(new Date().toDateString());
-      daysLeft = Math.ceil((end - now) / 86400000);
-      expiresText = end.toLocaleDateString('ko-KR', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      });
+    // 내 추천 코드와, 내가 데려온 사람 수
+    let myCode = null;
+    let invited = 0;
+    try {
+      myCode = await ensureCode(req.user.id);
+      const r = await db.query(
+        `SELECT count(*)::int AS n FROM users WHERE referred_by = $1`,
+        [req.user.id]
+      );
+      invited = r.rows[0].n;
+    } catch (e) {
+      /* 추천 기능이 없어도 홈은 열려야 한다 */
     }
 
     const today = new Date().toLocaleDateString('ko-KR', {
@@ -90,9 +91,9 @@ router.get('/hub', requireActive, async (req, res) => {
       count: rows.length,
       recentTools,
       notices,
-      daysLeft,
-      expiresText,
       today,
+      myCode,
+      invited,
     });
   } catch (e) {
     console.error('[hub]', e.message);

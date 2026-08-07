@@ -56,6 +56,7 @@ app.use((req, res, next) => {
   res.locals.title = '';
   res.locals.kakaoOn = kakao.kakaoReady();
   res.locals.assetVer = ASSET_VER;
+  res.locals.baseUrl = (process.env.BASE_URL || `${req.protocol}://${req.get('host')}`).replace(/\/+$/, '');
   next();
 });
 

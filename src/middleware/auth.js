@@ -9,7 +9,7 @@ async function loadUser(req, res, next) {
 
   try {
     const { rows } = await db.query(
-      `SELECT id, email, name, role, status, expires_at, course
+      `SELECT id, email, name, role, status, memo, provider
          FROM users WHERE id = $1`,
       [req.session.userId]
     );
@@ -18,7 +18,6 @@ async function loadUser(req, res, next) {
       return next();
     }
     const u = rows[0];
-    u.expired = !!(u.expires_at && new Date(u.expires_at) < new Date(new Date().toDateString()));
     req.user = u;
     res.locals.user = u;
   } catch (e) {
@@ -41,7 +40,6 @@ function requireActive(req, res, next) {
   if (!req.user) return res.redirect('/login');
   if (req.user.status === 'pending') return res.redirect('/pending');
   if (req.user.status === 'suspended') return res.redirect('/pending');
-  if (req.user.expired) return res.redirect('/pending');
   next();
 }
 
