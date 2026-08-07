@@ -2,69 +2,56 @@
 <body class="lp">
 
 <nav class="lp-nav">
-  <a href="/" class="lp-logo">
-    <span class="mark">Byran</span>
-    <span class="kr">바이란미디어</span>
-  </a>
+  <a href="/" class="lp-logo"><img src="/img/logo.png" alt="바이란미디어" height="27"></a>
   <a href="/login" class="lp-navlink">로그인</a>
 </nav>
 
-<main>
+<main class="lp-main">
 
   <section class="hero">
-    <p class="eyebrow">수강생 전용 작업실</p>
-    <h1>
-      블로그는<br>
-      <span class="ul">루틴</span>입니다
-    </h1>
-    <p class="lead">
-      한 번에 터뜨리는 방법은 여기 없습니다.<br>
-      매일 쌓는 사람에게 필요한 도구만 모아뒀습니다.
-    </p>
-    <div class="cta">
-      <a href="/login" class="btn-lg primary">로그인</a>
-      <a href="/signup" class="btn-lg">수강생 등록 신청</a>
-    </div>
+    <p class="kicker">블로그는 한 번에 터지지 않습니다</p>
+    <h1>Write.<br class="br-sm"> Publish. Repeat.</h1>
+    <p class="lead">매일 쌓는 사람을 위한 작업실</p>
+    <a href="/login" class="pill-cta">
+      로그인하고 시작하기
+      <span class="arw">→</span>
+    </a>
   </section>
 
+  <a href="/signup" class="bar">
+    <span class="bar-tag">등록</span>
+    <span class="bar-txt">수강생이라면 여기서 계정을 신청하세요</span>
+    <span class="bar-arw">›</span>
+  </a>
+
   <% if (tools.length) { %>
-  <section class="shelf">
-    <h2 class="shelf-h">
-      <span>지금 쓸 수 있는 도구</span>
-      <span class="num"><%= tools.length %></span>
-    </h2>
-    <ul class="shelf-grid">
+  <section class="preview">
+    <div class="preview-h">
+      <span class="lbl">도구</span>
+      <a href="/login" class="more">전체 보기 →</a>
+    </div>
+    <ul class="tiles">
       <% tools.forEach(function(t){ %>
-        <li class="chip">
-          <span class="chip-ico"><%= t.emoji %></span>
-          <span class="chip-name"><%= t.title %></span>
+        <li class="tile">
+          <span class="tile-ico"><%= t.emoji %></span>
+          <span class="tile-name"><%= t.title %></span>
         </li>
       <% }); %>
     </ul>
-    <p class="shelf-note">로그인하면 바로 사용할 수 있습니다.</p>
   </section>
   <% } %>
 
   <section class="creed">
-    <div class="creed-in">
-      <p class="creed-eyebrow">여기서 배우는 것</p>
-      <h2>보장을 파는 법은<br>가르치지 않습니다</h2>
-      <p class="creed-body">
-        상위노출을 약속하는 곳은 많습니다.<br>
-        그 약속을 지키려면 결국 검색엔진이 싫어하는 일을 하게 됩니다.
-      </p>
-      <p class="creed-body">
-        여기 있는 도구는 전부 실무에서 쓰던 것들입니다.
-        업종별 법규를 걸러내고, 원고를 검수하고, 꾸준히 발행하는 일.
-        느리지만 무너지지 않는 방법을 다룹니다.
-      </p>
-    </div>
+    <p class="creed-lbl">WHY WE EXIST</p>
+    <h2>우리가 파는 것은<br>보장이 아닙니다</h2>
+    <p class="creed-sub">느리지만 무너지지 않는 방법을 다룹니다.</p>
+    <a href="/signup" class="creed-link">수강생 등록 신청 <span>→</span></a>
   </section>
 
 </main>
 
 <footer class="lp-foot">
-  <span class="fmark">Byran Media</span>
+  <img src="/img/logo.png" alt="" height="17" class="foot-logo">
   수강생 전용 공간입니다. 계정을 다른 사람과 공유하지 말아 주세요.
 </footer>
 
