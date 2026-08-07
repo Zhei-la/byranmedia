@@ -90,3 +90,11 @@ CREATE TABLE IF NOT EXISTS inquiries (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_inq ON inquiries (status, created_at DESC);
+
+-- 카카오 로그인 지원
+-- 카카오로 가입한 사람은 비밀번호가 없고, 이메일 제공에 동의하지 않을 수도 있다.
+ALTER TABLE users ALTER COLUMN password_hash DROP NOT NULL;
+ALTER TABLE users ALTER COLUMN email DROP NOT NULL;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS kakao_id  VARCHAR(64) UNIQUE;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS provider  VARCHAR(20) NOT NULL DEFAULT 'local';
+CREATE INDEX IF NOT EXISTS idx_users_kakao ON users (kakao_id);

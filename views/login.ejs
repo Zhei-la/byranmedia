@@ -2,7 +2,7 @@
 <body>
 <div class="wrap narrow">
   <div class="auth-head">
-    <div class="mark"><span>Byran</span> Media</div>
+    <img src="/img/logo.png" alt="바이란미디어" height="24" class="auth-logo">
     <h1>로그인</h1>
   </div>
   <div class="card">
@@ -19,6 +19,15 @@
       </div>
       <button type="submit" class="btn primary block">로그인</button>
     </form>
+    <% if (kakaoOn) { %>
+      <div class="or"><span>또는</span></div>
+      <a href="/auth/kakao" class="kakao-btn">
+        <svg width="17" height="16" viewBox="0 0 18 17" fill="none" aria-hidden="true">
+          <path d="M9 0C4.03 0 0 3.13 0 6.99c0 2.5 1.68 4.69 4.2 5.92l-1.06 3.9c-.09.34.29.61.59.42l4.66-3.07c.2.02.4.02.61.02 4.97 0 9-3.13 9-6.99C18 3.13 13.97 0 9 0z" fill="#191600"/>
+        </svg>
+        카카오로 시작하기
+      </a>
+    <% } %>
   </div>
   <div class="auth-foot">아직 계정이 없나요? <a href="/signup">수강생 등록 신청</a></div>
 </div>

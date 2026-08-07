@@ -51,10 +51,13 @@ app.use(loadUser);
 app.use((req, res, next) => {
   res.locals.siteName = process.env.SITE_NAME || '바이란미디어';
   res.locals.title = '';
+  res.locals.kakaoOn = kakao.kakaoReady();
   next();
 });
 
 /* 라우트 */
+const kakao = require('./routes/kakao');
+app.use(kakao);
 app.use(require('./routes/public'));
 app.use(require('./routes/auth'));
 app.use(require('./routes/hub'));
