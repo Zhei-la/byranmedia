@@ -1,0 +1,73 @@
+<%- include('partials/head') %>
+<body>
+<%- include('partials/nav') %>
+
+<div class="wrap">
+
+  <header class="welcome">
+    <div class="welcome-date"><%= today %></div>
+    <h1><%= user.name %>님, 안녕하세요</h1>
+    <% if (daysLeft !== null) { %>
+      <% if (daysLeft <= 7) { %>
+        <p class="term warn">수강 기간이 <strong><%= daysLeft %>일</strong> 남았습니다. 연장이 필요하면 알려 주세요.</p>
+      <% } else { %>
+        <p class="term"><%= expiresText %>까지 이용할 수 있습니다.</p>
+      <% } %>
+    <% } %>
+  </header>
+
+  <% if (notices.length) { %>
+    <section class="notices">
+      <% notices.forEach(function(n){ %>
+        <details class="notice <%= n.is_pinned ? 'pinned' : '' %>">
+          <summary>
+            <% if (n.is_pinned) { %><span class="tagline">중요</span><% } %>
+            <span class="ntitle"><%= n.title %></span>
+            <span class="ndate"><%= n.dateText %></span>
+          </summary>
+          <% if (n.body) { %><div class="nbody"><%= n.body %></div><% } %>
+        </details>
+      <% }); %>
+    </section>
+  <% } %>
+
+  <% if (recentTools.length) { %>
+    <section class="block">
+      <h2 class="sect">이어서 하기</h2>
+      <div class="quick">
+        <% recentTools.forEach(function(t){ %>
+          <a href="/t/<%= t.slug %>" class="qitem">
+            <span class="qico"><%= t.emoji %></span>
+            <span class="qname"><%= t.title %></span>
+          </a>
+        <% }); %>
+      </div>
+    </section>
+  <% } %>
+
+  <% if (count === 0) { %>
+    <div class="blank">
+      <strong>아직 등록된 도구가 없습니다</strong>
+      <% if (user.role === 'admin') { %>관리 화면에서 도구를 추가해 주세요.<% } else { %>도구가 준비되면 여기에 나타납니다.<% } %>
+    </div>
+  <% } else { %>
+    <% Object.keys(groups).forEach(function(cat){ %>
+      <section class="block">
+        <h2 class="sect"><%= cat %><span class="cnt"><%= groups[cat].length %></span></h2>
+        <div class="grid">
+          <% groups[cat].forEach(function(t){ %>
+            <a href="/t/<%= t.slug %>" class="tool">
+              <% if (t.admin_only) { %><span class="lock">관리자</span><% } %>
+              <span class="ico"><%= t.emoji %></span>
+              <h3><%= t.title %></h3>
+              <% if (t.description) { %><p><%= t.description %></p><% } %>
+              <span class="go">열기</span>
+            </a>
+          <% }); %>
+        </div>
+      </section>
+    <% }); %>
+  <% } %>
+
+</div>
+<%- include('partials/foot') %>

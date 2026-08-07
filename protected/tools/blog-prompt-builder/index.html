@@ -1,0 +1,1150 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>원고 프롬프트 빌더 — 제일라 자동화 연구소</title>
+<style>
+:root{
+  --bg:#F2F4F3;
+  --surface:#FFFFFF;
+  --line:#DCE1DF;
+  --line-soft:#E9EDEB;
+  --ink:#161D1A;
+  --ink-2:#5A6663;
+  --ink-3:#8A9793;
+  --accent:#2F6F5E;
+  --accent-soft:#E4F0EB;
+  --warn:#A8641C;
+  --warn-soft:#FBF1E3;
+  --danger:#A93E33;
+  --danger-soft:#FAEBE9;
+  --panel:#14181A;
+  --panel-2:#1D2326;
+  --panel-line:#2C3438;
+  --panel-ink:#D6DEDA;
+  --panel-dim:#66756F;
+  --panel-accent:#6FC2A4;
+  --radius:10px;
+  --mono:'SF Mono','JetBrains Mono','D2Coding',Consolas,'Courier New',monospace;
+  --sans:-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:var(--sans);
+  background:var(--bg);
+  color:var(--ink);
+  font-size:15px;
+  line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
+
+/* ---------- shell ---------- */
+.shell{display:flex;flex-direction:column;height:100vh;height:100dvh}
+header{
+  background:var(--surface);
+  border-bottom:1px solid var(--line);
+  padding:14px 20px 0;
+  flex-shrink:0;
+}
+.brand{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.brand h1{font-size:17px;font-weight:650;letter-spacing:-.02em}
+.brand .sub{font-size:12px;color:var(--ink-3);letter-spacing:.01em}
+.brand .badge{
+  margin-left:auto;font-size:11px;color:var(--accent);
+  background:var(--accent-soft);padding:3px 9px;border-radius:20px;font-weight:600;
+}
+.tabs{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{
+  background:none;border:none;padding:9px 15px 11px;cursor:pointer;
+  font-size:13.5px;font-weight:550;color:var(--ink-3);white-space:nowrap;
+  border-bottom:2px solid transparent;transition:color .12s;
+}
+.tab:hover{color:var(--ink-2)}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+.tab:focus-visible{outline:2px solid var(--accent);outline-offset:-2px;border-radius:4px}
+
+.body{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);flex:1;min-height:0}
+
+/* ---------- form side ---------- */
+.form{overflow-y:auto;padding:18px 20px 120px;border-right:1px solid var(--line)}
+.card{
+  background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--radius);margin-bottom:12px;overflow:hidden;
+}
+.card>summary{
+  list-style:none;cursor:pointer;padding:12px 14px;
+  display:flex;align-items:center;gap:9px;
+  font-size:13.5px;font-weight:600;user-select:none;
+}
+.card>summary::-webkit-details-marker{display:none}
+.card>summary::before{
+  content:'';width:6px;height:6px;border-right:1.6px solid var(--ink-3);
+  border-bottom:1.6px solid var(--ink-3);transform:rotate(-45deg);
+  transition:transform .15s;margin-left:2px;
+}
+.card[open]>summary::before{transform:rotate(45deg)}
+.card>summary:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.card .tag{
+  margin-left:auto;font-size:11px;font-weight:600;color:var(--ink-3);
+  background:var(--bg);padding:2px 8px;border-radius:20px;
+}
+.card .tag.on{color:var(--accent);background:var(--accent-soft)}
+.card-in{padding:2px 14px 15px;border-top:1px solid var(--line-soft)}
+
+.field{margin-top:13px}
+label.lb{
+  display:block;font-size:11px;font-weight:650;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--ink-3);margin-bottom:5px;
+}
+label.lb .req{color:var(--danger);margin-left:3px}
+.hint{font-size:11.5px;color:var(--ink-3);margin-top:5px;line-height:1.5}
+input[type=text],select,textarea{
+  width:100%;padding:9px 11px;background:var(--surface);
+  border:1px solid var(--line);border-radius:7px;
+  transition:border-color .12s,box-shadow .12s;
+}
+textarea{resize:vertical;min-height:64px;line-height:1.55}
+input:focus,select:focus,textarea:focus{
+  outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);
+}
+select{appearance:none;background-image:url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238A9793' stroke-width='1.6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 11px center;padding-right:30px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+/* chip choices */
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{
+  padding:6px 11px;border:1px solid var(--line);background:var(--surface);
+  border-radius:20px;font-size:12.5px;cursor:pointer;color:var(--ink-2);
+  transition:all .12s;
+}
+.chip:hover{border-color:var(--ink-3)}
+.chip[aria-pressed="true"]{
+  background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;
+}
+.chip:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* regulation preview */
+.reg{
+  margin-top:13px;border-radius:8px;padding:11px 12px;
+  background:var(--danger-soft);border:1px solid #EFD6D2;
+}
+.reg.none{background:var(--accent-soft);border-color:#CFE5DC}
+.reg h4{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--danger);margin-bottom:7px}
+.reg.none h4{color:var(--accent)}
+.reg .words{display:flex;flex-wrap:wrap;gap:4px}
+.reg .w{
+  font-size:11.5px;background:rgba(255,255,255,.75);color:var(--danger);
+  padding:2px 7px;border-radius:4px;font-weight:550;
+}
+.reg .note{font-size:11.5px;color:var(--ink-2);margin-top:8px;line-height:1.5}
+
+/* profile bar */
+.profbar{display:flex;gap:6px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+.profbar select{flex:1;min-width:130px}
+.btn{
+  padding:8px 13px;border:1px solid var(--line);background:var(--surface);
+  border-radius:7px;cursor:pointer;font-size:12.5px;font-weight:600;color:var(--ink-2);
+  transition:all .12s;white-space:nowrap;
+}
+.btn:hover{border-color:var(--ink-3);color:var(--ink)}
+.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary:hover{background:#265A4C;border-color:#265A4C;color:#fff}
+.btn.ghost{background:none;border-color:transparent;color:var(--ink-3)}
+.btn.ghost:hover{background:var(--bg);color:var(--ink)}
+
+.storewarn{
+  font-size:11.5px;color:var(--warn);background:var(--warn-soft);
+  border:1px solid #EEDFC4;border-radius:7px;padding:8px 10px;margin-bottom:12px;line-height:1.5;
+}
+
+/* ---------- output side ---------- */
+.out{background:var(--panel);display:flex;flex-direction:column;min-height:0}
+.out-top{
+  padding:13px 18px;border-bottom:1px solid var(--panel-line);
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;flex-shrink:0;
+}
+.out-top .ttl{
+  font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--panel-dim);
+}
+.out-top .count{font-family:var(--mono);font-size:11px;color:var(--panel-dim);margin-left:auto}
+.out-top .btn{background:var(--panel-2);border-color:var(--panel-line);color:var(--panel-ink)}
+.out-top .btn:hover{border-color:var(--panel-accent);color:var(--panel-accent)}
+.out-top .btn.primary{background:var(--panel-accent);border-color:var(--panel-accent);color:#0E1412}
+.out-top .btn.primary:hover{background:#8AD4B9;border-color:#8AD4B9;color:#0E1412}
+
+.mode{display:flex;gap:0;border:1px solid var(--panel-line);border-radius:7px;overflow:hidden}
+.mode button{
+  background:none;border:none;padding:6px 11px;font-size:11.5px;font-weight:600;
+  color:var(--panel-dim);cursor:pointer;transition:all .12s;
+}
+.mode button[aria-pressed="true"]{background:var(--panel-2);color:var(--panel-accent)}
+.mode button:focus-visible{outline:2px solid var(--panel-accent);outline-offset:-2px}
+
+.out-body{overflow-y:auto;padding:16px 18px 40px;flex:1;min-height:0}
+.blk{
+  border-left:2px solid var(--panel-line);padding:0 0 0 13px;margin-bottom:18px;
+  animation:slide .22s ease-out;
+}
+@keyframes slide{from{opacity:0;transform:translateX(-4px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.blk{animation:none}*{transition:none!important}}
+.blk.auto{border-left-color:var(--panel-accent)}
+.blk.warn{border-left-color:#C4913E}
+.blk .bl{
+  font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--panel-dim);margin-bottom:6px;display:flex;align-items:center;gap:6px;
+}
+.blk.auto .bl{color:var(--panel-accent)}
+.blk.warn .bl{color:#C4913E}
+.blk .bl .auto-mark{
+  font-size:9px;background:rgba(111,194,164,.14);padding:1px 6px;border-radius:3px;letter-spacing:.05em;
+}
+.blk pre{
+  font-family:var(--mono);font-size:12px;line-height:1.7;color:var(--panel-ink);
+  white-space:pre-wrap;word-break:break-word;
+}
+.empty{
+  color:var(--panel-dim);font-size:13px;text-align:center;padding:50px 20px;line-height:1.8;
+}
+.empty strong{color:var(--panel-ink);display:block;margin-bottom:6px;font-weight:600}
+
+.toast{
+  position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(70px);
+  background:var(--ink);color:#fff;padding:10px 18px;border-radius:22px;
+  font-size:13px;font-weight:600;opacity:0;pointer-events:none;
+  transition:all .22s cubic-bezier(.2,.9,.3,1);z-index:90;
+}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ---------- mobile ---------- */
+.mobile-bar{display:none}
+@media (max-width:860px){
+  .body{grid-template-columns:1fr}
+  .form{border-right:none;padding-bottom:150px}
+  .out{
+    position:fixed;inset:0;top:auto;height:82dvh;z-index:60;
+    border-radius:16px 16px 0 0;transform:translateY(101%);
+    transition:transform .26s cubic-bezier(.2,.9,.3,1);
+    box-shadow:0 -8px 40px rgba(0,0,0,.28);
+  }
+  .out.open{transform:translateY(0)}
+  .out-top{padding-top:16px;position:relative}
+  .out-top::before{
+    content:'';position:absolute;top:6px;left:50%;transform:translateX(-50%);
+    width:34px;height:3px;border-radius:2px;background:var(--panel-line);
+  }
+  .mobile-bar{
+    display:flex;position:fixed;left:0;right:0;bottom:0;z-index:50;
+    background:var(--surface);border-top:1px solid var(--line);
+    padding:10px 14px calc(10px + env(safe-area-inset-bottom));gap:8px;align-items:center;
+  }
+  .mobile-bar .info{font-size:12px;color:var(--ink-3);font-family:var(--mono)}
+  .mobile-bar .btn{margin-left:auto}
+  .backdrop{
+    display:none;position:fixed;inset:0;background:rgba(10,14,13,.45);z-index:55;
+  }
+  .backdrop.on{display:block}
+  header{padding:12px 14px 0}
+  .form{padding-left:14px;padding-right:14px}
+  .row{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="shell">
+  <header>
+    <div class="brand">
+      <h1>원고 프롬프트 빌더</h1>
+      <span class="sub">제일라 자동화 연구소</span>
+      <span class="badge">인터넷 없이 동작</span>
+    </div>
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" aria-selected="true" data-tab="blog">블로그 원고</button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="threads">스레드</button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="review">원고 검수</button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="keyword">키워드 리서치</button>
+    </div>
+  </header>
+
+  <div class="body">
+    <div class="form" id="form"></div>
+
+    <aside class="out" id="out">
+      <div class="out-top">
+        <span class="ttl" id="outTitle">완성된 프롬프트</span>
+        <div class="mode" id="modeSwitch">
+          <button data-mode="full" aria-pressed="true">전체 요청문</button>
+          <button data-mode="system" aria-pressed="false">GPTs 고정지침</button>
+        </div>
+        <span class="count" id="count">0자</span>
+        <button class="btn" id="btnClose" style="display:none">닫기</button>
+        <button class="btn primary" id="btnCopy">복사</button>
+      </div>
+      <div class="out-body" id="outBody"></div>
+    </aside>
+  </div>
+
+  <div class="backdrop" id="backdrop"></div>
+  <div class="mobile-bar">
+    <span class="info" id="mCount">0자</span>
+    <button class="btn primary" id="btnOpen">프롬프트 보기</button>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   저장소 — localStorage 사용 불가 환경에서도 안 깨지게 폴백
+   ============================================================ */
+const Store = {
+  ok:false, mem:{},
+  init(){ try{ localStorage.setItem('__t','1'); localStorage.removeItem('__t'); this.ok=true; }catch(e){ this.ok=false; } },
+  get(k){ if(this.ok){ try{ return localStorage.getItem(k); }catch(e){} } return this.mem[k] ?? null; },
+  set(k,v){ if(this.ok){ try{ localStorage.setItem(k,v); return; }catch(e){} } this.mem[k]=v; }
+};
+Store.init();
+
+/* ============================================================
+   업종별 규제 데이터 — 07번 금지표현 사전 기반
+   ============================================================ */
+const COMMON_BANNED = ['최고','최상','1위','유일한','100%','완벽','무조건','반드시','보장','최저가','국내 최초','절대','검증된'];
+
+const INDUSTRY = {
+  none:{label:'선택 안 함 / 일반 업종', banned:[], swap:[], closing:'', note:''},
+
+  medical:{
+    label:'병의원 · 한의원 · 치과 · 성형 (규제 최상)',
+    law:'의료법 제56조(의료광고의 금지 등)',
+    banned:['완치','치료됩니다','낫습니다','부작용 없는','안전한','무통','통증 없는','흉터 없이','환자 후기 인용','시술 전후 사진','명의','신의 손','OO% 할인','이벤트가','무료 상담','무료 검진','선착순','마감임박','타 병원 비교'],
+    swap:[
+      ['완치 / 낫습니다','호전을 목표로 관리합니다 · 경과는 개인마다 차이가 있습니다'],
+      ['부작용 없는 / 안전한','회복 기간과 주의사항을 미리 안내드립니다'],
+      ['무통 / 통증 없는','통증을 줄이기 위해 OO 방식을 사용합니다'],
+      ['흉터 없이','흉터가 덜 남도록 신경 쓰고 있습니다'],
+      ['환자 후기·체험담','이런 고민으로 오시는 분이 많습니다 (일반화 서술)'],
+      ['할인 / 이벤트 / 무료','비용은 상담 후 안내드립니다'],
+      ['명의 / 최고 권위자','(학회 소속·경력 연차 등 사실만 기재)']
+    ],
+    closing:'증상과 경과는 개인마다 차이가 있어, 정확한 내용은 진료 후 안내드립니다.',
+    note:'의료기관은 사전 광고심의 대상입니다. 심의필 번호가 확인되지 않은 원고는 발행하지 마세요. 비급여 할인·이벤트 언급은 환자 유인 행위로 볼 수 있습니다.'
+  },
+
+  food:{
+    label:'식품 · 건강기능식품',
+    law:'식품 등의 표시·광고에 관한 법률 제8조',
+    banned:['치료','예방','개선','완화','면역력 강화','항암','혈압을 낮춰','몸이 좋아진다','낫는다','다이어트 효과','살이 빠진다','의사가 추천','부작용 없는'],
+    swap:[
+      ['면역력 강화 / 항암','OO 성분이 들어 있습니다 (성분 사실만)'],
+      ['몸이 좋아진다','꾸준히 챙겨 드시는 분들이 많습니다'],
+      ['다이어트 효과','식단 관리하시는 분들이 찾으십니다'],
+      ['질병 관련 표현 전반','(문장 자체를 삭제하고 원재료·제조 방식으로 대체)']
+    ],
+    closing:'본 제품은 질병의 예방·치료를 위한 의약품이 아닙니다.',
+    note:'건강기능식품은 인정받은 기능성 문구를 그대로만 쓸 수 있습니다. 풀어쓰거나 강조하면 위반입니다.'
+  },
+
+  cosmetic:{
+    label:'화장품 · 뷰티 제품',
+    law:'화장품법 제13조',
+    banned:['여드름 치료','주름 제거','없애줍니다','아토피','습진','피부염','미백 효과','리프팅','성형급','의약품처럼','병원용','세포 재생','콜라겐 생성'],
+    swap:[
+      ['여드름 치료','여드름성 피부의 각질 관리에 도움 (기능성 심사받은 경우만)'],
+      ['주름 제거','주름 개선에 도움 (기능성 인증 있을 때만)'],
+      ['아토피 / 습진','(질병명 자체를 삭제)'],
+      ['세포 재생 / 콜라겐 생성','OO 성분 함유']
+    ],
+    closing:'',
+    note:'기능성 인증을 받지 않았다면 미백·주름개선·자외선차단 표현 자체를 쓸 수 없습니다.'
+  },
+
+  academy:{
+    label:'학원 · 교습소 · 과외',
+    law:'학원법 · 표시광고법',
+    banned:['성적 향상 보장','무조건 오릅니다','합격률 95%','지역 1등 학원','100% 환불 보장','명문대 다수 배출'],
+    swap:[
+      ['성적 향상 보장','이런 방식으로 수업합니다 (커리큘럼 서술)'],
+      ['합격률 OO%','(근거자료 보유 시 출처 명시 / 없으면 삭제)'],
+      ['1등 학원','OO년째 이 지역에서 수업하고 있습니다'],
+      ['100% 환불','환불 규정을 구체적으로 안내']
+    ],
+    closing:'학습 결과는 개인의 학습량과 상황에 따라 달라질 수 있습니다.',
+    note:'합격자 수 광고는 지자체 조례로 제한되는 경우가 있습니다.'
+  },
+
+  legal:{
+    label:'법률 · 세무 · 노무 · 행정사',
+    law:'변호사 광고규정 · 표시광고법',
+    banned:['승소율','무조건 감형','반드시 이깁니다','100% 환급','최고의 변호사','사건 수임 사례 상세 공개'],
+    swap:[
+      ['승소율 / 반드시 승소','사안에 따라 결과가 달라집니다'],
+      ['100% 환급','환급 가능한 경우를 정리해봤습니다'],
+      ['최고의 변호사','OO 분야를 오래 다뤄왔습니다']
+    ],
+    closing:'사안에 따라 결과가 달라질 수 있어, 구체적인 내용은 상담을 통해 확인이 필요합니다.',
+    note:'의뢰인이 특정될 수 있는 사건 내용은 쓰지 마세요.'
+  },
+
+  realestate:{
+    label:'부동산 · 분양 · 인테리어',
+    law:'공인중개사법 · 표시광고법',
+    banned:['시세 반드시 오릅니다','확정 수익','원금 보장','급매(사실 아닌 경우)','평생 A/S'],
+    swap:[
+      ['확정 수익 / 원금 보장','(투자 권유성 표현 전체 삭제)'],
+      ['평생 A/S','A/S 기간은 O년입니다']
+    ],
+    closing:'',
+    note:'중개대상물 광고는 소재지·면적·가격·층·방향·입주가능일·중개사무소 정보 누락 시 그 자체로 위반입니다.'
+  },
+
+  fitness:{
+    label:'헬스 · PT · 필라테스 · 다이어트',
+    law:'표시광고법',
+    banned:['한 달 -10kg 보장','굶지 않고 무조건','누구나 성공','체질 개선','부작용 없이'],
+    swap:[
+      ['-10kg 보장','회원님마다 결과가 다릅니다 (개인차 명시)'],
+      ['체질 개선','생활 습관을 함께 점검합니다']
+    ],
+    closing:'운동 효과는 개인의 체질과 생활 습관에 따라 차이가 있습니다.',
+    note:'식이 관련 내용은 의료·영양 자문 범위를 넘지 않도록 주의하세요.'
+  },
+
+  beauty:{
+    label:'미용실 · 네일 · 에스테틱 · 반영구',
+    law:'공중위생관리법 · 의료법(시술 영역 주의)',
+    banned:['시술','치료','반영구 보장','부작용 없는','피부 재생','의료급'],
+    swap:[
+      ['시술 / 치료','관리 · 케어'],
+      ['피부 재생','피부 결 관리에 신경 씁니다']
+    ],
+    closing:'',
+    note:'의료행위로 오인될 수 있는 표현(시술·치료·주사 등)은 무면허 의료행위 문제로 이어질 수 있습니다.'
+  },
+
+  restaurant:{
+    label:'음식점 · 카페 · 베이커리',
+    law:'식품표시광고법',
+    banned:['건강에 좋은','다이어트에 좋은','면역력','무조건 맛있는','줄서는 맛집(사실 아닌 경우)'],
+    swap:[
+      ['건강에 좋은','부담 없이 드실 수 있게 만들었습니다'],
+      ['맛집 1위','단골손님이 많이 찾으시는 메뉴는']
+    ],
+    closing:'',
+    note:'원산지 표기와 알레르기 유발 성분은 정확하게. 효능 표현은 피하세요.'
+  },
+
+  pet:{
+    label:'반려동물 (병원 · 미용 · 용품)',
+    law:'수의사법 · 사료관리법',
+    banned:['치료','완치','질병 예방','영양 보충으로 낫습니다','부작용 없는'],
+    swap:[
+      ['치료 / 완치','상태를 살펴보고 관리 방향을 안내드립니다'],
+      ['질병 예방','정기적으로 확인하시는 편이 좋습니다']
+    ],
+    closing:'반려동물의 상태는 개체마다 달라, 정확한 판단은 진료를 통해 확인이 필요합니다.',
+    note:'동물병원도 의료광고에 준하는 규제를 받습니다.'
+  },
+
+  lodging:{
+    label:'숙박 · 펜션 · 캠핑장',
+    law:'표시광고법',
+    banned:['최고의 뷰','국내 최고','완벽한 시설','무조건 만족'],
+    swap:[
+      ['최고의 뷰','창밖으로 OO이 보입니다 (사실 묘사)'],
+      ['완벽한 시설','객실에는 OO가 준비돼 있습니다']
+    ],
+    closing:'',
+    note:'사진과 실제 시설이 다르면 허위광고가 됩니다. 보정 과한 사진 주의.'
+  },
+
+  service:{
+    label:'수리 · 청소 · 이사 · 생활서비스',
+    law:'표시광고법',
+    banned:['최저가','무조건 당일','평생 보증','100% 만족'],
+    swap:[
+      ['최저가','견적은 상황에 따라 달라집니다'],
+      ['무조건 당일','일정에 여유가 있으면 당일도 가능합니다']
+    ],
+    closing:'',
+    note:'추가 비용 발생 조건을 명확히 밝히세요.'
+  },
+
+  finance:{
+    label:'대출 · 금융 · 보험 (수임 비권장)',
+    law:'대부업법 · 금융소비자보호법',
+    banned:['무직자 가능','신용조회 없이','저신용 OK','당일 승인','정부지원(사실 아닌 경우)','이자 없음','원금 보장'],
+    swap:[['(대체 표현 없음)','이 업종은 계약 자체를 권하지 않습니다']],
+    closing:'',
+    note:'⚠️ 광고 규제가 가장 엄격하고 계정 리스크도 큽니다. 수임을 권하지 않습니다.'
+  }
+};
+
+const CONTENT_TYPES = ['정보형','후기·경험형','비교형','사례형','Q&A형','시즌·이슈형'];
+const TONES = ['친근하고 수다스럽게','차분하고 전문적으로','담백하고 간결하게','따뜻하고 다정하게'];
+
+/* ============================================================
+   상태
+   ============================================================ */
+const S = {
+  tab:'blog',
+  mode:'full',
+  profileName:'',
+  p:{ // 고객사 프로필
+    name:'',industry:'none',region:'',services:'',target:'',tone:'',diff:'',
+    ban:'',info:'',assets:''
+  },
+  blog:{ main:'',sub:'',type:'정보형',len:'1800',title:'',special:'' },
+  threads:{ concept:'',target:'',goal:'',speech:'존댓말',count:'10',ratio:'정보 4 / 경험 3 / 관점 2 / 홍보 1',topic:'' },
+  review:{ main:'',draft:'' },
+  keyword:{ area:'',target:'',count:'20',season:'' }
+};
+
+const $ = s=>document.querySelector(s);
+const esc = s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ============================================================
+   폼 렌더링
+   ============================================================ */
+function profileCard(open){
+  const ind = INDUSTRY[S.p.industry];
+  const filled = ['name','region','services','target'].filter(k=>S.p[k].trim()).length;
+  return `
+  <details class="card" ${open?'open':''} data-card="prof">
+    <summary>고객사 프로필 <span class="tag ${filled>=3?'on':''}">${filled}/4 기본항목</span></summary>
+    <div class="card-in">
+      ${Store.ok?'':'<div class="storewarn">지금 화면에서는 저장이 안 돼. 파일을 내려받아 브라우저로 직접 열면 프로필이 저장돼.</div>'}
+      <div class="profbar">
+        <select id="profSel" aria-label="저장된 고객사 불러오기">
+          <option value="">저장된 고객사 불러오기</option>
+          ${listProfiles().map(n=>`<option ${n===S.profileName?'selected':''}>${esc(n)}</option>`).join('')}
+        </select>
+        <button class="btn" id="profSave">저장</button>
+        <button class="btn ghost" id="profDel">삭제</button>
+      </div>
+
+      <div class="field">
+        <label class="lb" for="p-name">업체명 <span class="req">*</span></label>
+        <input type="text" id="p-name" data-p="name" value="${esc(S.p.name)}" placeholder="예: 울산 온기한의원">
+      </div>
+
+      <div class="field">
+        <label class="lb" for="p-industry">업종 <span class="req">*</span></label>
+        <select id="p-industry" data-p="industry">
+          ${Object.entries(INDUSTRY).map(([k,v])=>`<option value="${k}" ${S.p.industry===k?'selected':''}>${esc(v.label)}</option>`).join('')}
+        </select>
+        <div class="hint">업종을 고르면 해당 법령 금지 표현과 안전 문구가 프롬프트에 자동으로 들어가.</div>
+      </div>
+
+      ${regBox(ind)}
+
+      <div class="field">
+        <label class="lb" for="p-region">지역 · 상권</label>
+        <input type="text" id="p-region" data-p="region" value="${esc(S.p.region)}" placeholder="예: 울산 남구 삼산동, 롯데백화점 인근">
+      </div>
+
+      <div class="field">
+        <label class="lb" for="p-services">대표 서비스 3가지</label>
+        <textarea id="p-services" data-p="services" placeholder="줄바꿈으로 구분해서 적어줘&#10;예: 추나요법 — 허리·목 통증 관리&#10;한방 다이어트 — 체질별 처방">${esc(S.p.services)}</textarea>
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label class="lb" for="p-target">타겟 고객</label>
+          <input type="text" id="p-target" data-p="target" value="${esc(S.p.target)}" placeholder="30~50대 여성, 앉아 일하는 직장인">
+        </div>
+        <div class="field">
+          <label class="lb" for="p-tone">브랜드 톤</label>
+          <select id="p-tone" data-p="tone">
+            <option value="">선택 안 함</option>
+            ${TONES.map(t=>`<option ${S.p.tone===t?'selected':''}>${esc(t)}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="lb" for="p-diff">경쟁사 대비 차별점</label>
+        <textarea id="p-diff" data-p="diff" placeholder="예: 원장이 직접 초진부터 끝까지 봄. 야간 진료 있음.">${esc(S.p.diff)}</textarea>
+      </div>
+
+      <div class="field">
+        <label class="lb" for="p-ban">사장님이 싫어하는 표현 · 노출 금지 정보</label>
+        <textarea id="p-ban" data-p="ban" placeholder="예: '저렴한' 표현 싫어함. 직원 얼굴 노출 금지. 예전 상호 언급 금지.">${esc(S.p.ban)}</textarea>
+      </div>
+
+      <div class="field">
+        <label class="lb" for="p-info">주소 · 영업시간 · 예약 방법</label>
+        <textarea id="p-info" data-p="info" placeholder="글 마무리에 들어갈 정보. 없으면 비워둬.">${esc(S.p.info)}</textarea>
+      </div>
+
+      <div class="field">
+        <label class="lb" for="p-assets">사용 가능한 사진 · 실제 사례 메모</label>
+        <textarea id="p-assets" data-p="assets" placeholder="AI가 지어내지 않게, 실제로 쓸 수 있는 소재를 적어둬&#10;예: 대기실 사진 5장 있음. 지난주 목 통증으로 오신 40대 손님 사례.">${esc(S.p.assets)}</textarea>
+        <div class="hint">여기 적은 내용만 글에 쓰라고 지시가 들어가. 비워두면 AI가 사실을 지어낼 위험이 커져.</div>
+      </div>
+    </div>
+  </details>`;
+}
+
+function regBox(ind){
+  if(!ind || ind.banned.length===0){
+    return `<div class="reg none"><h4>공통 규제만 적용</h4>
+      <div class="words">${COMMON_BANNED.slice(0,8).map(w=>`<span class="w" style="color:var(--accent)">${esc(w)}</span>`).join('')}</div>
+      <div class="note">업종을 고르면 해당 법령 기준이 추가로 붙어.</div></div>`;
+  }
+  return `<div class="reg">
+    <h4>이 업종에서 쓰면 안 되는 표현 (${ind.banned.length}개)</h4>
+    <div class="words">${ind.banned.map(w=>`<span class="w">${esc(w)}</span>`).join('')}</div>
+    ${ind.note?`<div class="note">${esc(ind.note)}</div>`:''}
+  </div>`;
+}
+
+function blogForm(){
+  return profileCard(!S.p.name) + `
+  <details class="card" open>
+    <summary>이번 글 설정 <span class="tag ${S.blog.main?'on':''}">${S.blog.main?'키워드 입력됨':'키워드 필요'}</span></summary>
+    <div class="card-in">
+      <div class="field">
+        <label class="lb" for="b-main">메인 키워드 <span class="req">*</span></label>
+        <input type="text" id="b-main" data-b="main" value="${esc(S.blog.main)}" placeholder="예: 울산 삼산동 한의원">
+        <div class="hint">본문에 5~7회 들어가도록 지시가 자동으로 붙어.</div>
+      </div>
+      <div class="field">
+        <label class="lb" for="b-sub">서브 키워드</label>
+        <input type="text" id="b-sub" data-b="sub" value="${esc(S.blog.sub)}" placeholder="쉼표로 구분 — 목디스크 한방치료, 삼산동 추나">
+      </div>
+      <div class="field">
+        <label class="lb">콘텐츠 유형</label>
+        <div class="chips" role="group">
+          ${CONTENT_TYPES.map(t=>`<button class="chip" type="button" data-chip="blog.type" data-val="${esc(t)}" aria-pressed="${S.blog.type===t}">${esc(t)}</button>`).join('')}
+        </div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label class="lb" for="b-len">분량 (공백 포함)</label>
+          <select id="b-len" data-b="len">
+            ${['1500','1800','2000','2500'].map(v=>`<option ${S.blog.len===v?'selected':''}>${v}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field">
+          <label class="lb" for="b-title">제목 방향 (선택)</label>
+          <input type="text" id="b-title" data-b="title" value="${esc(S.blog.title)}" placeholder="비워두면 3개 제안">
+        </div>
+      </div>
+      <div class="field">
+        <label class="lb" for="b-special">이번 글에만 넣을 내용</label>
+        <textarea id="b-special" data-b="special" placeholder="예: 이번 달부터 토요일 진료 시작. 신규 장비 도입.">${esc(S.blog.special)}</textarea>
+      </div>
+    </div>
+  </details>`;
+}
+
+function threadsForm(){
+  return profileCard(!S.p.name) + `
+  <details class="card" open>
+    <summary>스레드 설정 <span class="tag ${S.threads.concept?'on':''}">${S.threads.concept?'설정됨':'컨셉 필요'}</span></summary>
+    <div class="card-in">
+      <div class="field">
+        <label class="lb" for="t-concept">계정 컨셉 <span class="req">*</span></label>
+        <input type="text" id="t-concept" data-t="concept" value="${esc(S.threads.concept)}" placeholder="예: 울산 한의사가 알려주는 자세 이야기">
+      </div>
+      <div class="row">
+        <div class="field">
+          <label class="lb" for="t-target">타겟</label>
+          <input type="text" id="t-target" data-t="target" value="${esc(S.threads.target)}" placeholder="목·어깨 아픈 직장인">
+        </div>
+        <div class="field">
+          <label class="lb" for="t-goal">최종 목표</label>
+          <select id="t-goal" data-t="goal">
+            <option value="">선택</option>
+            ${['팔로워 증대','DM 문의 유도','블로그·홈페이지 유입','예약 전환'].map(g=>`<option ${S.threads.goal===g?'selected':''}>${esc(g)}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label class="lb" for="t-speech">말투</label>
+          <select id="t-speech" data-t="speech">
+            ${['존댓말','반말'].map(v=>`<option ${S.threads.speech===v?'selected':''}>${v}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field">
+          <label class="lb" for="t-count">생성 개수</label>
+          <select id="t-count" data-t="count">
+            ${['5','10','15','20','30'].map(v=>`<option ${S.threads.count===v?'selected':''}>${v}개</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label class="lb" for="t-ratio">유형 배분</label>
+        <select id="t-ratio" data-t="ratio">
+          ${['정보 4 / 경험 3 / 관점 2 / 홍보 1','정보 6 / 경험 3 / 홍보 1','경험 5 / 관점 3 / 정보 2','정보 3 / 경험 3 / 관점 3 / 홍보 1'].map(v=>`<option ${S.threads.ratio===v?'selected':''}>${esc(v)}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field">
+        <label class="lb" for="t-topic">이번 회차 소재</label>
+        <textarea id="t-topic" data-t="topic" placeholder="다루고 싶은 주제를 적어줘. 비워두면 컨셉에 맞춰 알아서 잡아.">${esc(S.threads.topic)}</textarea>
+      </div>
+    </div>
+  </details>`;
+}
+
+function reviewForm(){
+  return profileCard(false) + `
+  <details class="card" open>
+    <summary>검수할 원고 <span class="tag ${S.review.draft?'on':''}">${S.review.draft?S.review.draft.length+'자':'붙여넣기 필요'}</span></summary>
+    <div class="card-in">
+      <div class="field">
+        <label class="lb" for="r-main">메인 키워드</label>
+        <input type="text" id="r-main" data-r="main" value="${esc(S.review.main)}" placeholder="반복 횟수를 세어줄 키워드">
+      </div>
+      <div class="field">
+        <label class="lb" for="r-draft">원고 전문 <span class="req">*</span></label>
+        <textarea id="r-draft" data-r="draft" style="min-height:220px" placeholder="GPT가 뽑아준 초안을 그대로 붙여넣어.">${esc(S.review.draft)}</textarea>
+        <div class="hint">업종을 고르면 그 업종 법령 위반 표현까지 함께 검사하는 프롬프트가 만들어져.</div>
+      </div>
+    </div>
+  </details>`;
+}
+
+function keywordForm(){
+  return profileCard(false) + `
+  <details class="card" open>
+    <summary>리서치 범위</summary>
+    <div class="card-in">
+      <div class="field">
+        <label class="lb" for="k-area">공략 지역 범위</label>
+        <input type="text" id="k-area" data-k="area" value="${esc(S.keyword.area)}" placeholder="예: 울산 남구 + 중구까지">
+      </div>
+      <div class="field">
+        <label class="lb" for="k-target">검색하는 사람의 상황</label>
+        <textarea id="k-target" data-k="target" placeholder="예: 아침에 목이 안 돌아가서 급하게 찾는 사람">${esc(S.keyword.target)}</textarea>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label class="lb" for="k-count">롱테일 개수</label>
+          <select id="k-count" data-k="count">
+            ${['10','20','30','50'].map(v=>`<option ${S.keyword.count===v?'selected':''}>${v}개</option>`).join('')}
+          </select>
+        </div>
+        <div class="field">
+          <label class="lb" for="k-season">이번 달 시즌 이슈</label>
+          <input type="text" id="k-season" data-k="season" value="${esc(S.keyword.season)}" placeholder="예: 환절기, 명절 연휴">
+        </div>
+      </div>
+    </div>
+  </details>`;
+}
+
+/* ============================================================
+   프롬프트 조립 — 빈 항목은 자동으로 빠진다
+   ============================================================ */
+function B(label,text,kind){ return text && text.trim() ? {label,text:text.trim(),kind:kind||''} : null; }
+
+function regulationText(){
+  const ind = INDUSTRY[S.p.industry];
+  let t = `## 절대 금지 (하나라도 쓰면 실패)\n${COMMON_BANNED.join(' / ')}\n\n## 대체 원칙\n1. 최상급을 쓰고 싶으면 → 검증 가능한 사실로 바꾼다.\n   "최고의 기술" → "이 방식으로 8년째 작업하고 있습니다"\n2. 효과를 말하고 싶으면 → 과정을 말한다.\n3. 결과를 언급했으면 → 개인차 문구로 닫는다.\n4. 홍보 문장은 정보 문장으로 바꾼다.\n   "지금 바로 전화주세요" → "궁금한 점은 편하게 물어보셔도 됩니다"`;
+
+  if(ind && ind.banned.length){
+    t += `\n\n## 업종 추가 금지 — ${ind.label}\n근거: ${ind.law}\n${ind.banned.join(' / ')}`;
+    if(ind.swap.length){
+      t += `\n\n## 이 업종 대체 표현\n` + ind.swap.map(([a,b])=>`- ${a} → ${b}`).join('\n');
+    }
+    if(ind.note) t += `\n\n## 주의\n${ind.note}`;
+    if(ind.closing) t += `\n\n## 글 마무리에 반드시 삽입할 문구\n"${ind.closing}"`;
+  }
+  return t;
+}
+
+const DENSITY = `## 밀도 규칙
+- 전화번호: 본문 끝 1회만
+- 업체명: 5~7회
+- 메인 키워드: 5~7회 (8회 이상이면 키워드 스터핑)
+- 외부 링크: 최대 2개
+- "예약 / 문의 / 상담": 마무리에만
+- 가격: 표로 나열 금지, 서술형으로 1~2회`;
+
+const ANTI_AI = `## 문체 규칙 — AI 티 제거 (가장 중요)
+- 문장 길이를 의도적으로 불규칙하게. 5자 이하 짧은 문장을 문단마다 1개 이상.
+- 구어체 삽입어 활용: 사실 / 솔직히 / 근데 / 막상 / 그쵸
+- 다음 표현 전면 금지:
+  알아보겠습니다 · 살펴보겠습니다 · 하시길 바랍니다 · 결론적으로 · 종합적으로
+  먼저 · 다음으로 · 마지막으로 · 또한 · 뿐만 아니라 · 중요한 역할 · 필수적인
+  다양한 · 효과적인 · 최적의 · 혁신적인 · ~라고 할 수 있습니다 · ~에 도움이 됩니다
+  여러분 · 오늘은 · 지금부터 · 참고하시기 바랍니다
+- 불릿 리스트는 글 전체에서 최대 1회. 나머지는 서술형 문장.
+- 같은 어미를 3회 연속 쓰지 않는다.
+- 같은 단어로 문장을 연속 2회 시작하지 않는다.`;
+
+const FACT = `## 사실 규칙 (절대 준수)
+- 제공받지 않은 정보는 지어내지 않는다. 가격 · 경력 · 수상 · 자격증 · 고객 후기 · 통계 · 논문 · 언론보도는
+  위 정보에 없으면 절대 쓰지 않는다.
+- 필요한데 없으면 본문에 넣지 말고, 출력 맨 아래 [확인 필요]에 질문으로 남긴다.`;
+
+const EXPERIENCE = `## 경험 디테일 의무 (검색 노출의 핵심)
+아래 중 최소 2개를 반드시 포함한다. 단, 제공받은 정보 안에서만 가져온다. 없으면 지어내지 말고 [확인 필요]로 요청한다.
+- 실제 있었던 구체적 상황 (시점 포함)
+- 손님이 실제로 자주 묻는 질문
+- 구체적 숫자 (소요 시간, 연차, 절차 단계 수)
+- 지역 고유명사 (주변 랜드마크, 주차 상황)`;
+
+function profileBlock(){
+  const p=S.p, L=[];
+  if(p.name) L.push(`- 업체명: ${p.name}`);
+  if(INDUSTRY[p.industry] && p.industry!=='none') L.push(`- 업종: ${INDUSTRY[p.industry].label}`);
+  if(p.region) L.push(`- 지역·상권: ${p.region}`);
+  if(p.services) L.push(`- 대표 서비스:\n${p.services.split('\n').filter(x=>x.trim()).map(x=>'  · '+x.trim()).join('\n')}`);
+  if(p.target) L.push(`- 타겟 고객: ${p.target}`);
+  if(p.tone) L.push(`- 브랜드 톤: ${p.tone}`);
+  if(p.diff) L.push(`- 차별점: ${p.diff}`);
+  if(p.ban) L.push(`- 사장님 요청 (반드시 지킬 것): ${p.ban}`);
+  if(p.info) L.push(`- 마무리에 넣을 정보: ${p.info}`);
+  if(p.assets) L.push(`- 사용 가능한 실제 소재 (이 범위 안에서만 구체적 서술을 만들 것):\n${p.assets.split('\n').filter(x=>x.trim()).map(x=>'  · '+x.trim()).join('\n')}`);
+  return L.join('\n');
+}
+
+function buildBlog(){
+  const b=S.blog, out=[];
+  out.push(B('역할',`당신은 네이버 블로그 상위노출 원고를 쓰는 15년차 카피라이터다.\n당신의 글은 "대행사가 쓴 티"와 "AI가 쓴 티"가 절대 나면 안 된다.`));
+  out.push(B('고객사 정보','# 고객사 정보\n'+profileBlock()));
+
+  if(S.mode==='full'){
+    const t=[];
+    if(b.main) t.push(`- 메인 키워드: ${b.main}`);
+    if(b.sub) t.push(`- 서브 키워드: ${b.sub}`);
+    t.push(`- 콘텐츠 유형: ${b.type}`);
+    t.push(`- 분량: 공백 포함 ${b.len}자 내외`);
+    if(b.title) t.push(`- 제목 방향: ${b.title}`);
+    if(b.special) t.push(`- 이번 글에 반드시 반영할 내용: ${b.special}`);
+    out.push(B('이번 글 설정','# 이번 글 설정\n'+t.join('\n'),'auto'));
+  }
+
+  out.push(B('출력 구조',`# 출력 구조 (이 순서 그대로)
+1. 제목 ${b.title?'1개':'3개 제안'} — 각 25~32자, 메인 키워드를 앞 15자 안에 배치
+2. 본문
+3. 해시태그 15개
+4. 이미지 요청 목록 — 본문에 [이미지1] 형태로 위치를 표시하고, 하단에 어떤 사진이 필요한지 설명`));
+
+  out.push(B('본문 규칙',`# 본문 규칙
+- 문단은 3~4문장마다 줄바꿈. 한 문단 최대 5줄.
+- 소제목 3~5개. 소제목에도 서브 키워드를 자연스럽게 넣는다.
+- 메인 키워드는 첫 문단과 마지막 문단에 각 1회 반드시 포함.
+- 이미지 위치를 최소 5곳 지정하고 고르게 배치.
+- 도입부는 검색해서 들어온 사람의 고민 상황부터 묘사한 뒤 공감, 그다음 해결을 예고한다.
+- 마무리는 위치·영업시간·문의 방법 안내 후 부담 없는 한 문장으로 닫는다.`));
+
+  out.push(B('문체',ANTI_AI));
+  out.push(B('사실',FACT));
+  out.push(B('표현 규제','# 표현 규제 규칙 (최우선 적용)\n'+regulationText(),'auto'));
+  out.push(B('밀도',DENSITY,'auto'));
+  out.push(B('경험 디테일',EXPERIENCE));
+
+  out.push(B('출력 말미',`# 출력 마지막에 항상 붙일 것
+---
+[확인 필요]
+- 사실 확인이 필요한 항목을 번호로 나열. 없으면 "없음"
+[사용 키워드]
+- 메인: OOO (본문 O회) / 서브: OOO (O회)
+[표현 점검]
+- 사용한 규제 위험 표현: 없으면 "없음"
+- 삽입한 경험 디테일: 2개 이상 나열
+- 안전 문구 삽입 여부: O/X`));
+
+  if(S.mode==='system'){
+    out.push(B('사용 방법',`# 요청 받는 방식
+사용자가 "메인 키워드 / 서브 키워드 / 콘텐츠 유형"을 주면 위 규칙에 따라 원고를 작성한다.
+정보가 부족하면 추측하지 말고 먼저 질문한다.`,'warn'));
+  }
+  return out.filter(Boolean);
+}
+
+function buildThreads(){
+  const t=S.threads, out=[];
+  out.push(B('역할',`당신은 스레드(Threads)에서 팔로워를 모으는 콘텐츠를 쓰는 사람이다.\n링크드인 말투도, 인스타 감성 말투도 아니다. 카톡으로 친구한테 말하듯 쓴다.`));
+
+  const info=[];
+  if(S.p.name) info.push(`- 업체명: ${S.p.name}`);
+  if(t.concept) info.push(`- 계정 컨셉: ${t.concept}`);
+  if(t.target||S.p.target) info.push(`- 타겟: ${t.target||S.p.target}`);
+  if(t.goal) info.push(`- 최종 목표: ${t.goal}`);
+  info.push(`- 말투: ${t.speech}`);
+  if(S.p.region) info.push(`- 지역: ${S.p.region}`);
+  if(S.p.diff) info.push(`- 차별점: ${S.p.diff}`);
+  if(S.p.assets) info.push(`- 사용 가능한 실제 소재:\n${S.p.assets.split('\n').filter(x=>x.trim()).map(x=>'  · '+x.trim()).join('\n')}`);
+  out.push(B('계정 정보','# 계정 정보\n'+info.join('\n')));
+
+  if(S.mode==='full'){
+    const r=[`- 생성 개수: ${t.count}개`,`- 유형 배분: ${t.ratio}`];
+    if(t.topic) r.push(`- 이번 회차 소재: ${t.topic}`);
+    out.push(B('이번 요청','# 이번 요청\n'+r.join('\n'),'auto'));
+  }
+
+  out.push(B('작성 규칙',`# 작성 규칙
+- 첫 줄이 전부다. 최대 20자. 스크롤을 멈추게 하는 문장.
+- 전체 300~450자. 500자를 넘기지 않는다.
+- 줄바꿈을 많이. 한 줄 최대 25자.
+- 마지막 줄은 댓글을 부르는 질문이거나 저장하고 싶게 만드는 요약.
+- 해시태그 0~2개. 많으면 도달이 떨어진다.
+- 존댓말이어도 딱딱하지 않게: ~거든요 / ~더라구요 / ~인 것 같아요`));
+
+  out.push(B('콘텐츠 유형',`# 콘텐츠 유형 정의
+- 정보형: 타겟이 몰랐을 실용 정보 1개
+- 경험형: 실제 있었던 일 → 깨달음
+- 관점형: 통념을 뒤집는 주장 (근거 1개 필수)
+- 홍보형: 직접 홍보. 앞 80%는 정보로 채우고 마지막에만 언급.`));
+
+  out.push(B('금지',`# 금지
+- "안녕하세요 OOO입니다"로 시작하지 않는다.
+- 지어낸 수치·후기·사례 금지. 없으면 쓰지 않는다.
+- 여러분 / 함께해요 / 많은 관심 부탁드립니다 금지.`));
+
+  out.push(B('표현 규제','# 표현 규제 규칙\n'+regulationText(),'auto'));
+
+  out.push(B('출력 형식',`# 출력 형식
+게시물마다 아래 형식으로:
+---
+[게시물 1] 유형: 정보형
+(본문)
+· 댓글 유도 포인트: 한 줄
+· 필요 이미지: 없으면 "없음"
+---`));
+  return out.filter(Boolean);
+}
+
+function buildReview(){
+  const r=S.review, ind=INDUSTRY[S.p.industry], out=[];
+  out.push(B('역할',`당신은 블로그 원고 검수 담당자다. 칭찬하지 말고 문제만 찾아라.\n문제가 없으면 "없음"이라고만 쓰고 억지로 만들어내지 마라.`));
+
+  const items = [
+`1. 사실 조작 의심: 근거 없이 등장한 숫자·가격·경력·수상·후기·통계·인용을 전부 나열`,
+`2. 공통 금지 표현: ${COMMON_BANNED.join(' / ')}`,
+  ];
+  if(ind && ind.banned.length){
+    items.push(`3. 업종 법령 위반 — ${ind.label} (${ind.law})\n   금지 표현: ${ind.banned.join(' / ')}\n   ${ind.note||''}`);
+  }
+  items.push(`${ind&&ind.banned.length?4:3}. AI 문체: 아래 금칙어가 몇 번 나왔는지 표로 정리\n   알아보겠습니다 / 바랍니다 / 결론적으로 / 다양한 / 효과적인 / 최적의 / 중요한 역할 / 여러분 / 또한 / 뿐만 아니라`);
+  items.push(`${ind&&ind.banned.length?5:4}. 문체 단조로움: 같은 어미가 3회 이상 연속된 구간을 인용`);
+  if(r.main) items.push(`${ind&&ind.banned.length?6:5}. 키워드: "${r.main}"의 등장 횟수를 세고, 5~7회 범위를 벗어나면 지적`);
+  items.push(`${ind&&ind.banned.length?(r.main?7:6):(r.main?6:5)}. 구조: 글자 수, 소제목 개수, 이미지 지시문 개수, 최대 문단 줄 수`);
+  items.push(`${ind&&ind.banned.length?(r.main?8:7):(r.main?7:6)}. 경험 디테일: 구체적 상황·숫자·지역 고유명사가 2개 이상 있는지`);
+  if(ind && ind.closing) items.push(`${ind&&ind.banned.length?(r.main?9:8):(r.main?8:7)}. 안전 문구 "${ind.closing}"가 들어 있는지`);
+
+  out.push(B('검수 항목','# 검수 항목\n'+items.join('\n'),'auto'));
+
+  out.push(B('출력 형식',`# 출력 형식
+## 발행 불가 (있으면)
+- 항목 / 문제 문장 원문 인용 / 수정안
+
+## 수정 권고
+- 항목 / 문제 문장 원문 인용 / 수정안
+
+## 수치
+- 글자수: / 메인 키워드: O회 / 소제목: O개 / 이미지: O개 / AI 금칙어: O개
+
+## 최종 판정
+- [발행 가능 / 수정 후 발행 / 재작성 필요] 중 하나`));
+
+  if(S.mode==='full'){
+    out.push(B('검수 대상 원고','# 원고\n"""\n'+(r.draft||'(원고를 붙여넣어 주세요)')+'\n"""', r.draft?'auto':'warn'));
+  }
+  return out.filter(Boolean);
+}
+
+function buildKeyword(){
+  const k=S.keyword, out=[];
+  out.push(B('역할',`당신은 네이버 검색 키워드 전략가다.`));
+
+  const info=[];
+  if(S.p.name) info.push(`- 업체명: ${S.p.name}`);
+  if(S.p.industry!=='none') info.push(`- 업종: ${INDUSTRY[S.p.industry].label}`);
+  if(k.area||S.p.region) info.push(`- 공략 지역: ${k.area||S.p.region}`);
+  if(S.p.services) info.push(`- 대표 서비스:\n${S.p.services.split('\n').filter(x=>x.trim()).map(x=>'  · '+x.trim()).join('\n')}`);
+  if(k.target||S.p.target) info.push(`- 검색하는 사람의 상황: ${k.target||S.p.target}`);
+  if(k.season) info.push(`- 이번 달 시즌 이슈: ${k.season}`);
+  out.push(B('대상','# 대상\n'+info.join('\n')));
+
+  out.push(B('요청',`# 요청
+1. 메인 키워드 후보 10개
+   형식: [키워드 | 예상 검색의도 | 경쟁강도 추정(상/중/하) | 추천도]
+2. 롱테일 키워드 ${k.count}개
+   분류: 지역명+서비스형 / 상황형 / 비교형 / 가격형 / 질문형
+3. 이번 달 발행 계획표
+   형식: [회차 | 목표 키워드 | 제목안 | 콘텐츠 유형(정보/후기/비교/사례)]
+4. 피해야 할 키워드와 이유`,'auto'));
+
+  out.push(B('주의',`# 주의
+- 실제 검색량 수치는 추정치임을 명시하고, 확정 수치처럼 쓰지 않는다.
+- 결과 하단에 "네이버 키워드도구 또는 블랙키위로 교차검증이 필요합니다"를 반드시 붙인다.
+- 규제 업종의 경우, 광고 심의에서 문제가 될 수 있는 키워드는 따로 표시한다.`));
+  return out.filter(Boolean);
+}
+
+function build(){
+  if(S.tab==='blog') return buildBlog();
+  if(S.tab==='threads') return buildThreads();
+  if(S.tab==='review') return buildReview();
+  return buildKeyword();
+}
+
+/* ============================================================
+   렌더
+   ============================================================ */
+function renderForm(){
+  const f=$('#form');
+  f.innerHTML = S.tab==='blog'?blogForm() : S.tab==='threads'?threadsForm() : S.tab==='review'?reviewForm() : keywordForm();
+  bindForm();
+}
+
+function renderOut(){
+  const blocks=build();
+  const text=blocks.map(b=>b.text).join('\n\n');
+  const body=$('#outBody');
+
+  const needs = S.tab==='blog' ? (!S.p.name||!S.blog.main)
+              : S.tab==='threads' ? (!S.threads.concept)
+              : S.tab==='review' ? (!S.review.draft)
+              : false;
+
+  if(needs && blocks.length<3){
+    body.innerHTML=`<div class="empty"><strong>왼쪽을 채우면 여기에 프롬프트가 만들어져</strong>업체명과 키워드부터 넣어봐.<br>업종을 고르면 법령 규제가 자동으로 붙어.</div>`;
+  }else{
+    body.innerHTML = blocks.map(b=>`
+      <div class="blk ${b.kind}">
+        <div class="bl">${esc(b.label)}${b.kind==='auto'?'<span class="auto-mark">자동 삽입</span>':''}</div>
+        <pre>${esc(b.text)}</pre>
+      </div>`).join('');
+  }
+  const n=text.length.toLocaleString();
+  $('#count').textContent=n+'자';
+  $('#mCount').textContent=n+'자';
+  $('#outTitle').textContent = S.mode==='system'?'GPTs 지침에 넣을 고정 프롬프트':'GPT 대화창에 붙여넣을 요청문';
+  window.__promptText=text;
+}
+
+function render(){ renderForm(); renderOut(); }
+
+/* ============================================================
+   이벤트
+   ============================================================ */
+function bindForm(){
+  document.querySelectorAll('[data-p]').forEach(el=>{
+    const k=el.dataset.p;
+    el.addEventListener(el.tagName==='SELECT'?'change':'input',e=>{
+      S.p[k]=e.target.value;
+      if(k==='industry'){ render(); openCard('prof'); } else renderOut();
+    });
+  });
+  ['b','t','r','k'].forEach(pre=>{
+    const map={b:'blog',t:'threads',r:'review',k:'keyword'};
+    document.querySelectorAll(`[data-${pre}]`).forEach(el=>{
+      const k=el.dataset[pre];
+      el.addEventListener(el.tagName==='SELECT'?'change':'input',e=>{
+        S[map[pre]][k]=e.target.value; renderOut();
+        const tag=el.closest('.card')?.querySelector('.tag');
+        if(tag && pre==='r' && k==='draft'){ tag.textContent = e.target.value ? e.target.value.length+'자':'붙여넣기 필요'; tag.classList.toggle('on',!!e.target.value); }
+      });
+    });
+  });
+  document.querySelectorAll('[data-chip]').forEach(el=>{
+    el.addEventListener('click',()=>{
+      const [g,k]=el.dataset.chip.split('.');
+      S[g][k]=el.dataset.val;
+      el.parentElement.querySelectorAll('.chip').forEach(c=>c.setAttribute('aria-pressed',c===el));
+      renderOut();
+    });
+  });
+  const sel=$('#profSel'); if(sel) sel.addEventListener('change',e=>loadProfile(e.target.value));
+  const sv=$('#profSave'); if(sv) sv.addEventListener('click',saveProfile);
+  const dl=$('#profDel'); if(dl) dl.addEventListener('click',delProfile);
+}
+
+function openCard(name){
+  const c=document.querySelector(`[data-card="${name}"]`); if(c) c.open=true;
+}
+
+/* 프로필 저장 */
+function listProfiles(){
+  try{ return JSON.parse(Store.get('rp_profiles')||'{}') && Object.keys(JSON.parse(Store.get('rp_profiles')||'{}')); }catch(e){ return []; }
+}
+function saveProfile(){
+  const name=(S.p.name||'').trim();
+  if(!name){ toast('업체명을 먼저 입력해줘'); return; }
+  let all={}; try{ all=JSON.parse(Store.get('rp_profiles')||'{}'); }catch(e){}
+  all[name]={...S.p};
+  Store.set('rp_profiles',JSON.stringify(all));
+  S.profileName=name;
+  toast(Store.ok?`"${name}" 저장했어`:'이 화면에선 임시 저장만 돼');
+  render();
+}
+function loadProfile(name){
+  if(!name) return;
+  let all={}; try{ all=JSON.parse(Store.get('rp_profiles')||'{}'); }catch(e){}
+  if(all[name]){ S.p={...S.p,...all[name]}; S.profileName=name; render(); toast(`"${name}" 불러왔어`); }
+}
+function delProfile(){
+  if(!S.profileName){ toast('불러온 고객사가 없어'); return; }
+  let all={}; try{ all=JSON.parse(Store.get('rp_profiles')||'{}'); }catch(e){}
+  delete all[S.profileName]; Store.set('rp_profiles',JSON.stringify(all));
+  toast(`"${S.profileName}" 삭제했어`); S.profileName=''; render();
+}
+
+/* 복사 */
+async function copyPrompt(){
+  const t=window.__promptText||'';
+  if(!t.trim()){ toast('아직 만들 내용이 없어'); return; }
+  try{ await navigator.clipboard.writeText(t); toast('복사 완료. GPT에 붙여넣어'); }
+  catch(e){
+    const ta=document.createElement('textarea'); ta.value=t;
+    ta.style.cssText='position:fixed;opacity:0'; document.body.appendChild(ta);
+    ta.select(); try{ document.execCommand('copy'); toast('복사 완료'); }catch(e2){ toast('복사가 안 돼. 길게 눌러 직접 선택해줘'); }
+    document.body.removeChild(ta);
+  }
+}
+
+let toastT;
+function toast(msg){
+  const el=$('#toast'); el.textContent=msg; el.classList.add('on');
+  clearTimeout(toastT); toastT=setTimeout(()=>el.classList.remove('on'),1900);
+}
+
+/* 탭 */
+document.querySelectorAll('.tab').forEach(t=>{
+  t.addEventListener('click',()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.setAttribute('aria-selected',x===t));
+    S.tab=t.dataset.tab;
+    const ms=$('#modeSwitch');
+    ms.style.display = (S.tab==='blog'||S.tab==='threads') ? 'flex':'none';
+    if(ms.style.display==='none') S.mode='full';
+    render();
+    $('#form').scrollTop=0;
+  });
+});
+
+/* 모드 */
+document.querySelectorAll('#modeSwitch button').forEach(b=>{
+  b.addEventListener('click',()=>{
+    S.mode=b.dataset.mode;
+    document.querySelectorAll('#modeSwitch button').forEach(x=>x.setAttribute('aria-pressed',x===b));
+    renderOut();
+  });
+});
+
+$('#btnCopy').addEventListener('click',copyPrompt);
+
+/* 모바일 시트 */
+const out=$('#out'), bd=$('#backdrop');
+$('#btnOpen').addEventListener('click',()=>{ out.classList.add('open'); bd.classList.add('on'); $('#btnClose').style.display='inline-block'; });
+function closeSheet(){ out.classList.remove('open'); bd.classList.remove('on'); }
+$('#btnClose').addEventListener('click',closeSheet);
+bd.addEventListener('click',closeSheet);
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeSheet(); });
+
+render();
+</script>
+</body>
+</html>

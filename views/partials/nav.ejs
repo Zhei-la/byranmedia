@@ -1,0 +1,18 @@
+<nav class="nav">
+  <a href="/hub" class="logo">
+    <span class="mark">Byran</span>
+    <span class="kr">바이란미디어</span>
+  </a>
+  <div class="links">
+    <a href="/hub" class="<%= path === '/hub' ? 'on' : '' %>">도구</a>
+    <% if (user && user.role === 'admin') { %>
+      <a href="/admin" class="<%= path.startsWith('/admin') ? 'on' : '' %>">관리</a>
+    <% } %>
+  </div>
+  <div class="me">
+    <span class="hide-sm"><strong><%= user.name %></strong><% if (user.role === 'admin') { %> <span class="pill admin">관리자</span><% } %></span>
+    <form method="post" action="/logout" class="inline-form">
+      <button type="submit" class="linkbtn">로그아웃</button>
+    </form>
+  </div>
+</nav>

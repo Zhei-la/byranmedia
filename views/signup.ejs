@@ -1,0 +1,47 @@
+<%- include('partials/head') %>
+<body>
+<div class="wrap narrow">
+  <div class="auth-head">
+    <div class="mark"><span>Byran</span> Media</div>
+    <h1>수강생 등록 신청</h1>
+    <p>신청 후 관리자가 확인하면 도구를 쓸 수 있습니다.</p>
+  </div>
+  <div class="card">
+    <% if (error) { %><div class="alert err"><%= error %></div><% } %>
+    <form method="post" action="/signup">
+      <div class="field">
+        <label class="lb" for="email">이메일</label>
+        <input type="email" id="email" name="email" value="<%= form.email || '' %>" autocomplete="username" required autofocus>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label class="lb" for="name">이름</label>
+          <input type="text" id="name" name="name" value="<%= form.name || '' %>" required>
+        </div>
+        <div class="field">
+          <label class="lb" for="phone">연락처</label>
+          <input type="text" id="phone" name="phone" value="<%= form.phone || '' %>" placeholder="010-0000-0000">
+        </div>
+      </div>
+      <div class="field">
+        <label class="lb" for="course">수강 중인 과정</label>
+        <input type="text" id="course" name="course" value="<%= form.course || '' %>" placeholder="예: 블로그 대행 실전반 3기">
+        <div class="hint">본인 확인에 쓰입니다. 정확히 적어 주세요.</div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label class="lb" for="password">비밀번호</label>
+          <input type="password" id="password" name="password" autocomplete="new-password" required minlength="8">
+        </div>
+        <div class="field">
+          <label class="lb" for="password2">비밀번호 확인</label>
+          <input type="password" id="password2" name="password2" autocomplete="new-password" required minlength="8">
+        </div>
+      </div>
+      <div class="hint" style="margin-bottom:14px">비밀번호는 8자 이상으로 만들어 주세요.</div>
+      <button type="submit" class="btn primary block">등록 신청하기</button>
+    </form>
+  </div>
+  <div class="auth-foot">이미 계정이 있나요? <a href="/login">로그인</a></div>
+</div>
+<%- include('partials/foot') %>

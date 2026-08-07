@@ -1,0 +1,10 @@
+<%- include('partials/head') %>
+<body class="toolpage">
+<div class="toolbar">
+  <a href="/hub" class="back">← 도구 목록</a>
+  <span class="sep">|</span>
+  <span class="t"><%= toolTitle %></span>
+</div>
+<iframe class="tool-frame" src="/t/<%= slug %>/view" title="<%= toolTitle %>"></iframe>
+</body>
+</html>

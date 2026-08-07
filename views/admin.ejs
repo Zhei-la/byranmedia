@@ -1,0 +1,338 @@
+<%- include('partials/head') %>
+<body>
+<%- include('partials/nav') %>
+<div class="wrap wide">
+  <div class="page-h">
+    <h1>관리</h1>
+    <p>수강생 승인과 도구 등록을 여기서 합니다.</p>
+  </div>
+
+  <% if (notice) { %><div class="alert ok"><%= notice %></div><% } %>
+
+  <div class="tabs">
+    <a href="/admin?tab=users" class="<%= tab === 'users' ? 'on' : '' %>">수강생</a>
+    <a href="/admin?tab=tools" class="<%= tab === 'tools' ? 'on' : '' %>">도구</a>
+    <a href="/admin?tab=notices" class="<%= tab === 'notices' ? 'on' : '' %>">공지</a>
+  </div>
+
+<% if (tab === 'users') { %>
+
+  <div class="stats">
+    <div class="stat <%= stat.pending > 0 ? 'hi' : '' %>">
+      <div class="n"><%= stat.pending %></div><div class="l">승인 대기</div>
+    </div>
+    <div class="stat"><div class="n"><%= stat.active %></div><div class="l">이용 중</div></div>
+    <div class="stat"><div class="n"><%= stat.expired %></div><div class="l">기간 만료</div></div>
+    <div class="stat"><div class="n"><%= stat.suspended %></div><div class="l">이용 중지</div></div>
+  </div>
+
+  <div class="filters">
+    <a href="/admin?filter=all" class="<%= filter === 'all' ? 'on' : '' %>">전체</a>
+    <a href="/admin?filter=pending" class="<%= filter === 'pending' ? 'on' : '' %>">승인 대기</a>
+    <a href="/admin?filter=active" class="<%= filter === 'active' ? 'on' : '' %>">이용 중</a>
+    <a href="/admin?filter=expired" class="<%= filter === 'expired' ? 'on' : '' %>">기간 만료</a>
+    <a href="/admin?filter=suspended" class="<%= filter === 'suspended' ? 'on' : '' %>">이용 중지</a>
+  </div>
+
+  <div class="tablewrap">
+    <table>
+      <thead>
+        <tr>
+          <th>이름 · 연락처</th><th>이메일</th><th>과정</th>
+          <th>상태</th><th>만료일</th><th>최근 접속</th><th style="width:220px">처리</th>
+        </tr>
+      </thead>
+      <tbody>
+      <% if (users.length === 0) { %>
+        <tr><td colspan="7" style="text-align:center;color:var(--ink-3);padding:34px">해당하는 수강생이 없습니다.</td></tr>
+      <% } %>
+      <% users.forEach(function(u){ %>
+        <tr>
+          <td>
+            <strong><%= u.name %></strong>
+            <% if (u.role === 'admin') { %> <span class="pill admin">관리자</span><% } %>
+            <% if (u.phone) { %><div class="mini"><%= u.phone %></div><% } %>
+          </td>
+          <td class="mini"><%= u.email %></td>
+          <td><%= u.course || '-' %></td>
+          <td>
+            <% if (u.status === 'pending') { %><span class="pill pending">승인 대기</span>
+            <% } else if (u.status === 'suspended') { %><span class="pill suspended">중지</span>
+            <% } else if (u.expired) { %><span class="pill expired">만료</span>
+            <% } else { %><span class="pill active">이용 중</span><% } %>
+          </td>
+          <td class="mini"><%= u.expires_at ? new Date(u.expires_at).toLocaleDateString('ko-KR') : '무기한' %></td>
+          <td class="mini"><%= u.last_login_at ? new Date(u.last_login_at).toLocaleDateString('ko-KR') : '-' %></td>
+          <td>
+            <div class="actions">
+              <% if (u.status !== 'active') { %>
+                <form method="post" action="/admin/users/<%= u.id %>/status" class="inline-form">
+                  <input type="hidden" name="status" value="active">
+                  <button class="btn sm primary">승인</button>
+                </form>
+              <% } %>
+              <% if (u.status === 'active') { %>
+                <form method="post" action="/admin/users/<%= u.id %>/status" class="inline-form">
+                  <input type="hidden" name="status" value="suspended">
+                  <button class="btn sm">중지</button>
+                </form>
+              <% } %>
+              <form method="post" action="/admin/users/<%= u.id %>/extend" class="inline-form">
+                <input type="hidden" name="months" value="3">
+                <button class="btn sm">3개월 연장</button>
+              </form>
+            </div>
+
+            <details class="editrow">
+              <summary>자세히 수정</summary>
+              <div class="box">
+                <form method="post" action="/admin/users/<%= u.id %>/update">
+                  <div class="field">
+                    <label class="lb">수강 만료일</label>
+                    <input type="date" name="expires_at" value="<%= u.expires_at ? new Date(u.expires_at).toISOString().slice(0,10) : '' %>">
+                    <div class="hint">비워두면 무기한</div>
+                  </div>
+                  <div class="field">
+                    <label class="lb">과정</label>
+                    <input type="text" name="course" value="<%= u.course || '' %>">
+                  </div>
+                  <div class="field">
+                    <label class="lb">권한</label>
+                    <select name="role">
+                      <option value="member" <%= u.role === 'member' ? 'selected' : '' %>>수강생</option>
+                      <option value="admin" <%= u.role === 'admin' ? 'selected' : '' %>>관리자</option>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label class="lb">메모</label>
+                    <textarea name="memo" style="min-height:52px"><%= u.memo || '' %></textarea>
+                  </div>
+                  <button class="btn sm primary">저장</button>
+                </form>
+
+                <hr style="border:none;border-top:1px solid var(--line);margin:14px 0">
+
+                <form method="post" action="/admin/users/<%= u.id %>/reset">
+                  <label class="lb">임시 비밀번호로 바꾸기</label>
+                  <div style="display:flex;gap:6px">
+                    <input type="text" name="temp_password" placeholder="8자 이상" minlength="8" required>
+                    <button class="btn sm">변경</button>
+                  </div>
+                  <div class="hint">바꾼 뒤 본인에게 직접 알려 주세요.</div>
+                </form>
+
+                <hr style="border:none;border-top:1px solid var(--line);margin:14px 0">
+
+                <form method="post" action="/admin/users/<%= u.id %>/delete"
+                      onsubmit="return confirm('<%= u.name %> 님의 계정을 삭제합니다. 되돌릴 수 없습니다.')">
+                  <button class="btn sm danger">계정 삭제</button>
+                </form>
+              </div>
+            </details>
+          </td>
+        </tr>
+      <% }); %>
+      </tbody>
+    </table>
+  </div>
+
+  <% if (recent.length) { %>
+    <div class="card" style="margin-top:18px">
+      <h2 style="font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);margin-bottom:11px">최근 사용 기록</h2>
+      <ul class="recent">
+        <% recent.forEach(function(r){ %>
+          <li>
+            <span class="who"><%= r.name %></span>
+            <span><%= r.tool_slug %></span>
+            <span class="when"><%= new Date(r.created_at).toLocaleString('ko-KR', {month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit'}) %></span>
+          </li>
+        <% }); %>
+      </ul>
+    </div>
+  <% } %>
+
+<% } else if (tab === 'tools') { %>
+
+  <div class="card" style="margin-bottom:16px">
+    <h2 style="font-size:15px;font-weight:650;margin-bottom:14px">도구 추가</h2>
+    <form method="post" action="/admin/tools/save">
+      <div class="row">
+        <div class="field">
+          <label class="lb">주소용 이름 (slug)</label>
+          <input type="text" name="slug" placeholder="blog-prompt-builder" required
+                 pattern="[a-z0-9][a-z0-9-]*">
+          <div class="hint">영문 소문자·숫자·하이픈만. 폴더 이름과 똑같이 적어 주세요.</div>
+        </div>
+        <div class="field">
+          <label class="lb">이름</label>
+          <input type="text" name="title" placeholder="원고 프롬프트 빌더" required>
+        </div>
+      </div>
+      <div class="field">
+        <label class="lb">설명</label>
+        <input type="text" name="description" placeholder="목록 카드에 보일 한 줄 설명">
+      </div>
+      <div class="row">
+        <div class="field">
+          <label class="lb">분류</label>
+          <input type="text" name="category" value="블로그 대행" placeholder="블로그 대행 / 사주 / 콘텐츠">
+        </div>
+        <div class="field">
+          <label class="lb">아이콘 · 순서</label>
+          <div style="display:flex;gap:6px">
+            <input type="text" name="emoji" value="🧰" style="width:70px">
+            <input type="number" name="sort_order" value="100">
+          </div>
+        </div>
+      </div>
+      <div class="field">
+        <label style="font-size:13.5px"><input type="checkbox" name="is_active" checked> 목록에 보이기</label>
+        &nbsp;&nbsp;
+        <label style="font-size:13.5px"><input type="checkbox" name="admin_only"> 관리자만 사용</label>
+      </div>
+      <button class="btn primary">도구 추가</button>
+    </form>
+    <div class="alert warn" style="margin:16px 0 0">
+      도구를 추가한 뒤 <code>protected/tools/{주소용 이름}/index.html</code> 파일을 올리고 다시 배포해야 실제로 열립니다.
+    </div>
+  </div>
+
+  <div class="tablewrap">
+    <table>
+      <thead>
+        <tr><th>아이콘</th><th>이름</th><th>주소</th><th>분류</th><th>순서</th><th>상태</th><th>처리</th></tr>
+      </thead>
+      <tbody>
+      <% tools.forEach(function(t){ %>
+        <tr>
+          <td style="font-size:20px"><%= t.emoji %></td>
+          <td>
+            <strong><%= t.title %></strong>
+            <% if (t.description) { %><div class="mini"><%= t.description %></div><% } %>
+          </td>
+          <td class="mini">/t/<%= t.slug %></td>
+          <td><%= t.category %></td>
+          <td class="mini"><%= t.sort_order %></td>
+          <td>
+            <% if (!t.is_active) { %><span class="pill expired">숨김</span>
+            <% } else if (t.admin_only) { %><span class="pill admin">관리자만</span>
+            <% } else { %><span class="pill active">공개</span><% } %>
+          </td>
+          <td>
+            <details class="editrow">
+              <summary>수정</summary>
+              <div class="box">
+                <form method="post" action="/admin/tools/save">
+                  <input type="hidden" name="id" value="<%= t.id %>">
+                  <div class="field"><label class="lb">주소용 이름</label>
+                    <input type="text" name="slug" value="<%= t.slug %>" required></div>
+                  <div class="field"><label class="lb">이름</label>
+                    <input type="text" name="title" value="<%= t.title %>" required></div>
+                  <div class="field"><label class="lb">설명</label>
+                    <input type="text" name="description" value="<%= t.description || '' %>"></div>
+                  <div class="row">
+                    <div class="field"><label class="lb">분류</label>
+                      <input type="text" name="category" value="<%= t.category %>"></div>
+                    <div class="field"><label class="lb">아이콘 · 순서</label>
+                      <div style="display:flex;gap:6px">
+                        <input type="text" name="emoji" value="<%= t.emoji %>" style="width:70px">
+                        <input type="number" name="sort_order" value="<%= t.sort_order %>">
+                      </div>
+                    </div>
+                  </div>
+                  <div class="field">
+                    <label style="font-size:13.5px"><input type="checkbox" name="is_active" <%= t.is_active ? 'checked' : '' %>> 목록에 보이기</label>
+                    &nbsp;&nbsp;
+                    <label style="font-size:13.5px"><input type="checkbox" name="admin_only" <%= t.admin_only ? 'checked' : '' %>> 관리자만</label>
+                  </div>
+                  <button class="btn sm primary">저장</button>
+                </form>
+                <hr style="border:none;border-top:1px solid var(--line);margin:13px 0">
+                <form method="post" action="/admin/tools/<%= t.id %>/delete"
+                      onsubmit="return confirm('<%= t.title %> 을 목록에서 지웁니다.')">
+                  <button class="btn sm danger">삭제</button>
+                </form>
+              </div>
+            </details>
+          </td>
+        </tr>
+      <% }); %>
+      </tbody>
+    </table>
+  </div>
+
+<% } else { %>
+
+  <div class="card" style="margin-bottom:16px">
+    <h2 style="font-size:15px;font-weight:650;margin-bottom:14px">공지 작성</h2>
+    <form method="post" action="/admin/notices/save">
+      <div class="field">
+        <label class="lb">제목</label>
+        <input type="text" name="title" placeholder="수강생 홈 화면에 보일 제목" required>
+      </div>
+      <div class="field">
+        <label class="lb">내용</label>
+        <textarea name="body" style="min-height:110px" placeholder="제목을 누르면 펼쳐지는 내용입니다. 비워두면 제목만 보입니다."></textarea>
+      </div>
+      <div class="field">
+        <label style="font-size:13.5px"><input type="checkbox" name="is_active" checked> 홈에 보이기</label>
+        &nbsp;&nbsp;
+        <label style="font-size:13.5px"><input type="checkbox" name="is_pinned"> 중요 표시 (맨 위 고정)</label>
+      </div>
+      <button class="btn primary">공지 등록</button>
+    </form>
+  </div>
+
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>제목</th><th>등록일</th><th>상태</th><th style="width:150px">처리</th></tr></thead>
+      <tbody>
+      <% if (!notices.length) { %>
+        <tr><td colspan="4" style="text-align:center;color:var(--ink-3);padding:34px">등록된 공지가 없습니다.</td></tr>
+      <% } %>
+      <% notices.forEach(function(n){ %>
+        <tr>
+          <td>
+            <strong><%= n.title %></strong>
+            <% if (n.body) { %><div class="mini"><%= n.body.length > 60 ? n.body.slice(0,60) + '…' : n.body %></div><% } %>
+          </td>
+          <td class="mini"><%= new Date(n.created_at).toLocaleDateString('ko-KR') %></td>
+          <td>
+            <% if (!n.is_active) { %><span class="pill expired">숨김</span>
+            <% } else if (n.is_pinned) { %><span class="pill suspended">중요</span>
+            <% } else { %><span class="pill active">게시중</span><% } %>
+          </td>
+          <td>
+            <details class="editrow">
+              <summary>수정</summary>
+              <div class="box">
+                <form method="post" action="/admin/notices/save">
+                  <input type="hidden" name="id" value="<%= n.id %>">
+                  <div class="field"><label class="lb">제목</label>
+                    <input type="text" name="title" value="<%= n.title %>" required></div>
+                  <div class="field"><label class="lb">내용</label>
+                    <textarea name="body" style="min-height:90px"><%= n.body || '' %></textarea></div>
+                  <div class="field">
+                    <label style="font-size:13.5px"><input type="checkbox" name="is_active" <%= n.is_active ? 'checked' : '' %>> 홈에 보이기</label>
+                    &nbsp;&nbsp;
+                    <label style="font-size:13.5px"><input type="checkbox" name="is_pinned" <%= n.is_pinned ? 'checked' : '' %>> 중요</label>
+                  </div>
+                  <button class="btn sm primary">저장</button>
+                </form>
+                <hr style="border:none;border-top:1px solid var(--line);margin:13px 0">
+                <form method="post" action="/admin/notices/<%= n.id %>/delete"
+                      onsubmit="return confirm('이 공지를 삭제합니다.')">
+                  <button class="btn sm danger">삭제</button>
+                </form>
+              </div>
+            </details>
+          </td>
+        </tr>
+      <% }); %>
+      </tbody>
+    </table>
+  </div>
+
+<% } %>
+</div>
+<%- include('partials/foot') %>
