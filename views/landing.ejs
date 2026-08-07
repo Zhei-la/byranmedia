@@ -3,56 +3,205 @@
 
 <nav class="lp-nav">
   <a href="/" class="lp-logo"><img src="/img/logo.png" alt="바이란미디어" height="27"></a>
-  <a href="/login" class="lp-navlink">로그인</a>
+  <div class="lp-menu">
+    <a href="#service">서비스</a>
+    <a href="#why">왜 우리인가</a>
+    <% if (notices.length) { %><a href="#notice">공지</a><% } %>
+  </div>
+  <div class="lp-right">
+    <a href="/login" class="lp-login">수강생 로그인</a>
+    <a href="#contact" class="lp-cta">문의하기</a>
+  </div>
 </nav>
 
-<main class="lp-main">
+<main>
 
-  <section class="hero">
-    <p class="kicker">블로그는 한 번에 터지지 않습니다</p>
-    <h1>Write.<br class="br-sm"> Publish. Repeat.</h1>
-    <p class="lead">매일 쌓는 사람을 위한 작업실</p>
-    <a href="/login" class="pill-cta">
-      로그인하고 시작하기
-      <span class="arw">→</span>
-    </a>
-  </section>
+<!-- 히어로 -->
+<section class="hero">
+  <p class="kicker">블로그 · 스레드 콘텐츠 대행</p>
+  <h1>사장님 이름으로<br>남는 글</h1>
+  <p class="lead">
+    블로그는 한 번에 터지지 않습니다.<br>
+    매일 쌓아야 하는 그 일을, 대신 합니다.
+  </p>
+  <div class="hero-cta">
+    <a href="#contact" class="pill-cta">무료 상담 신청 <span class="arw">→</span></a>
+    <a href="#service" class="pill-ghost">어떤 일을 하나요</a>
+  </div>
+  <ul class="hero-facts">
+    <li><strong>원고 + 발행</strong><span>모두 포함</span></li>
+    <li><strong>법규 검수</strong><span>발행 전 20항목</span></li>
+    <li><strong>저작권 이전</strong><span>글의 주인은 사장님</span></li>
+  </ul>
+</section>
 
-  <a href="/signup" class="bar">
-    <span class="bar-tag">등록</span>
-    <span class="bar-txt">수강생이라면 여기서 계정을 신청하세요</span>
-    <span class="bar-arw">›</span>
-  </a>
+<!-- 소개 -->
+<section class="intro" id="about">
+  <div class="inner">
+    <p class="sect-lbl">바이란미디어</p>
+    <h2 class="sect-h">기사에 기자 이름이 붙듯,<br>글에 사장님 이름이 남습니다</h2>
+    <p class="sect-body">
+      신문에서 기자 이름이 붙는 줄을 바이라인이라고 합니다.
+      저희 이름은 거기서 왔습니다. 저희가 쓰지만 남는 것은 사장님의 이름이고,
+      쌓이는 것은 사장님의 자산입니다.
+    </p>
+    <p class="sect-body">
+      키워드를 찾고, 원고를 쓰고, 업종 법규를 검수하고, 매일 발행합니다.
+      사장님은 사진만 보내주시면 됩니다.
+    </p>
+  </div>
+</section>
 
-  <% if (tools.length) { %>
-  <section class="preview">
-    <div class="preview-h">
-      <span class="lbl">도구</span>
-      <a href="/login" class="more">전체 보기 →</a>
+<!-- 서비스 -->
+<section class="service" id="service">
+  <div class="inner">
+    <p class="sect-lbl">서비스</p>
+    <h2 class="sect-h">두 가지를 합니다</h2>
+    <div class="svc-grid">
+      <article class="svc">
+        <span class="svc-ico">📝</span>
+        <h3>블로그 대행</h3>
+        <p>네이버 블로그 원고 작성부터 발행까지. 키워드 리서치, 썸네일 제작, 월간 성과 리포트를 함께 드립니다.</p>
+        <ul>
+          <li>키워드 리서치부터 발행까지</li>
+          <li>계정 위임 또는 부계정 운영</li>
+          <li>업종 법규 검수 포함</li>
+        </ul>
+      </article>
+      <article class="svc">
+        <span class="svc-ico">🧵</span>
+        <h3>스레드 대행</h3>
+        <p>스레드(Threads) 콘텐츠 기획과 예약 발행. 댓글을 부르는 글로 팔로워와 문의를 함께 늘립니다.</p>
+        <ul>
+          <li>콘텐츠 기획부터 예약 발행까지</li>
+          <li>카드뉴스 제작</li>
+          <li>댓글·DM 응대 관리</li>
+        </ul>
+      </article>
     </div>
-    <ul class="tiles">
-      <% tools.forEach(function(t){ %>
-        <li class="tile">
-          <span class="tile-ico"><%= t.emoji %></span>
-          <span class="tile-name"><%= t.title %></span>
+    <p class="svc-note">두 가지를 함께 맡기시면 더 좋은 조건으로 안내해 드립니다.</p>
+  </div>
+</section>
+
+<!-- 차별점 -->
+<section class="why" id="why">
+  <div class="inner">
+    <p class="sect-lbl why-lbl">왜 우리인가</p>
+    <h2 class="sect-h why-h">약속할 수 있는 것만<br>약속합니다</h2>
+    <div class="why-grid">
+      <article>
+        <h3>상위노출을 보장하지 않습니다</h3>
+        <p>보장한다는 곳은 결국 검색엔진이 싫어하는 일을 하게 됩니다. 저희는 정상적인 방법으로만 쌓습니다.</p>
+      </article>
+      <article>
+        <h3>업종 법규를 검수합니다</h3>
+        <p>의료법, 식품표시광고법, 화장품법. 걸리면 사장님이 과태료를 맞습니다. 발행 전에 20개 항목으로 검수합니다.</p>
+      </article>
+      <article>
+        <h3>글의 주인은 사장님입니다</h3>
+        <p>제작한 원고와 이미지의 저작권은 사장님께 넘어갑니다. 계약이 끝나도 글은 그대로 남습니다.</p>
+      </article>
+      <article>
+        <h3>AI를 쓰고, 사람이 검수합니다</h3>
+        <p>숨기지 않습니다. 초안은 AI로 빠르게, 사실 확인과 법규 검토와 문장은 사람이 다시 씁니다.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- 공지 -->
+<% if (notices.length) { %>
+<section class="notice-sec" id="notice">
+  <div class="inner">
+    <p class="sect-lbl">공지사항</p>
+    <ul class="notice-list">
+      <% notices.forEach(function(n){ %>
+        <li>
+          <div class="nl-head">
+            <span class="nl-title"><%= n.title %></span>
+            <span class="nl-date"><%= n.dateText %></span>
+          </div>
+          <% if (n.body) { %><p class="nl-body"><%= n.body %></p><% } %>
         </li>
       <% }); %>
     </ul>
-  </section>
-  <% } %>
+  </div>
+</section>
+<% } %>
 
-  <section class="creed">
-    <p class="creed-lbl">WHY WE EXIST</p>
-    <h2>우리가 파는 것은<br>보장이 아닙니다</h2>
-    <p class="creed-sub">느리지만 무너지지 않는 방법을 다룹니다.</p>
-    <a href="/signup" class="creed-link">수강생 등록 신청 <span>→</span></a>
-  </section>
+<!-- 문의 -->
+<section class="contact" id="contact">
+  <div class="inner">
+    <p class="sect-lbl contact-lbl">문의하기</p>
+    <h2 class="sect-h contact-h">먼저 이야기부터 들려주세요</h2>
+    <p class="contact-sub">
+      어떤 가게인지, 어떤 손님이 오시는지 알아야 글을 쓸 수 있습니다.<br>
+      상담은 무료이고, 맡기지 않으셔도 괜찮습니다.
+    </p>
+
+    <% if (sent) { %>
+      <div class="sent-box">
+        <strong>문의가 접수됐습니다</strong>
+        영업일 기준 1일 안에 연락드리겠습니다. 감사합니다.
+      </div>
+    <% } else { %>
+      <% if (error) { %><div class="form-err"><%= error %></div><% } %>
+      <form method="post" action="/inquiry" class="cform">
+        <div class="crow">
+          <div class="cfield">
+            <label for="f-name">이름<span>*</span></label>
+            <input type="text" id="f-name" name="name" value="<%= form.name || '' %>" required>
+          </div>
+          <div class="cfield">
+            <label for="f-phone">연락처</label>
+            <input type="text" id="f-phone" name="phone" value="<%= form.phone || '' %>" placeholder="010-0000-0000">
+          </div>
+        </div>
+        <div class="crow">
+          <div class="cfield">
+            <label for="f-email">이메일</label>
+            <input type="email" id="f-email" name="email" value="<%= form.email || '' %>">
+          </div>
+          <div class="cfield">
+            <label for="f-business">업체명 · 업종</label>
+            <input type="text" id="f-business" name="business" value="<%= form.business || '' %>" placeholder="예: 온기한의원 / 한의원">
+          </div>
+        </div>
+        <div class="cfield">
+          <label for="f-plan">관심 있는 서비스</label>
+          <select id="f-plan" name="plan">
+            <option value="">아직 모르겠어요</option>
+            <option>블로그 대행</option>
+            <option>스레드 대행</option>
+            <option>블로그 + 스레드</option>
+            <option>그 밖의 문의</option>
+          </select>
+        </div>
+        <div class="cfield">
+          <label for="f-message">하고 싶은 말씀</label>
+          <textarea id="f-message" name="message" placeholder="지금 블로그를 운영 중이신지, 어떤 점이 어려우신지 편하게 적어 주세요."><%= form.message || '' %></textarea>
+        </div>
+        <div class="hp"><label>이 칸은 비워두세요<input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
+        <p class="privacy">보내주신 정보는 상담 목적으로만 쓰이고, 상담이 끝나면 파기합니다.</p>
+        <button type="submit" class="pill-cta submit">문의 보내기 <span class="arw">→</span></button>
+      </form>
+    <% } %>
+  </div>
+</section>
 
 </main>
 
 <footer class="lp-foot">
-  <img src="/img/logo.png" alt="" height="17" class="foot-logo">
-  수강생 전용 공간입니다. 계정을 다른 사람과 공유하지 말아 주세요.
+  <div class="inner foot-in">
+    <img src="/img/logo.png" alt="바이란미디어" height="20" class="foot-logo">
+    <p class="foot-desc">블로그 · 스레드 콘텐츠 대행</p>
+    <div class="foot-links">
+      <a href="#service">서비스</a>
+        <a href="#contact">문의</a>
+      <a href="/login">수강생 로그인</a>
+      <a href="/signup">수강생 등록</a>
+    </div>
+  </div>
 </footer>
 
 </body>

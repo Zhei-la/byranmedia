@@ -13,6 +13,7 @@
     <a href="/admin?tab=users" class="<%= tab === 'users' ? 'on' : '' %>">수강생</a>
     <a href="/admin?tab=tools" class="<%= tab === 'tools' ? 'on' : '' %>">도구</a>
     <a href="/admin?tab=notices" class="<%= tab === 'notices' ? 'on' : '' %>">공지</a>
+    <a href="/admin?tab=inquiries" class="<%= tab === 'inquiries' ? 'on' : '' %>">문의<% if (newInq > 0) { %> <span class="dot"><%= newInq %></span><% } %></a>
   </div>
 
 <% if (tab === 'users') { %>
@@ -261,7 +262,7 @@
     </table>
   </div>
 
-<% } else { %>
+<% } else if (tab === 'notices') { %>
 
   <div class="card" style="margin-bottom:16px">
     <h2 style="font-size:15px;font-weight:650;margin-bottom:14px">공지 작성</h2>
@@ -278,6 +279,8 @@
         <label style="font-size:13.5px"><input type="checkbox" name="is_active" checked> 홈에 보이기</label>
         &nbsp;&nbsp;
         <label style="font-size:13.5px"><input type="checkbox" name="is_pinned"> 중요 표시 (맨 위 고정)</label>
+        &nbsp;&nbsp;
+        <label style="font-size:13.5px"><input type="checkbox" name="is_public"> 외부 공개 (첫 화면에도 표시)</label>
       </div>
       <button class="btn primary">공지 등록</button>
     </form>
@@ -301,6 +304,7 @@
             <% if (!n.is_active) { %><span class="pill expired">숨김</span>
             <% } else if (n.is_pinned) { %><span class="pill suspended">중요</span>
             <% } else { %><span class="pill active">게시중</span><% } %>
+            <% if (n.is_public) { %> <span class="pill admin">외부공개</span><% } %>
           </td>
           <td>
             <details class="editrow">
@@ -316,6 +320,8 @@
                     <label style="font-size:13.5px"><input type="checkbox" name="is_active" <%= n.is_active ? 'checked' : '' %>> 홈에 보이기</label>
                     &nbsp;&nbsp;
                     <label style="font-size:13.5px"><input type="checkbox" name="is_pinned" <%= n.is_pinned ? 'checked' : '' %>> 중요</label>
+                    &nbsp;&nbsp;
+                    <label style="font-size:13.5px"><input type="checkbox" name="is_public" <%= n.is_public ? 'checked' : '' %>> 외부 공개</label>
                   </div>
                   <button class="btn sm primary">저장</button>
                 </form>
@@ -333,6 +339,82 @@
     </table>
   </div>
 
+<% } %>
+
+<% if (tab === 'inquiries') { %>
+  <div class="tablewrap">
+    <table>
+      <thead>
+        <tr><th>보낸 사람</th><th>업체 · 관심 플랜</th><th>내용</th><th>접수일</th><th>상태</th><th style="width:170px">처리</th></tr>
+      </thead>
+      <tbody>
+      <% if (!inquiries.length) { %>
+        <tr><td colspan="6" style="text-align:center;color:var(--ink-3);padding:34px">접수된 문의가 없습니다.</td></tr>
+      <% } %>
+      <% inquiries.forEach(function(q){ %>
+        <tr>
+          <td>
+            <strong><%= q.name %></strong>
+            <% if (q.phone) { %><div class="mini"><%= q.phone %></div><% } %>
+            <% if (q.email) { %><div class="mini"><%= q.email %></div><% } %>
+          </td>
+          <td>
+            <%= q.business || '-' %>
+            <% if (q.plan) { %><div class="mini"><%= q.plan %></div><% } %>
+          </td>
+          <td style="max-width:280px">
+            <% if (q.message) { %>
+              <div style="font-size:13px;line-height:1.6;white-space:pre-wrap"><%= q.message %></div>
+            <% } else { %><span class="mini">내용 없음</span><% } %>
+            <% if (q.memo) { %><div class="mini" style="margin-top:6px;color:var(--accent)">메모: <%= q.memo %></div><% } %>
+          </td>
+          <td class="mini"><%= new Date(q.created_at).toLocaleDateString('ko-KR', {month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit'}) %></td>
+          <td>
+            <% if (q.status === 'new') { %><span class="pill pending">신규</span>
+            <% } else if (q.status === 'contacted') { %><span class="pill active">연락함</span>
+            <% } else if (q.status === 'done') { %><span class="pill expired">완료</span>
+            <% } else { %><span class="pill suspended">스팸</span><% } %>
+          </td>
+          <td>
+            <div class="actions">
+              <% if (q.status === 'new') { %>
+                <form method="post" action="/admin/inquiries/<%= q.id %>/status" class="inline-form">
+                  <input type="hidden" name="status" value="contacted">
+                  <button class="btn sm primary">연락함</button>
+                </form>
+              <% } %>
+              <% if (q.status !== 'done') { %>
+                <form method="post" action="/admin/inquiries/<%= q.id %>/status" class="inline-form">
+                  <input type="hidden" name="status" value="done">
+                  <button class="btn sm">완료</button>
+                </form>
+              <% } %>
+            </div>
+            <details class="editrow">
+              <summary>메모 · 삭제</summary>
+              <div class="box">
+                <form method="post" action="/admin/inquiries/<%= q.id %>/memo">
+                  <label class="lb">메모</label>
+                  <textarea name="memo" style="min-height:60px"><%= q.memo || '' %></textarea>
+                  <button class="btn sm primary" style="margin-top:8px">저장</button>
+                </form>
+                <hr style="border:none;border-top:1px solid var(--line);margin:13px 0">
+                <form method="post" action="/admin/inquiries/<%= q.id %>/status" class="inline-form">
+                  <input type="hidden" name="status" value="spam">
+                  <button class="btn sm">스팸으로 표시</button>
+                </form>
+                <form method="post" action="/admin/inquiries/<%= q.id %>/delete" class="inline-form"
+                      onsubmit="return confirm('이 문의를 삭제합니다.')">
+                  <button class="btn sm danger">삭제</button>
+                </form>
+              </div>
+            </details>
+          </td>
+        </tr>
+      <% }); %>
+      </tbody>
+    </table>
+  </div>
 <% } %>
 </div>
 <%- include('partials/foot') %>

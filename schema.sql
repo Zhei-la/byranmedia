@@ -71,3 +71,22 @@ CREATE TABLE IF NOT EXISTS notices (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_notices ON notices (is_active, is_pinned DESC, created_at DESC);
+
+-- 공지를 외부에도 노출할지
+ALTER TABLE notices ADD COLUMN IF NOT EXISTS is_public BOOLEAN NOT NULL DEFAULT false;
+
+-- 문의 접수함
+CREATE TABLE IF NOT EXISTS inquiries (
+  id         SERIAL PRIMARY KEY,
+  name       VARCHAR(100) NOT NULL,
+  phone      VARCHAR(40),
+  email      VARCHAR(255),
+  business   VARCHAR(200),
+  plan       VARCHAR(60),
+  message    TEXT,
+  status     VARCHAR(20) NOT NULL DEFAULT 'new',  -- new | contacted | done | spam
+  memo       TEXT,
+  ip         VARCHAR(64),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_inq ON inquiries (status, created_at DESC);

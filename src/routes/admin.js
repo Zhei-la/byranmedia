@@ -12,7 +12,7 @@ router.use('/admin', requireAdmin);
 
 /* ---------------- 회원 관리 ---------------- */
 router.get('/admin', async (req, res) => {
-  const tab = ['tools', 'notices'].includes(req.query.tab) ? req.query.tab : 'users';
+  const tab = ['tools', 'notices', 'inquiries'].includes(req.query.tab) ? req.query.tab : 'users';
   const filter = req.query.filter || 'all';
 
   try {
@@ -52,6 +52,14 @@ router.get('/admin', async (req, res) => {
       notices = r.rows;
     } catch (e) { /* 테이블이 아직 없을 수 있다 */ }
 
+    let inquiries = [];
+    let newInq = 0;
+    try {
+      const r = await db.query(`SELECT * FROM inquiries ORDER BY created_at DESC LIMIT 200`);
+      inquiries = r.rows;
+      newInq = inquiries.filter((x) => x.status === 'new').length;
+    } catch (e) { /* 테이블이 아직 없을 수 있다 */ }
+
     const { rows: recent } = await db.query(
       `SELECT l.tool_slug, l.created_at, u.name
          FROM access_logs l JOIN users u ON u.id = l.user_id
@@ -60,7 +68,7 @@ router.get('/admin', async (req, res) => {
 
     res.render('admin', {
       title: '관리',
-      tab, filter, users, tools, recent, notices,
+      tab, filter, users, tools, recent, notices, inquiries, newInq,
       stat: stat[0],
       notice: req.query.done || null,
     });
@@ -187,6 +195,7 @@ router.post('/admin/notices/save', async (req, res) => {
   const body = String(req.body.body || '').trim() || null;
   const is_pinned = req.body.is_pinned === 'on';
   const is_active = req.body.is_active === 'on';
+  const is_public = req.body.is_public === 'on';
 
   if (!title) {
     return res.redirect('/admin?tab=notices&done=' + encodeURIComponent('제목을 입력해 주세요'));
@@ -194,13 +203,13 @@ router.post('/admin/notices/save', async (req, res) => {
   try {
     if (id) {
       await db.query(
-        `UPDATE notices SET title=$1, body=$2, is_pinned=$3, is_active=$4 WHERE id=$5`,
-        [title, body, is_pinned, is_active, id]
+        `UPDATE notices SET title=$1, body=$2, is_pinned=$3, is_active=$4, is_public=$5 WHERE id=$6`,
+        [title, body, is_pinned, is_active, is_public, id]
       );
     } else {
       await db.query(
-        `INSERT INTO notices (title, body, is_pinned, is_active) VALUES ($1,$2,$3,$4)`,
-        [title, body, is_pinned, is_active]
+        `INSERT INTO notices (title, body, is_pinned, is_active, is_public) VALUES ($1,$2,$3,$4,$5)`,
+        [title, body, is_pinned, is_active, is_public]
       );
     }
     res.redirect('/admin?tab=notices&done=' + encodeURIComponent('공지를 저장했습니다'));
@@ -212,6 +221,29 @@ router.post('/admin/notices/save', async (req, res) => {
 router.post('/admin/notices/:id/delete', async (req, res) => {
   await db.query(`DELETE FROM notices WHERE id = $1`, [parseInt(req.params.id, 10)]);
   res.redirect('/admin?tab=notices&done=' + encodeURIComponent('공지를 삭제했습니다'));
+});
+
+/* ---------------- 문의 관리 ---------------- */
+router.post('/admin/inquiries/:id/status', async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const status = String(req.body.status || '');
+  if (!['new', 'contacted', 'done', 'spam'].includes(status)) {
+    return res.redirect('/admin?tab=inquiries');
+  }
+  await db.query(`UPDATE inquiries SET status = $1 WHERE id = $2`, [status, id]);
+  res.redirect('/admin?tab=inquiries&done=' + encodeURIComponent('상태를 바꿨습니다'));
+});
+
+router.post('/admin/inquiries/:id/memo', async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const memo = String(req.body.memo || '').trim() || null;
+  await db.query(`UPDATE inquiries SET memo = $1 WHERE id = $2`, [memo, id]);
+  res.redirect('/admin?tab=inquiries&done=' + encodeURIComponent('메모를 저장했습니다'));
+});
+
+router.post('/admin/inquiries/:id/delete', async (req, res) => {
+  await db.query(`DELETE FROM inquiries WHERE id = $1`, [parseInt(req.params.id, 10)]);
+  res.redirect('/admin?tab=inquiries&done=' + encodeURIComponent('문의를 삭제했습니다'));
 });
 
 module.exports = router;
