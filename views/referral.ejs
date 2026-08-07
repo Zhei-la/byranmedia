@@ -1,0 +1,75 @@
+<%- include('partials/head') %>
+<body>
+<%- include('partials/nav') %>
+<div class="wrap">
+
+  <div class="page-h">
+    <h1>추천 현황</h1>
+    <p>내 코드로 가입한 분들을 여기서 확인할 수 있습니다.</p>
+  </div>
+
+  <% if (!myCode) { %>
+    <div class="blank">
+      <strong>추천 코드를 준비 중입니다</strong>
+      잠시 후 새로고침해 주세요.
+    </div>
+  <% } else { %>
+
+    <!-- 내 코드 -->
+    <section class="card refbox">
+      <h2 class="card-h">내 추천인 코드</h2>
+      <p class="card-sub">이 코드나 링크로 가입하면 제가 데려온 것으로 기록됩니다.</p>
+      <div class="refcard-row">
+        <code class="refcode"><%= myCode %></code>
+        <button type="button" class="btn sm" data-copy="<%= myCode %>">코드 복사</button>
+        <button type="button" class="btn sm primary" data-copy="<%= baseUrl %>/join?ref=<%= myCode %>">링크 복사</button>
+      </div>
+      <p class="refcard-link"><%= baseUrl %>/join?ref=<%= myCode %></p>
+      <p class="refbox-tip">
+        링크를 카카오톡이나 SNS로 보내주세요. 받은 분이 그 링크로 들어오면
+        추천인 코드를 따로 입력하지 않아도 자동으로 연결됩니다.
+      </p>
+    </section>
+
+    <!-- 숫자 -->
+    <div class="stats">
+      <div class="stat"><div class="n"><%= total %></div><div class="l">전체</div></div>
+      <div class="stat"><div class="n"><%= active %></div><div class="l">승인 완료</div></div>
+      <div class="stat <%= pending > 0 ? 'hi' : '' %>"><div class="n"><%= pending %></div><div class="l">승인 대기</div></div>
+    </div>
+
+    <!-- 명단 -->
+    <section class="block">
+      <h2 class="sect">내 코드로 가입한 분<span class="cnt"><%= total %></span></h2>
+      <% if (total === 0) { %>
+        <div class="blank">
+          <strong>아직 없습니다</strong>
+          위의 링크를 공유해 보세요.
+        </div>
+      <% } else { %>
+        <div class="tablewrap">
+          <table>
+            <thead><tr><th>이름</th><th>상태</th><th>가입일</th></tr></thead>
+            <tbody>
+              <% invited.forEach(function(u){ %>
+                <tr>
+                  <td><strong><%= u.name %></strong></td>
+                  <td>
+                    <% if (u.status === 'pending') { %><span class="pill pending">승인 대기</span>
+                    <% } else if (u.status === 'suspended') { %><span class="pill suspended">중지</span>
+                    <% } else { %><span class="pill active">이용 중</span><% } %>
+                  </td>
+                  <td class="mini"><%= new Date(u.created_at).toLocaleDateString('ko-KR') %></td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+      <% } %>
+    </section>
+
+  <% } %>
+
+</div>
+<%- include('partials/copy') %>
+<%- include('partials/foot') %>

@@ -176,6 +176,52 @@ router.get('/t/:slug/asset/:file', requireActive, (req, res) => {
   res.sendFile(target);
 });
 
+/* ---------------- 내 추천 현황 ---------------- */
+router.get('/referral', requireActive, async (req, res) => {
+  try {
+    const myCode = await ensureCode(req.user.id);
+
+    let invited = [];
+    let secondCount = 0;
+    if (myCode) {
+      const r = await db.query(
+        `SELECT name, status, created_at FROM users
+          WHERE referred_by = $1 ORDER BY created_at DESC`,
+        [req.user.id]
+      );
+      invited = r.rows;
+
+      const ids = await db.query(`SELECT id FROM users WHERE referred_by = $1`, [req.user.id]);
+      if (ids.rows.length) {
+        const c = await db.query(
+          `SELECT count(*)::int AS n FROM users WHERE referred_by = ANY($1::int[])`,
+          [ids.rows.map((x) => x.id)]
+        );
+        secondCount = c.rows[0].n;
+      }
+    }
+
+    const active = invited.filter((x) => x.status === 'active').length;
+    const pending = invited.filter((x) => x.status === 'pending').length;
+
+    res.render('referral', {
+      title: '추천 현황',
+      myCode,
+      invited,
+      total: invited.length,
+      active,
+      pending,
+      secondCount,
+    });
+  } catch (e) {
+    console.error('[추천 현황]', e.message);
+    res.status(500).render('error', {
+      title: '불러오기 실패',
+      message: '추천 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.',
+    });
+  }
+});
+
 function notFound() {
   return { title: '없는 도구', message: '주소를 다시 확인해 주세요.' };
 }

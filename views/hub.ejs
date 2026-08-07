@@ -25,20 +25,17 @@
   <% } %>
 
   <% if (myCode) { %>
-    <section class="refcard">
-      <div class="refcard-top">
-        <div>
-          <p class="refcard-lbl">내 추천인 코드</p>
-          <p class="refcard-sub">이 코드로 가입하면 누가 데려왔는지 기록됩니다<% if (invited > 0) { %> · 지금까지 <strong><%= invited %>명</strong><% } %></p>
-        </div>
+    <a href="/referral" class="refsum">
+      <div class="refsum-l">
+        <p class="refsum-lbl">내 추천인 코드</p>
+        <code class="refsum-code"><%= myCode %></code>
       </div>
-      <div class="refcard-row">
-        <code class="refcode" id="refCode"><%= myCode %></code>
-        <button type="button" class="btn sm" data-copy="<%= myCode %>">코드 복사</button>
-        <button type="button" class="btn sm primary" data-copy="<%= baseUrl %>/join?ref=<%= myCode %>">링크 복사</button>
+      <div class="refsum-r">
+        <p class="refsum-n"><%= invited %><span>명</span></p>
+        <p class="refsum-sub">지금까지 데려온 인원</p>
       </div>
-      <p class="refcard-link"><%= baseUrl %>/join?ref=<%= myCode %></p>
-    </section>
+      <span class="refsum-go">자세히 →</span>
+    </a>
   <% } %>
 
   <% if (count === 0) { %>

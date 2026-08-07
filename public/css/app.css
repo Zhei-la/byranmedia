@@ -702,3 +702,40 @@ a.ref-count:hover{background:var(--accent);color:#fff;text-decoration:none}
 .from-line{font-size:14px;color:var(--ink-2)}
 .from-line strong{color:var(--ink)}
 .page-h h1 .pill{vertical-align:6px;margin-left:4px}
+
+/* ---- 허브 추천 요약 카드 ---- */
+.refsum{
+  display:flex;align-items:center;gap:20px;
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  padding:18px 20px;margin-bottom:26px;color:inherit;text-align:left;
+  transition:border-color .14s,transform .14s;
+}
+.refsum:hover{border-color:var(--accent);text-decoration:none;transform:translateY(-1px)}
+.refsum-l{flex:1;min-width:0}
+.refsum-lbl{font-size:11.5px;font-weight:650;color:var(--ink-3);margin-bottom:7px}
+.refsum-code{
+  font-family:var(--mono);font-size:19px;font-weight:700;letter-spacing:.15em;
+  color:var(--ink);
+}
+.refsum-r{text-align:right;flex-shrink:0}
+.refsum-n{
+  font-size:24px;font-weight:700;letter-spacing:-.03em;color:var(--accent);line-height:1;
+}
+.refsum-n span{font-size:13px;font-weight:600;margin-left:2px}
+.refsum-sub{font-size:11.5px;color:var(--ink-3);margin-top:5px}
+.refsum-go{
+  font-size:12px;font-weight:650;color:var(--ink-3);flex-shrink:0;
+  padding-left:18px;border-left:1px solid var(--line);
+}
+.refsum:hover .refsum-go{color:var(--accent)}
+
+.refbox{margin-bottom:16px}
+.refbox-tip{
+  margin-top:16px;padding-top:14px;border-top:1px solid var(--line-soft);
+  font-size:12.5px;line-height:1.75;color:var(--ink-3);
+}
+
+@media (max-width:640px){
+  .refsum{flex-wrap:wrap;gap:12px}
+  .refsum-go{padding-left:0;border-left:none;width:100%}
+}
