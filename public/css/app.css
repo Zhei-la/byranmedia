@@ -515,3 +515,50 @@ html{scroll-behavior:smooth}
 .auth-foot .quiet{color:var(--ink-3);font-size:12px}
 .auth-foot .quiet:hover{color:var(--ink-2)}
 .pill.kakao{background:#FEF3C0;color:#7A5C00}
+
+.auth-logo-link{display:inline-block;line-height:0}
+.auth-logo-link:hover{opacity:.75}
+.auth-logo-link:focus-visible{outline:2px solid var(--accent);outline-offset:4px;border-radius:3px}
+
+/* ---- 카카오톡 채널 문의 ---- */
+.kakao-channel{
+  display:flex;align-items:center;gap:14px;
+  max-width:640px;padding:18px 20px;margin-bottom:32px;
+  background:#FEE500;border-radius:14px;color:#191600;
+  text-decoration:none;transition:filter .14s,transform .14s;
+}
+.kakao-channel:hover{
+  filter:brightness(.96);transform:translateY(-1px);
+  text-decoration:none;color:#191600;
+}
+.kakao-channel:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+.kc-ico{
+  display:grid;place-items:center;width:44px;height:44px;flex-shrink:0;
+  background:rgba(255,255,255,.55);border-radius:12px;
+}
+.kc-txt{display:flex;flex-direction:column;gap:3px;flex:1;min-width:0}
+.kc-txt strong{font-size:15.5px;font-weight:700;letter-spacing:-.02em}
+.kc-txt em{font-style:normal;font-size:12.5px;opacity:.68}
+.kc-arw{font-size:18px;flex-shrink:0;opacity:.55}
+
+.contact-or{
+  display:flex;align-items:center;gap:12px;max-width:640px;margin-bottom:22px;
+  font-size:12.5px;color:var(--ink-3);
+}
+.contact-or::before,.contact-or::after{content:'';flex:1;height:1px;background:var(--line)}
+
+.lp-kakao{
+  display:grid;place-items:center;width:34px;height:34px;
+  background:#FEE500;border-radius:50%;flex-shrink:0;
+  transition:filter .13s;
+}
+.lp-kakao:hover{filter:brightness(.94);text-decoration:none}
+.sr-only{
+  position:absolute;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;
+}
+@media (max-width:700px){
+  .kakao-channel{padding:15px 16px;gap:11px}
+  .kc-ico{width:38px;height:38px}
+  .kc-txt strong{font-size:14.5px}
+}

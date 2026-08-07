@@ -21,11 +21,17 @@
         연장을 원하면 아래로 연락해 주세요.
       </p>
     <% } %>
-    <% if (contact) { %>
-      <div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--line-soft);font-size:13.5px;color:var(--ink-2)">
-        <%= contact %>
-      </div>
-    <% } %>
+    <div style="margin-top:20px;padding-top:18px;border-top:1px solid var(--line-soft)">
+      <a href="http://pf.kakao.com/_TCcBX" target="_blank" rel="noopener" class="kakao-btn">
+        <svg width="17" height="16" viewBox="0 0 18 17" fill="none" aria-hidden="true">
+          <path d="M9 0C4.03 0 0 3.13 0 6.99c0 2.5 1.68 4.69 4.2 5.92l-1.06 3.9c-.09.34.29.61.59.42l4.66-3.07c.2.02.4.02.61.02 4.97 0 9-3.13 9-6.99C18 3.13 13.97 0 9 0z" fill="#191600"/>
+        </svg>
+        카카오톡으로 문의하기
+      </a>
+      <% if (contact) { %>
+        <p style="margin-top:12px;font-size:12.5px;color:var(--ink-3);text-align:center"><%= contact %></p>
+      <% } %>
+    </div>
   </div>
 </div>
 <%- include('partials/foot') %>

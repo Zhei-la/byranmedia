@@ -4,9 +4,11 @@ const db = require('../db');
 const router = express.Router();
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
-/* ---------------- 공개 첫 화면 ---------------- */
-router.get('/', async (req, res) => {
-  if (req.user) return res.redirect('/hub');
+/* ---------------- 공개 첫 화면 ----------------
+   '/' 는 로그인한 사람을 도구로 보내고,
+   '/home' 은 로그인 여부와 상관없이 소개 페이지를 보여준다. */
+router.get(['/', '/home'], async (req, res) => {
+  if (req.user && req.path === '/') return res.redirect('/hub');
 
   let notices = [];
   try {
