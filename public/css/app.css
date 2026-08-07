@@ -648,3 +648,22 @@ html{scroll-behavior:smooth}
   transition:border-color .13s,color .13s;
 }
 .pend-refbtn:hover{border-color:var(--accent);color:var(--accent);text-decoration:none}
+.need-ref{
+  background:var(--warn-soft);border:1px solid #EEDFC4;border-radius:10px;
+  padding:14px 16px;margin-bottom:18px;
+}
+.need-ref-lbl{
+  display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.06em;
+  color:#fff;background:var(--warn);padding:3px 10px;border-radius:20px;margin-bottom:8px;
+}
+.need-ref p{font-size:14px;font-weight:600;color:#7C4A13;line-height:1.6}
+.wel-noref{
+  margin-top:20px;padding-top:18px;border-top:1px solid var(--line-soft);
+}
+.wel-noref p{font-size:12.5px;color:var(--ink-3);margin-bottom:9px;text-align:center}
+.pend-need{
+  margin-top:16px;padding:14px 15px;background:var(--warn-soft);
+  border:1px solid #EEDFC4;border-radius:9px;
+}
+.pend-need p{font-size:13px;color:#7C4A13;line-height:1.65;margin-bottom:11px}
+.pend-need .pend-refbtn{margin-top:0;background:var(--surface)}

@@ -152,7 +152,13 @@ router.post('/welcome', async (req, res) => {
   if (!req.user) return res.redirect('/login');
 
   const code = String(req.body.code || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
-  if (!code) return res.redirect('/pending');
+  if (!code) {
+    return res.status(400).render('welcome', {
+      title: '가입 완료',
+      error: '추천인 코드를 넣어 주세요. 코드가 없으시면 아래로 문의해 주세요.',
+      code: '',
+    });
+  }
 
   const owner = await findByCode(code);
   if (!owner) {
