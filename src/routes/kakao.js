@@ -4,8 +4,13 @@ const db = require('../db');
 
 const router = express.Router();
 
-const KEY = process.env.KAKAO_REST_API_KEY || '';
-const SECRET = process.env.KAKAO_CLIENT_SECRET || '';
+/** 복사할 때 딸려오는 공백이나 따옴표를 걷어낸다 */
+function clean(v) {
+  return String(v || '').trim().replace(/^["']|["']$/g, '');
+}
+
+const KEY = clean(process.env.KAKAO_REST_API_KEY);
+const SECRET = clean(process.env.KAKAO_CLIENT_SECRET);
 
 /** 카카오 로그인을 쓸 수 있는 상태인지. 키가 없으면 버튼 자체를 숨긴다. */
 function kakaoReady() {
@@ -14,9 +19,10 @@ function kakaoReady() {
 
 /** 콜백 주소. 카카오 개발자 화면에 등록한 값과 글자 하나까지 같아야 한다. */
 function redirectUri(req) {
-  if (process.env.KAKAO_REDIRECT_URI) return process.env.KAKAO_REDIRECT_URI;
-  const base = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
-  return `${base.replace(/\/$/, '')}/auth/kakao/callback`;
+  const fixed = clean(process.env.KAKAO_REDIRECT_URI);
+  if (fixed) return fixed;
+  const base = clean(process.env.BASE_URL) || `${req.protocol}://${req.get('host')}`;
+  return `${base.replace(/\/+$/, '')}/auth/kakao/callback`;
 }
 
 /* ---------------- 카카오로 보내기 ---------------- */
@@ -79,6 +85,11 @@ router.get('/auth/kakao/callback', async (req, res) => {
     const token = await tokenRes.json();
     if (!tokenRes.ok || !token.access_token) {
       console.error('[카카오 토큰]', token);
+      console.error('[카카오 진단] 보낸 redirect_uri =', JSON.stringify(redirectUri(req)));
+      console.error('[카카오 진단] 키 길이 =', KEY.length, '| 앞 6자 =', KEY.slice(0, 6),
+                    '| 앞뒤 공백 =', KEY !== KEY.trim());
+      console.error('[카카오 진단] client_secret 사용 =', SECRET ? '예' : '아니오');
+      console.error('[카카오 진단] BASE_URL =', JSON.stringify(process.env.BASE_URL || '(없음)'));
       return fail('카카오 인증에 실패했습니다. 잠시 후 다시 시도해 주세요.');
     }
 
