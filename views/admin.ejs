@@ -52,6 +52,7 @@
           <td>
             <strong><%= u.name %></strong>
             <% if (u.role === 'admin') { %> <span class="pill admin">관리자</span><% } %>
+            <% if (u.provider === 'kakao') { %><span class="pill kakao">카카오</span><% } %>
             <% if (u.phone) { %><div class="mini"><%= u.phone %></div><% } %>
           </td>
           <td class="mini"><%= u.email %></td>
@@ -82,6 +83,21 @@
                 <input type="hidden" name="months" value="3">
                 <button class="btn sm">3개월 연장</button>
               </form>
+              <% if (u.role === 'admin') { %>
+                <% if (u.id !== user.id) { %>
+                  <form method="post" action="/admin/users/<%= u.id %>/role" class="inline-form"
+                        onsubmit="return confirm('<%= u.name %> 님의 관리자 권한을 해제합니다.')">
+                    <input type="hidden" name="role" value="member">
+                    <button class="btn sm">관리자 해제</button>
+                  </form>
+                <% } %>
+              <% } else { %>
+                <form method="post" action="/admin/users/<%= u.id %>/role" class="inline-form"
+                      onsubmit="return confirm('<%= u.name %> 님을 관리자로 지정합니다. 모든 수강생 정보와 문의를 볼 수 있게 됩니다.')">
+                  <input type="hidden" name="role" value="admin">
+                  <button class="btn sm">관리자로 지정</button>
+                </form>
+              <% } %>
             </div>
 
             <details class="editrow">

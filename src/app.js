@@ -12,6 +12,9 @@ const { loadUser } = require('./middleware/auth');
 const app = express();
 const PROD = process.env.NODE_ENV === 'production';
 
+// 배포할 때마다 값이 달라져서, 브라우저가 예전 CSS를 계속 쓰는 일을 막는다
+const ASSET_VER = Date.now().toString(36);
+
 if (!process.env.SESSION_SECRET) {
   console.error('[치명] SESSION_SECRET 환경변수가 없습니다.');
   process.exit(1);
@@ -52,6 +55,7 @@ app.use((req, res, next) => {
   res.locals.siteName = process.env.SITE_NAME || '바이란미디어';
   res.locals.title = '';
   res.locals.kakaoOn = kakao.kakaoReady();
+  res.locals.assetVer = ASSET_VER;
   next();
 });
 

@@ -24,7 +24,7 @@ router.get('/admin', async (req, res) => {
     else if (filter === 'expired') where = `WHERE expires_at IS NOT NULL AND expires_at < CURRENT_DATE`;
 
     const { rows: users } = await db.query(
-      `SELECT id, email, name, phone, course, role, status, expires_at, memo,
+      `SELECT id, email, name, phone, course, role, status, expires_at, memo, provider,
               last_login_at, created_at,
               (expires_at IS NOT NULL AND expires_at < CURRENT_DATE) AS expired
          FROM users ${where}
@@ -221,6 +221,32 @@ router.post('/admin/notices/save', async (req, res) => {
 router.post('/admin/notices/:id/delete', async (req, res) => {
   await db.query(`DELETE FROM notices WHERE id = $1`, [parseInt(req.params.id, 10)]);
   res.redirect('/admin?tab=notices&done=' + encodeURIComponent('공지를 삭제했습니다'));
+});
+
+/* 관리자 지정 / 해제 */
+router.post('/admin/users/:id/role', async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const role = req.body.role === 'admin' ? 'admin' : 'member';
+
+  if (id === req.user.id && role !== 'admin') {
+    return res.redirect('/admin?done=' + encodeURIComponent('본인 관리자 권한은 해제할 수 없습니다'));
+  }
+
+  // 마지막 남은 관리자를 내리면 아무도 승인할 수 없게 된다
+  if (role !== 'admin') {
+    const { rows } = await db.query(`SELECT count(*)::int AS n FROM users WHERE role='admin'`);
+    if (rows[0].n <= 1) {
+      return res.redirect('/admin?done=' + encodeURIComponent('관리자가 한 명뿐이라 해제할 수 없습니다'));
+    }
+  }
+
+  // 관리자로 올릴 때는 승인 상태와 기간도 함께 풀어준다
+  if (role === 'admin') {
+    await db.query(`UPDATE users SET role='admin', status='active', expires_at=NULL WHERE id=$1`, [id]);
+    return res.redirect('/admin?done=' + encodeURIComponent('관리자로 지정했습니다'));
+  }
+  await db.query(`UPDATE users SET role='member' WHERE id=$1`, [id]);
+  res.redirect('/admin?done=' + encodeURIComponent('관리자 권한을 해제했습니다'));
 });
 
 /* ---------------- 문의 관리 ---------------- */
