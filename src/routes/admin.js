@@ -87,7 +87,11 @@ router.post('/admin/users/:id/status', async (req, res) => {
     return res.redirect('/admin?done=' + encodeURIComponent('본인 계정은 정지할 수 없습니다'));
   }
   await db.query(`UPDATE users SET status = $1 WHERE id = $2`, [status, id]);
-  res.redirect('/admin?done=' + encodeURIComponent('상태를 바꿨습니다'));
+  const msg =
+    status === 'active' ? '승인했습니다'
+    : status === 'pending' ? '승인을 취소했습니다. 다시 승인하면 바로 복구됩니다'
+    : '이용을 중지했습니다';
+  res.redirect('/admin?done=' + encodeURIComponent(msg));
 });
 
 /* 회원 정보 수정 (만료일, 과정, 메모, 권한) */

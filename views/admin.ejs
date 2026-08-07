@@ -70,13 +70,19 @@
               <% if (u.status !== 'active') { %>
                 <form method="post" action="/admin/users/<%= u.id %>/status" class="inline-form">
                   <input type="hidden" name="status" value="active">
-                  <button class="btn sm primary">승인</button>
+                  <button class="btn sm primary"><%= u.status === 'suspended' ? '중지 해제' : '승인' %></button>
                 </form>
               <% } %>
               <% if (u.status === 'active') { %>
-                <form method="post" action="/admin/users/<%= u.id %>/status" class="inline-form">
+                <form method="post" action="/admin/users/<%= u.id %>/status" class="inline-form"
+                      onsubmit="return confirm('<%= u.name %> 님을 승인 대기 상태로 되돌립니다. 도구를 쓸 수 없게 되고, 다시 승인하면 바로 복구됩니다.')">
+                  <input type="hidden" name="status" value="pending">
+                  <button class="btn sm">승인 취소</button>
+                </form>
+                <form method="post" action="/admin/users/<%= u.id %>/status" class="inline-form"
+                      onsubmit="return confirm('<%= u.name %> 님의 이용을 중지합니다.')">
                   <input type="hidden" name="status" value="suspended">
-                  <button class="btn sm">중지</button>
+                  <button class="btn sm">이용 중지</button>
                 </form>
               <% } %>
               <form method="post" action="/admin/users/<%= u.id %>/extend" class="inline-form">
@@ -140,8 +146,11 @@
 
                 <hr style="border:none;border-top:1px solid var(--line);margin:14px 0">
 
+                <div class="hint" style="margin-bottom:8px">
+                  계정을 지우면 기록이 모두 사라집니다. 본인이 다시 로그인하면 새 계정으로 처음부터 신청하게 됩니다.
+                </div>
                 <form method="post" action="/admin/users/<%= u.id %>/delete"
-                      onsubmit="return confirm('<%= u.name %> 님의 계정을 삭제합니다. 되돌릴 수 없습니다.')">
+                      onsubmit="return confirm('<%= u.name %> 님의 계정을 완전히 삭제합니다. 되돌릴 수 없습니다.')">
                   <button class="btn sm danger">계정 삭제</button>
                 </form>
               </div>
