@@ -186,9 +186,9 @@ router.get('/auth/kakao/callback', async (req, res) => {
       if (err) return fail('로그인 처리 중 문제가 생겼습니다.');
       req.session.userId = user.id;
       db.query(`UPDATE users SET last_login_at = now() WHERE id = $1`, [user.id]).catch(() => {});
-      // 막 가입한 사람에게는 추천인을 물어본다. 링크로 이미 연결됐으면 건너뛴다.
+      // 승인 전이고 추천인이 아직 없으면 물어본다. 링크로 이미 연결됐으면 건너뛴다.
       if (user.status === 'active') return res.redirect('/hub');
-      if (isNew && !linkedByRef) return res.redirect('/welcome');
+      if (!linkedByRef) return res.redirect('/welcome');
       res.redirect('/pending');
     });
   } catch (e) {

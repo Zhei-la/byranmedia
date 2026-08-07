@@ -641,3 +641,10 @@ html{scroll-behavior:smooth}
   background:var(--danger);color:#fff;font-size:10.5px;font-weight:700;
   text-align:center;line-height:1.5;margin-left:3px;vertical-align:1px;
 }
+.pend-refbtn{
+  display:block;margin-top:16px;padding:11px;text-align:center;
+  border:1px solid var(--line);border-radius:8px;
+  font-size:13.5px;font-weight:600;color:var(--ink-2);
+  transition:border-color .13s,color .13s;
+}
+.pend-refbtn:hover{border-color:var(--accent);color:var(--accent);text-decoration:none}
