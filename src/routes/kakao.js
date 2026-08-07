@@ -143,11 +143,22 @@ router.get('/auth/kakao/callback', async (req, res) => {
           linkedByRef = true;
         }
       }
-      const created = await db.query(
-        `INSERT INTO users (email, password_hash, name, kakao_id, provider, status, referred_by)
-         VALUES ($1, NULL, $2, $3, 'kakao', 'pending', $4) RETURNING id, status`,
-        [email, nick, kakaoId, referredBy]
-      );
+      let created;
+      try {
+        created = await db.query(
+          `INSERT INTO users (email, password_hash, name, kakao_id, provider, status, referred_by)
+           VALUES ($1, NULL, $2, $3, 'kakao', 'pending', $4) RETURNING id, status`,
+          [email, nick, kakaoId, referredBy]
+        );
+      } catch (e) {
+        if (e.code !== '42703') throw e;
+        // 추천 컬럼이 아직 없는 데이터베이스
+        created = await db.query(
+          `INSERT INTO users (email, password_hash, name, kakao_id, provider, status)
+           VALUES ($1, NULL, $2, $3, 'kakao', 'pending') RETURNING id, status`,
+          [email, nick, kakaoId]
+        );
+      }
       rows = created.rows;
     }
     delete req.session.refCode;

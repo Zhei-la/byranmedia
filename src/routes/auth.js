@@ -137,8 +137,13 @@ router.get('/welcome', async (req, res) => {
   if (req.user.status === 'active') return res.redirect('/hub');
 
   // 이미 추천인이 정해졌으면 다시 묻지 않는다
-  const { rows } = await db.query(`SELECT referred_by FROM users WHERE id = $1`, [req.user.id]);
-  if (rows[0] && rows[0].referred_by) return res.redirect('/pending');
+  try {
+    const { rows } = await db.query(`SELECT referred_by FROM users WHERE id = $1`, [req.user.id]);
+    if (rows[0] && rows[0].referred_by) return res.redirect('/pending');
+  } catch (e) {
+    if (e.code !== '42703') throw e;
+    return res.redirect('/pending'); // 추천 기능이 없는 상태
+  }
 
   res.render('welcome', { title: '가입 완료', error: null, code: '' });
 });
@@ -165,10 +170,14 @@ router.post('/welcome', async (req, res) => {
     });
   }
 
-  await db.query(
-    `UPDATE users SET referred_by = $1 WHERE id = $2 AND referred_by IS NULL`,
-    [owner.id, req.user.id]
-  );
+  try {
+    await db.query(
+      `UPDATE users SET referred_by = $1 WHERE id = $2 AND referred_by IS NULL`,
+      [owner.id, req.user.id]
+    );
+  } catch (e) {
+    if (e.code !== '42703') throw e;
+  }
   res.redirect('/pending?ref=1');
 });
 
@@ -176,15 +185,21 @@ router.post('/welcome', async (req, res) => {
 router.get('/pending', async (req, res) => {
   if (!req.user) return res.redirect('/login');
   if (req.user.status === 'active' && !req.user.expired) return res.redirect('/hub');
-  const { rows } = await db.query(
-    `SELECT r.name AS referrer FROM users u
-       LEFT JOIN users r ON r.id = u.referred_by WHERE u.id = $1`,
-    [req.user.id]
-  );
+  let referrer = null;
+  try {
+    const { rows } = await db.query(
+      `SELECT r.name AS referrer FROM users u
+         LEFT JOIN users r ON r.id = u.referred_by WHERE u.id = $1`,
+      [req.user.id]
+    );
+    referrer = rows[0] ? rows[0].referrer : null;
+  } catch (e) {
+    if (e.code !== '42703') throw e;
+  }
   res.render('pending', {
     title: '승인 대기',
     contact: process.env.CONTACT_INFO || '',
-    referrer: rows[0] ? rows[0].referrer : null,
+    referrer,
     justSet: req.query.ref === '1',
   });
 });

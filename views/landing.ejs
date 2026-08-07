@@ -2,20 +2,23 @@
 <body class="lp">
 
 <nav class="lp-nav">
-  <a href="/home" class="lp-logo"><img src="/img/logo.png" alt="바이란미디어" height="26"></a>
+  <a href="/home" class="lp-brand">
+    <img src="/img/logo.png" alt="바이란미디어" height="24">
+    <span class="tagline">AI로 시작하는 1인 창업</span>
+  </a>
+
   <div class="lp-menu">
-    <a href="#top">홈</a>
+    <a href="#top" class="on">홈</a>
     <a href="#who">소개</a>
-    <a href="#give">과정</a>
-    <% if (notices.length) { %><a href="#notice">공지</a><% } %>
+    <a href="http://pf.kakao.com/_TCcBX" target="_blank" rel="noopener">문의하기</a>
   </div>
+
   <div class="lp-right">
     <% if (user) { %>
       <a href="/hub" class="lp-cta">마이페이지</a>
     <% } else { %>
-      <a href="/login" class="lp-login">회원가입</a>
       <a href="/login" class="lp-login">로그인</a>
-      <a href="http://pf.kakao.com/_TCcBX" target="_blank" rel="noopener" class="lp-cta">문의하기</a>
+      <a href="/login" class="lp-cta">회원가입</a>
     <% } %>
   </div>
 </nav>
