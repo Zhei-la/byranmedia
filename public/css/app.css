@@ -366,38 +366,7 @@ html{scroll-behavior:smooth}
 .sect-body{font-size:15px;line-height:1.95;color:var(--ink-2);max-width:40em;margin-bottom:15px}
 .sect-body:last-child{margin-bottom:0}
 
-.intro{padding:64px 0;background:var(--bg)}
 
-/* ---- 서비스 ---- */
-.service{padding:70px 0}
-.svc-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:30px}
-.svc{
-  background:var(--bg);border-radius:14px;padding:28px 26px;
-}
-.svc-ico{font-size:26px;line-height:1;display:block;margin-bottom:14px}
-.svc h3{font-size:18px;font-weight:700;letter-spacing:-.025em;margin-bottom:10px}
-.svc p{font-size:14px;line-height:1.75;color:var(--ink-2);margin-bottom:16px}
-.svc ul{list-style:none;display:flex;flex-direction:column;gap:7px}
-.svc li{font-size:13.5px;color:var(--ink-2);padding-left:16px;position:relative}
-.svc li::before{
-  content:'';position:absolute;left:0;top:9px;
-  width:5px;height:5px;border-radius:50%;background:var(--accent);
-}
-.svc-note{font-size:13.5px;color:var(--ink-3);margin-top:18px;text-align:center}
-
-/* ---- 차별점 ---- */
-.why{padding:70px 0;background:var(--panel)}
-.why-lbl{color:var(--panel-accent)}
-.why-h{color:#fff}
-.why-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:30px}
-.why-grid article{
-  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);
-  border-radius:14px;padding:24px 22px;
-}
-.why-grid h3{
-  font-size:15.5px;font-weight:650;color:#fff;margin-bottom:10px;letter-spacing:-.02em;
-}
-.why-grid p{font-size:13.5px;line-height:1.8;color:var(--panel-ink)}
 
 /* ---- 공지 ---- */
 .notice-sec{padding:64px 0}
@@ -464,9 +433,8 @@ html{scroll-behavior:smooth}
   .hero-cta{flex-direction:column}
   .pill-cta,.pill-ghost{justify-content:center}
   .hero-facts li{flex:1;min-width:0;padding:12px 14px}
-  .intro,.service,.why,.notice-sec{padding:52px 0}
+  .who,.give,.honest,.notice-sec{padding:52px 0}
   .contact{padding:52px 0 60px}
-  .svc-grid,.why-grid{grid-template-columns:1fr}
   .crow{grid-template-columns:1fr;gap:0}
 }
 
@@ -561,4 +529,85 @@ html{scroll-behavior:smooth}
   .kakao-channel{padding:15px 16px;gap:11px}
   .kc-ico{width:38px;height:38px}
   .kc-txt strong{font-size:14.5px}
+}
+
+/* ---- 이런 분께 ---- */
+.who{padding:70px 0;background:var(--bg)}
+.who-list{list-style:none;margin-top:30px;display:flex;flex-direction:column;gap:2px}
+.who-list li{
+  display:flex;gap:20px;padding:22px 0;
+  border-bottom:1px solid var(--line);
+}
+.who-list li:last-child{border-bottom:none}
+.who-no{
+  font-family:var(--serif);font-size:19px;font-weight:600;
+  color:var(--accent);flex-shrink:0;line-height:1.4;width:32px;
+}
+.who-list h3{
+  font-size:16px;font-weight:650;letter-spacing:-.025em;margin-bottom:7px;
+}
+.who-list p{font-size:14px;line-height:1.8;color:var(--ink-2);max-width:44em}
+
+/* ---- 무엇을 받나 ---- */
+.give{padding:70px 0}
+.give-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:28px;
+}
+.give-card{
+  background:var(--bg);border-radius:14px;padding:22px 20px;
+  display:flex;flex-direction:column;
+}
+.give-tag{
+  align-self:flex-start;font-size:10.5px;font-weight:700;letter-spacing:.07em;
+  color:#fff;background:var(--accent);padding:3px 9px;border-radius:20px;margin-bottom:13px;
+}
+.give-tag.doc{background:var(--ink)}
+.give-card h3{
+  font-size:15.5px;font-weight:650;letter-spacing:-.025em;margin-bottom:8px;
+}
+.give-card p{font-size:13.5px;line-height:1.75;color:var(--ink-2)}
+
+/* ---- 약속 ---- */
+.honest{padding:70px 0;background:var(--panel)}
+.honest-lbl{color:var(--panel-accent)}
+.honest-h{color:#fff}
+.honest-cols{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:30px}
+.honest-no,.honest-yes{
+  border-radius:14px;padding:26px 24px;
+}
+.honest-no{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)}
+.honest-yes{background:rgba(111,194,164,.09);border:1px solid rgba(111,194,164,.28)}
+.honest-cols h3{
+  font-size:14px;font-weight:700;margin-bottom:16px;letter-spacing:-.02em;
+}
+.honest-no h3{color:var(--panel-dim,#7C8A85)}
+.honest-yes h3{color:var(--panel-accent)}
+.honest-cols ul{list-style:none;display:flex;flex-direction:column;gap:10px;margin-bottom:18px}
+.honest-cols li{
+  font-size:14.5px;line-height:1.5;padding-left:22px;position:relative;
+}
+.honest-no li{color:var(--panel-dim,#7C8A85);text-decoration:line-through;text-decoration-thickness:1px}
+.honest-no li::before{
+  content:'×';position:absolute;left:0;top:-1px;
+  color:#8A6A66;font-size:15px;text-decoration:none;
+}
+.honest-yes li{color:#fff}
+.honest-yes li::before{
+  content:'';position:absolute;left:2px;top:6px;
+  width:7px;height:11px;border:2px solid var(--panel-accent);
+  border-top:0;border-left:0;transform:rotate(42deg);
+}
+.honest-cols > div > p{
+  font-size:12.5px;line-height:1.75;color:var(--panel-dim,#7C8A85);
+  padding-top:16px;border-top:1px solid rgba(255,255,255,.08);
+}
+
+@media (max-width:800px){
+  .give-grid{grid-template-columns:1fr 1fr}
+}
+@media (max-width:700px){
+  .who,.give,.honest{padding:52px 0}
+  .give-grid,.honest-cols{grid-template-columns:1fr}
+  .who-list li{gap:14px;padding:18px 0}
+  .who-no{width:26px;font-size:17px}
 }
