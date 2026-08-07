@@ -41,11 +41,11 @@ byranmedia/
 PowerShell에서 압축을 푼 폴더로 이동해서:
 
 ```powershell
-cd C:\zheila\byranmedia
+cd C:\byranmedia
 
 git init
 git add .
-git commit -m "제일라 허브 최초 배포"
+git commit -m "바이란미디어 허브 최초 배포"
 git branch -M main
 git remote add origin https://github.com/Zhei-la/byranmedia.git
 git push -u origin main
@@ -67,11 +67,11 @@ Railway 서비스 → **Variables** 탭에서 아래를 추가합니다.
 |---|---|
 | `SESSION_SECRET` | 길고 무작위한 문자열 (아래 명령으로 생성) |
 | `NODE_ENV` | `production` |
-| `SITE_NAME` | `제일라 자동화 연구소` |
-| `CONTACT_INFO` | `문의: 카카오톡 채널 @제일라연구소` |
+| `SITE_NAME` | `바이란미디어` |
+| `CONTACT_INFO` | `문의: 카카오톡 채널 @바이란미디어` |
 | `ADMIN_EMAIL` | 본인 이메일 |
 | `ADMIN_PASSWORD` | 8자 이상 비밀번호 |
-| `ADMIN_NAME` | `제일라` |
+| `ADMIN_NAME` | `바이란` |
 
 `SESSION_SECRET` 만드는 명령 (PowerShell):
 
