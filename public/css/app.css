@@ -14,6 +14,9 @@
   --danger:#A93E33;
   --danger-soft:#FAEBE9;
   --radius:10px;
+  --panel:#14181A;
+  --panel-ink:#C9D3CF;
+  --panel-accent:#6FC2A4;
   --sans:-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic',sans-serif;
   --mono:'SF Mono','JetBrains Mono','D2Coding',Consolas,monospace;
 }
@@ -294,3 +297,132 @@ footer .fmark{
   th,td{padding:9px 8px}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* ============================================================
+   랜딩 (로그인 전)
+   모티프: 원고를 교정하는 순간. 바이라인 밑줄과 편집자의 표시.
+   ============================================================ */
+:root{
+  --proof:#A93E33;          /* 교정 빨강 */
+  --serif:Georgia,'Times New Roman','Noto Serif KR',serif;
+}
+body.lp{display:block;background:var(--bg)}
+
+.lp-nav{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:20px 28px;max-width:1000px;margin:0 auto;
+}
+.lp-logo{display:flex;align-items:baseline;gap:9px;color:var(--ink)}
+.lp-logo:hover{text-decoration:none}
+.lp-logo .mark{
+  font-family:var(--serif);font-size:21px;font-weight:600;letter-spacing:-.01em;
+  border-bottom:1.5px solid var(--accent);padding-bottom:1px;line-height:1;
+}
+.lp-logo .kr{font-size:12.5px;color:var(--ink-3);font-weight:550}
+.lp-navlink{font-size:13.5px;font-weight:600;color:var(--ink-2)}
+.lp-navlink:hover{color:var(--accent);text-decoration:none}
+
+/* ---- 히어로 ---- */
+.hero{
+  max-width:1000px;margin:0 auto;padding:64px 28px 72px;
+}
+.eyebrow{
+  font-size:11.5px;font-weight:700;letter-spacing:.14em;
+  color:var(--ink-3);margin-bottom:22px;
+}
+.hero h1{
+  font-family:var(--serif);
+  font-size:clamp(38px,7.5vw,66px);
+  font-weight:600;line-height:1.16;letter-spacing:-.035em;
+  color:var(--ink);margin-bottom:26px;
+}
+/* 시그니처: 바이라인 밑줄이 그어진다 */
+.hero h1 .ul{position:relative;display:inline-block}
+.hero h1 .ul::after{
+  content:'';position:absolute;left:0;bottom:.04em;
+  height:3px;background:var(--accent);width:100%;
+  transform-origin:left center;transform:scaleX(0);
+  animation:rule .7s cubic-bezier(.6,.05,.25,1) .35s forwards;
+}
+@keyframes rule{to{transform:scaleX(1)}}
+
+.lead{
+  font-size:16px;line-height:1.85;color:var(--ink-2);
+  margin-bottom:34px;max-width:34em;
+}
+.cta{display:flex;gap:10px;flex-wrap:wrap}
+.btn-lg{
+  display:inline-block;padding:14px 26px;border-radius:8px;
+  font-size:15px;font-weight:650;text-decoration:none;
+  border:1px solid var(--line);background:var(--surface);color:var(--ink-2);
+  transition:border-color .14s,color .14s,background .14s;
+}
+.btn-lg:hover{border-color:var(--ink-3);color:var(--ink);text-decoration:none}
+.btn-lg.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn-lg.primary:hover{background:var(--accent-dark);border-color:var(--accent-dark);color:#fff}
+
+/* ---- 도구 선반 ---- */
+.shelf{
+  max-width:1000px;margin:0 auto;padding:0 28px 60px;
+}
+.shelf-h{
+  display:flex;align-items:baseline;gap:10px;
+  font-size:12px;font-weight:700;letter-spacing:.09em;color:var(--ink-2);
+  padding-bottom:9px;border-bottom:1.5px solid var(--ink);margin-bottom:18px;
+}
+.shelf-h .num{
+  font-family:var(--mono);font-size:11.5px;color:var(--proof);
+  letter-spacing:0;font-weight:700;
+}
+.shelf-grid{
+  list-style:none;display:flex;flex-wrap:wrap;gap:9px;margin-bottom:15px;
+}
+.chip{
+  display:flex;align-items:center;gap:9px;
+  padding:11px 17px 11px 13px;background:var(--surface);
+  border:1px solid var(--line);border-radius:30px;
+  font-size:13.5px;font-weight:550;color:var(--ink-2);
+}
+.chip-ico{font-size:16px;line-height:1}
+.shelf-note{font-size:12.5px;color:var(--ink-3)}
+
+/* ---- 신조 ---- */
+.creed{background:var(--panel);color:var(--panel-ink);padding:70px 28px}
+.creed-in{max-width:1000px;margin:0 auto}
+.creed-eyebrow{
+  font-size:11.5px;font-weight:700;letter-spacing:.14em;
+  color:var(--panel-accent);margin-bottom:20px;
+}
+.creed h2{
+  font-family:var(--serif);
+  font-size:clamp(26px,4.4vw,40px);
+  font-weight:600;line-height:1.3;letter-spacing:-.03em;
+  color:#fff;margin-bottom:26px;
+}
+.creed-body{
+  font-size:15px;line-height:1.9;color:var(--panel-ink);
+  max-width:36em;margin-bottom:16px;
+}
+.creed-body:last-child{margin-bottom:0}
+
+.lp-foot{
+  padding:26px 28px;font-size:12px;color:var(--ink-3);
+  text-align:center;background:var(--surface);border-top:1px solid var(--line);
+}
+.lp-foot .fmark{
+  font-family:var(--serif);font-size:13px;color:var(--ink-2);
+  border-bottom:1px solid var(--line);padding-bottom:1px;margin-right:9px;
+}
+
+@media (max-width:700px){
+  .lp-nav{padding:16px 18px}
+  .hero{padding:44px 18px 54px}
+  .shelf{padding:0 18px 44px}
+  .creed{padding:56px 18px}
+  .cta{flex-direction:column}
+  .btn-lg{text-align:center}
+  .lead{font-size:15px}
+}
+@media (prefers-reduced-motion:reduce){
+  .hero h1 .ul::after{animation:none;transform:scaleX(1)}
+}

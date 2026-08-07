@@ -59,9 +59,20 @@ app.use(require('./routes/auth'));
 app.use(require('./routes/hub'));
 app.use(require('./routes/admin'));
 
-app.get('/', (req, res) => {
+app.get('/', async (req, res) => {
   if (req.user) return res.redirect('/hub');
-  res.render('landing', { title: '' });
+  let tools = [];
+  try {
+    const { rows } = await db.query(
+      `SELECT title, emoji, category FROM tools
+        WHERE is_active = true AND admin_only = false
+        ORDER BY sort_order, title LIMIT 12`
+    );
+    tools = rows;
+  } catch (e) {
+    /* 도구를 못 불러와도 로그인 화면은 떠야 한다 */
+  }
+  res.render('landing', { title: '', tools });
 });
 
 app.get('/health', (req, res) => res.json({ ok: true }));
