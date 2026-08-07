@@ -2,6 +2,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const db = require('../db');
 const { requireAdmin } = require('../middleware/auth');
+const { ensureCode } = require('../referral');
 
 const router = express.Router();
 
@@ -243,6 +244,64 @@ router.post('/admin/users/:id/role', async (req, res) => {
   }
   await db.query(`UPDATE users SET role='member' WHERE id=$1`, [id]);
   res.redirect('/admin?done=' + encodeURIComponent('관리자 권한을 해제했습니다'));
+});
+
+/* ---------------- 회원 상세: 추천 실적 ---------------- */
+router.get('/admin/users/:id', async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (!id) return res.redirect('/admin');
+
+  try {
+    const { rows } = await db.query(
+      `SELECT u.*, rf.name AS referrer_name, rf.referral_code AS referrer_code, rf.id AS referrer_id
+         FROM users u LEFT JOIN users rf ON rf.id = u.referred_by
+        WHERE u.id = $1`,
+      [id]
+    );
+    if (!rows.length) {
+      return res.status(404).render('error', {
+        title: '없는 회원',
+        message: '이미 삭제된 계정일 수 있습니다.',
+      });
+    }
+    const target = rows[0];
+    await ensureCode(target.id);
+
+    // 이 사람을 통해 들어온 사람들
+    const { rows: invited } = await db.query(
+      `SELECT id, name, email, status, provider, created_at
+         FROM users WHERE referred_by = $1
+        ORDER BY created_at DESC`,
+      [id]
+    );
+
+    // 그 사람들이 또 데려온 수까지 (2단계)
+    let secondCount = 0;
+    if (invited.length) {
+      const r = await db.query(
+        `SELECT count(*)::int AS n FROM users
+          WHERE referred_by = ANY($1::int[])`,
+        [invited.map((x) => x.id)]
+      );
+      secondCount = r.rows[0].n;
+    }
+
+    const fresh = await db.query(`SELECT referral_code FROM users WHERE id = $1`, [id]);
+
+    res.render('admin-user', {
+      title: target.name,
+      target: { ...target, referral_code: fresh.rows[0].referral_code },
+      invited,
+      secondCount,
+      notice: req.query.done || null,
+    });
+  } catch (e) {
+    console.error('[회원 상세]', e.message);
+    res.status(500).render('error', {
+      title: '불러오기 실패',
+      message: '추천 정보를 불러오지 못했습니다. npm run setup 을 실행했는지 확인해 주세요.',
+    });
+  }
 });
 
 /* ---------------- 문의 관리 ---------------- */

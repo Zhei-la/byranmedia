@@ -66,30 +66,5 @@
 
 </div>
 
-<script>
-document.querySelectorAll('[data-copy]').forEach(function (btn) {
-  btn.addEventListener('click', async function () {
-    var text = btn.getAttribute('data-copy');
-    var original = btn.textContent;
-    try {
-      await navigator.clipboard.writeText(text);
-    } catch (e) {
-      var ta = document.createElement('textarea');
-      ta.value = text;
-      ta.style.cssText = 'position:fixed;opacity:0';
-      document.body.appendChild(ta);
-      ta.select();
-      try { document.execCommand('copy'); } catch (e2) {
-        btn.textContent = '복사 실패';
-        setTimeout(function () { btn.textContent = original; }, 1600);
-        document.body.removeChild(ta);
-        return;
-      }
-      document.body.removeChild(ta);
-    }
-    btn.textContent = '복사됨';
-    setTimeout(function () { btn.textContent = original; }, 1600);
-  });
-});
-</script>
+<%- include('partials/copy') %>
 <%- include('partials/foot') %>

@@ -667,3 +667,38 @@ html{scroll-behavior:smooth}
 }
 .pend-need p{font-size:13px;color:#7C4A13;line-height:1.65;margin-bottom:11px}
 .pend-need .pend-refbtn{margin-top:0;background:var(--surface)}
+
+/* ---- 관리 회원 목록 · 상세 ---- */
+.uname{font-weight:650;color:var(--ink);font-size:14px}
+.uname:hover{color:var(--accent)}
+.codeline{display:flex;align-items:center;gap:5px;margin-top:6px;flex-wrap:wrap}
+.codeline code{
+  font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:.1em;
+  color:var(--accent);background:var(--accent-soft);padding:2px 8px;border-radius:5px;
+}
+.ghostcopy{
+  border:1px solid var(--line);background:var(--surface);border-radius:5px;
+  font-size:10.5px;font-weight:600;color:var(--ink-3);padding:2px 7px;cursor:pointer;
+  transition:border-color .12s,color .12s;
+}
+.ghostcopy:hover{border-color:var(--accent);color:var(--accent)}
+a.ref-count{display:inline-block;text-decoration:none}
+a.ref-count:hover{background:var(--accent);color:#fff;text-decoration:none}
+
+.back-link{
+  display:inline-block;font-size:13px;font-weight:600;color:var(--ink-3);margin-bottom:16px;
+}
+.back-link:hover{color:var(--ink);text-decoration:none}
+.card-h{
+  font-size:13px;font-weight:700;letter-spacing:-.02em;margin-bottom:6px;
+  display:flex;align-items:center;gap:10px;
+}
+.card-sub{font-size:12.5px;color:var(--ink-3);line-height:1.7}
+.card-sub strong{color:var(--accent);font-weight:700}
+.count-big{
+  font-family:var(--mono);font-size:17px;font-weight:700;color:var(--accent);
+  letter-spacing:0;
+}
+.from-line{font-size:14px;color:var(--ink-2)}
+.from-line strong{color:var(--ink)}
+.page-h h1 .pill{vertical-align:6px;margin-left:4px}

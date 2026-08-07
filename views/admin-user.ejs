@@ -1,0 +1,143 @@
+<%- include('partials/head') %>
+<body>
+<%- include('partials/nav') %>
+<div class="wrap">
+
+  <a href="/admin" class="back-link">← 수강생 목록</a>
+
+  <% if (notice) { %><div class="alert ok"><%= notice %></div><% } %>
+
+  <div class="page-h">
+    <h1><%= target.name %>
+      <% if (target.role === 'admin') { %><span class="pill admin">관리자</span><% } %>
+      <% if (target.provider === 'kakao') { %><span class="pill kakao">카카오</span><% } %>
+      <% if (target.status === 'pending') { %><span class="pill pending">승인 대기</span>
+      <% } else if (target.status === 'suspended') { %><span class="pill suspended">이용 중지</span>
+      <% } else { %><span class="pill active">이용 중</span><% } %>
+    </h1>
+    <p>
+      <% if (target.email) { %><%= target.email %> · <% } %>
+      <% if (target.phone) { %><%= target.phone %> · <% } %>
+      <%= new Date(target.created_at).toLocaleDateString('ko-KR') %> 가입
+    </p>
+  </div>
+
+  <!-- 추천 코드 -->
+  <div class="card">
+    <h2 class="card-h">이 사람의 추천인 코드</h2>
+    <p class="card-sub">아래 코드나 링크로 가입하면 이 사람이 데려온 것으로 기록됩니다.</p>
+    <% if (target.referral_code) { %>
+      <div class="refcard-row">
+        <code class="refcode"><%= target.referral_code %></code>
+        <button type="button" class="btn sm" data-copy="<%= target.referral_code %>">코드 복사</button>
+        <button type="button" class="btn sm primary" data-copy="<%= baseUrl %>/join?ref=<%= target.referral_code %>">링크 복사</button>
+      </div>
+      <p class="refcard-link"><%= baseUrl %>/join?ref=<%= target.referral_code %></p>
+    <% } else { %>
+      <p class="card-sub">아직 코드가 없습니다. 이 사람이 한 번 로그인하면 만들어집니다.</p>
+    <% } %>
+  </div>
+
+  <!-- 누구 소개로 왔는지 -->
+  <div class="card">
+    <h2 class="card-h">누구 소개로 왔나</h2>
+    <% if (target.referrer_name) { %>
+      <p class="from-line">
+        <a href="/admin/users/<%= target.referrer_id %>"><strong><%= target.referrer_name %></strong></a>
+        님의 소개 <span class="mini">(<%= target.referrer_code %>)</span>
+      </p>
+    <% } else { %>
+      <p class="card-sub">추천인 없이 직접 가입했습니다.</p>
+    <% } %>
+  </div>
+
+  <!-- 데려온 사람들 -->
+  <div class="card">
+    <h2 class="card-h">
+      이 사람이 데려온 수강생
+      <span class="count-big"><%= invited.length %></span>
+    </h2>
+    <% if (secondCount > 0) { %>
+      <p class="card-sub">이 사람이 데려온 분들이 다시 <strong><%= secondCount %>명</strong>을 데려왔습니다.</p>
+    <% } %>
+
+    <% if (invited.length === 0) { %>
+      <p class="card-sub" style="margin-top:12px">아직 없습니다.</p>
+    <% } else { %>
+      <div class="tablewrap" style="margin-top:14px">
+        <table>
+          <thead><tr><th>이름</th><th>이메일</th><th>상태</th><th>가입일</th></tr></thead>
+          <tbody>
+            <% invited.forEach(function(u){ %>
+              <tr>
+                <td>
+                  <a href="/admin/users/<%= u.id %>"><strong><%= u.name %></strong></a>
+                  <% if (u.provider === 'kakao') { %> <span class="pill kakao">카카오</span><% } %>
+                </td>
+                <td class="mini"><%= u.email || '-' %></td>
+                <td>
+                  <% if (u.status === 'pending') { %><span class="pill pending">대기</span>
+                  <% } else if (u.status === 'suspended') { %><span class="pill suspended">중지</span>
+                  <% } else { %><span class="pill active">이용 중</span><% } %>
+                </td>
+                <td class="mini"><%= new Date(u.created_at).toLocaleDateString('ko-KR') %></td>
+              </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+  </div>
+
+  <!-- 메모 -->
+  <div class="card">
+    <h2 class="card-h">메모</h2>
+    <form method="post" action="/admin/users/<%= target.id %>/memo">
+      <textarea name="memo" style="min-height:80px" placeholder="누구인지 적어두세요."><%= target.memo || '' %></textarea>
+      <button class="btn sm primary" style="margin-top:10px">저장</button>
+    </form>
+  </div>
+
+  <!-- 처리 -->
+  <div class="card">
+    <h2 class="card-h">처리</h2>
+    <div class="actions">
+      <% if (target.status !== 'active') { %>
+        <form method="post" action="/admin/users/<%= target.id %>/status" class="inline-form">
+          <input type="hidden" name="status" value="active">
+          <button class="btn primary"><%= target.status === 'suspended' ? '중지 해제' : '승인' %></button>
+        </form>
+      <% } else { %>
+        <form method="post" action="/admin/users/<%= target.id %>/status" class="inline-form"
+              onsubmit="return confirm('<%= target.name %> 님의 이용을 중지합니다.')">
+          <input type="hidden" name="status" value="suspended">
+          <button class="btn">이용 중지</button>
+        </form>
+      <% } %>
+      <% if (target.role === 'admin') { %>
+        <% if (target.id !== user.id) { %>
+          <form method="post" action="/admin/users/<%= target.id %>/role" class="inline-form"
+                onsubmit="return confirm('관리자 권한을 해제합니다.')">
+            <input type="hidden" name="role" value="member">
+            <button class="btn">관리자 해제</button>
+          </form>
+        <% } %>
+      <% } else { %>
+        <form method="post" action="/admin/users/<%= target.id %>/role" class="inline-form"
+              onsubmit="return confirm('<%= target.name %> 님을 관리자로 지정합니다.')">
+          <input type="hidden" name="role" value="admin">
+          <button class="btn">관리자로 지정</button>
+        </form>
+      <% } %>
+      <% if (target.id !== user.id) { %>
+        <form method="post" action="/admin/users/<%= target.id %>/delete" class="inline-form"
+              onsubmit="return confirm('<%= target.name %> 님의 가입을 취소합니다.\n\n계정과 기록이 모두 지워집니다. 되돌릴 수 없습니다.')">
+          <button class="btn danger">가입 취소</button>
+        </form>
+      <% } %>
+    </div>
+  </div>
+
+</div>
+<%- include('partials/copy') %>
+<%- include('partials/foot') %>

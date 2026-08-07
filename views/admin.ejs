@@ -38,7 +38,7 @@
     <table>
       <thead>
         <tr>
-          <th style="width:160px">이름</th><th style="width:130px">추천</th><th>메모</th>
+          <th style="width:200px">이름 · 추천 코드</th><th style="width:130px">추천</th><th>메모</th>
           <th style="width:80px">상태</th><th style="width:90px">가입일</th><th style="width:220px">처리</th>
         </tr>
       </thead>
@@ -49,11 +49,17 @@
       <% users.forEach(function(u){ %>
         <tr>
           <td>
-            <strong><%= u.name %></strong>
+            <a href="/admin/users/<%= u.id %>" class="uname"><%= u.name %></a>
             <% if (u.role === 'admin') { %> <span class="pill admin">관리자</span><% } %>
             <% if (u.provider === 'kakao') { %> <span class="pill kakao">카카오</span><% } %>
+            <% if (u.referral_code) { %>
+              <div class="codeline">
+                <code><%= u.referral_code %></code>
+                <button type="button" class="ghostcopy" data-copy="<%= u.referral_code %>">코드</button>
+                <button type="button" class="ghostcopy" data-copy="<%= baseUrl %>/join?ref=<%= u.referral_code %>">링크</button>
+              </div>
+            <% } %>
             <% if (u.email) { %><div class="mini"><%= u.email %></div><% } %>
-            <% if (u.phone) { %><div class="mini"><%= u.phone %></div><% } %>
           </td>
           <td>
             <% if (u.referrer_name) { %>
@@ -63,9 +69,8 @@
               <span class="mini">직접 가입</span>
             <% } %>
             <% if (u.invited > 0) { %>
-              <div class="ref-count"><%= u.invited %>명 데려옴</div>
+              <a href="/admin/users/<%= u.id %>" class="ref-count"><%= u.invited %>명 데려옴</a>
             <% } %>
-            <% if (u.referral_code) { %><div class="mini own"><%= u.referral_code %></div><% } %>
           </td>
           <td>
             <form method="post" action="/admin/users/<%= u.id %>/memo" class="memo-form">
@@ -404,4 +409,5 @@
   </div>
 <% } %>
 </div>
+<%- include('partials/copy') %>
 <%- include('partials/foot') %>
