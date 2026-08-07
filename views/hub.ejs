@@ -41,30 +41,15 @@
     </section>
   <% } %>
 
-  <% if (recentTools.length) { %>
-    <section class="block">
-      <h2 class="sect">이어서 하기</h2>
-      <div class="quick">
-        <% recentTools.forEach(function(t){ %>
-          <a href="/t/<%= t.slug %>" class="qitem">
-            <span class="qico"><%= t.emoji %></span>
-            <span class="qname"><%= t.title %></span>
-          </a>
-        <% }); %>
-      </div>
-    </section>
-  <% } %>
-
   <% if (count === 0) { %>
     <div class="blank">
       <strong>아직 등록된 도구가 없습니다</strong>
       <% if (user.role === 'admin') { %>관리 화면에서 도구를 추가해 주세요.<% } else { %>도구가 준비되면 여기에 나타납니다.<% } %>
     </div>
   <% } else { %>
-    <% Object.keys(groups).forEach(function(cat){ %>
-      <section class="block">
-        <h2 class="sect"><%= cat %><span class="cnt"><%= groups[cat].length %></span></h2>
-        <div class="grid">
+    <section class="block">
+      <div class="grid">
+        <% Object.keys(groups).forEach(function(cat){ %>
           <% groups[cat].forEach(function(t){ %>
             <a href="/t/<%= t.slug %>" class="tool">
               <% if (t.admin_only) { %><span class="lock">관리자</span><% } %>
@@ -74,9 +59,9 @@
               <span class="go">열기</span>
             </a>
           <% }); %>
-        </div>
-      </section>
-    <% }); %>
+        <% }); %>
+      </div>
+    </section>
   <% } %>
 
 </div>

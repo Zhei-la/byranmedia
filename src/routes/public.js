@@ -29,7 +29,7 @@ router.get(['/', '/home'], async (req, res) => {
     /* 공지가 없어도 첫 화면은 떠야 한다 */
   }
 
-  res.render('landing', { title: '', notices, sent: req.query.sent === '1', error: null, form: {} });
+  res.render('landing', { title: '', notices });
 });
 
 /* ---------------- 문의 접수 ---------------- */

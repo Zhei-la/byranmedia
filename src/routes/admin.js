@@ -22,16 +22,35 @@ router.get('/admin', async (req, res) => {
     else if (filter === 'active') where = `WHERE u.status = 'active'`;
     else if (filter === 'suspended') where = `WHERE u.status = 'suspended'`;
 
-    const { rows: users } = await db.query(
-      `SELECT u.id, u.email, u.name, u.phone, u.role, u.status, u.memo, u.provider,
-              u.last_login_at, u.created_at, u.referral_code,
-              r.name AS referrer_name, r.referral_code AS referrer_code,
-              (SELECT count(*)::int FROM users c WHERE c.referred_by = u.id) AS invited
-         FROM users u LEFT JOIN users r ON r.id = u.referred_by ${where}
-        ORDER BY (u.status='pending') DESC, u.created_at DESC
-        LIMIT 300`,
-      params
-    );
+    let users = [];
+    try {
+      const r = await db.query(
+        `SELECT u.id, u.email, u.name, u.phone, u.role, u.status, u.memo, u.provider,
+                u.last_login_at, u.created_at, u.referral_code,
+                rf.name AS referrer_name, rf.referral_code AS referrer_code,
+                (SELECT count(*)::int FROM users c WHERE c.referred_by = u.id) AS invited
+           FROM users u LEFT JOIN users rf ON rf.id = u.referred_by ${where}
+          ORDER BY (u.status='pending') DESC, u.created_at DESC
+          LIMIT 300`,
+        params
+      );
+      users = r.rows;
+    } catch (e) {
+      // 추천 컬럼이 아직 없는 경우에도 목록은 보여야 한다
+      if (e.code !== '42703') throw e;
+      const r = await db.query(
+        `SELECT u.id, u.email, u.name, u.phone, u.role, u.status, u.memo, u.provider,
+                u.last_login_at, u.created_at,
+                NULL::text AS referral_code, NULL::text AS referrer_name,
+                NULL::text AS referrer_code, 0 AS invited
+           FROM users u ${where}
+          ORDER BY (u.status='pending') DESC, u.created_at DESC
+          LIMIT 300`,
+        params
+      );
+      users = r.rows;
+      console.warn('[관리] 추천 컬럼이 없습니다. npm run setup 을 한 번 실행해 주세요.');
+    }
 
     const { rows: stat } = await db.query(
       `SELECT

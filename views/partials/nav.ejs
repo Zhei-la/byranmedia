@@ -1,8 +1,8 @@
 <nav class="nav">
-  <a href="/hub" class="logo"><img src="/img/logo.png" alt="바이란미디어" height="26"></a>
+  <a href="/home" class="logo"><img src="/img/logo.png" alt="바이란미디어" height="26"></a>
   <div class="links">
-    <a href="/hub" class="<%= path === '/hub' ? 'on' : '' %>">도구</a>
-    <a href="/home" class="<%= path === '/home' ? 'on' : '' %>">홈페이지</a>
+    <a href="/hub" class="<%= path === '/hub' ? 'on' : '' %>">마이페이지</a>
+    
     <% if (user && user.role === 'admin') { %>
       <a href="/admin" class="<%= path.startsWith('/admin') ? 'on' : '' %>">관리</a>
     <% } %>

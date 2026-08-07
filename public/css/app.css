@@ -108,7 +108,7 @@ input:focus,select:focus,textarea:focus{
 .auth-foot{text-align:center;margin-top:18px;font-size:13px;color:var(--ink-3)}
 
 /* ---------- hub ---------- */
-.welcome{margin-bottom:26px}
+.welcome{margin-bottom:30px;text-align:center}
 .welcome-date{
   font-size:11.5px;font-weight:650;letter-spacing:.09em;color:var(--ink-3);
   margin-bottom:7px;
@@ -160,21 +160,25 @@ input:focus,select:focus,textarea:focus{
 .qitem:hover{border-color:var(--accent);color:var(--ink);text-decoration:none}
 .qitem .qico{font-size:15px;line-height:1}
 
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(248px,1fr));gap:12px}
+.grid{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(232px,268px));
+  gap:14px;justify-content:center;
+}
 .tool{
   background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
-  padding:18px;display:flex;flex-direction:column;color:inherit;
+  padding:24px 20px;display:flex;flex-direction:column;align-items:center;
+  text-align:center;color:inherit;
   transition:border-color .14s,transform .14s,box-shadow .14s;position:relative;
 }
 .tool:hover{
   border-color:var(--accent);text-decoration:none;
   transform:translateY(-2px);box-shadow:0 6px 20px rgba(22,29,26,.07);
 }
-.tool .ico{font-size:23px;line-height:1;margin-bottom:11px}
+.tool .ico{font-size:30px;line-height:1;margin-bottom:13px}
 .tool h3{font-size:15px;font-weight:650;letter-spacing:-.015em;margin-bottom:5px}
 .tool p{font-size:13px;color:var(--ink-2);line-height:1.55;flex:1}
 .tool .go{
-  margin-top:13px;font-size:11.5px;font-weight:650;letter-spacing:.04em;
+  margin-top:15px;font-size:11.5px;font-weight:650;letter-spacing:.04em;
   color:var(--ink-3);transition:color .13s;
 }
 .tool:hover .go{color:var(--accent)}
