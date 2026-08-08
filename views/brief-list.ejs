@@ -1,0 +1,53 @@
+<%- include('partials/head') %>
+<body>
+<%- include('partials/nav') %>
+<div class="wrap">
+
+  <div class="page-h">
+    <h1>정보 요청서</h1>
+    <p>주소를 만들어 사장님께 보내면, 사장님이 직접 채워 보내주십니다.</p>
+  </div>
+
+  <% if (notice) { %><div class="alert ok"><%= notice %></div><% } %>
+
+  <section class="card">
+    <h2 class="card-h">새 요청서 만들기</h2>
+    <p class="card-sub">업체명을 적으면 구분하기 쉽습니다. 비워두셔도 됩니다.</p>
+    <form method="post" action="/brief/new" class="newbrief">
+      <input type="text" name="client_name" placeholder="예: 다다닥솥뚜껑" maxlength="120">
+      <button class="btn primary">주소 만들기</button>
+    </form>
+  </section>
+
+  <% if (briefs.length === 0) { %>
+    <div class="blank">
+      <strong>아직 만든 요청서가 없습니다</strong>
+      위에서 주소를 만들어 카카오톡으로 보내보세요.
+    </div>
+  <% } else { %>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>업체</th><th>상태</th><th>만든 날</th><th style="width:90px"></th></tr></thead>
+        <tbody>
+          <% briefs.forEach(function(b){ %>
+            <tr>
+              <td><a href="/brief/<%= b.id %>" class="uname"><%= b.client_name || '(이름 없음)' %></a></td>
+              <td>
+                <% if (b.status === 'done') { %>
+                  <span class="pill active">받음</span>
+                  <div class="mini"><%= new Date(b.submitted_at).toLocaleDateString('ko-KR') %></div>
+                <% } else { %>
+                  <span class="pill pending">기다리는 중</span>
+                <% } %>
+              </td>
+              <td class="mini"><%= new Date(b.created_at).toLocaleDateString('ko-KR') %></td>
+              <td><a href="/brief/<%= b.id %>" class="btn sm">열기</a></td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+
+</div>
+<%- include('partials/foot') %>

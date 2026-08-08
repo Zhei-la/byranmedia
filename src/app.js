@@ -66,6 +66,7 @@ app.use(kakao);
 app.use(require('./routes/public'));
 app.use(require('./routes/auth'));
 app.use(require('./routes/hub'));
+app.use(require('./routes/brief'));
 app.use(require('./routes/admin'));
 
 app.get('/health', (req, res) => res.json({ ok: true }));

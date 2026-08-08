@@ -2,6 +2,7 @@
   <a href="/home" class="logo"><img src="/img/logo.png" alt="바이란미디어" height="26"></a>
   <div class="links">
     <a href="/hub" class="<%= path === '/hub' ? 'on' : '' %>">도구</a>
+    <a href="/brief" class="<%= path.startsWith('/brief') ? 'on' : '' %>">정보 요청서</a>
     <a href="/referral" class="<%= path === '/referral' ? 'on' : '' %>">추천 현황</a>
     
     <% if (user && user.role === 'admin') { %>

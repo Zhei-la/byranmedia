@@ -739,3 +739,111 @@ a.ref-count:hover{background:var(--accent);color:#fff;text-decoration:none}
   .refsum{flex-wrap:wrap;gap:12px}
   .refsum-go{padding-left:0;border-left:none;width:100%}
 }
+
+/* ============================================================
+   사장님이 채우는 공개 폼
+   ============================================================ */
+body.bf{background:var(--bg);display:block}
+.bf-wrap{max-width:600px;margin:0 auto;padding:0 20px 60px}
+
+.bf-head{padding:44px 0 30px}
+.bf-from{font-size:12.5px;font-weight:650;color:var(--accent);margin-bottom:14px}
+.bf-head h1{
+  font-size:clamp(24px,5.4vw,32px);font-weight:700;line-height:1.35;
+  letter-spacing:-.035em;margin-bottom:18px;
+}
+.bf-lead{font-size:14.5px;line-height:1.85;color:var(--ink-2);margin-bottom:14px}
+.bf-lead strong{color:var(--ink);font-weight:650}
+.bf-save{
+  font-size:12.5px;line-height:1.7;color:var(--ink-3);
+  background:var(--surface);border:1px solid var(--line);
+  border-radius:9px;padding:12px 14px;
+}
+
+.bf-sec{
+  font-size:12px;font-weight:700;letter-spacing:.1em;color:var(--accent);
+  margin:34px 0 4px;padding-bottom:9px;border-bottom:1.5px solid var(--ink);
+}
+.bf-sec:first-of-type{margin-top:8px}
+
+.bf-field{margin-top:20px}
+.bf-field label{
+  display:block;font-size:14.5px;font-weight:600;letter-spacing:-.02em;
+  color:var(--ink);margin-bottom:8px;line-height:1.5;
+}
+.bf-field label .req{color:var(--danger);margin-left:3px}
+.bf-hint{
+  font-size:12.5px;line-height:1.65;color:var(--ink-3);margin:-3px 0 8px;
+}
+.bf-field input,.bf-field textarea{
+  width:100%;padding:13px 14px;font-size:16px;line-height:1.6;
+  background:var(--surface);border:1px solid var(--line);border-radius:9px;
+  transition:border-color .12s,box-shadow .12s;
+}
+.bf-field textarea{resize:vertical;min-height:88px}
+.bf-field input:focus,.bf-field textarea:focus{
+  outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);
+}
+
+.bf-btn{
+  display:block;width:100%;margin-top:34px;padding:17px;
+  background:var(--accent);color:#fff;border:none;border-radius:10px;
+  font-size:16px;font-weight:700;cursor:pointer;text-align:center;
+  text-decoration:none;transition:background .14s;
+}
+.bf-btn:hover{background:var(--accent-dark);color:#fff;text-decoration:none}
+.bf-btn.ghost{
+  background:var(--surface);color:var(--ink-2);border:1px solid var(--line);
+  font-weight:600;font-size:14.5px;padding:14px;
+}
+.bf-btn.ghost:hover{background:var(--bg);color:var(--ink)}
+.bf-note{
+  font-size:12px;color:var(--ink-3);text-align:center;margin-top:16px;line-height:1.6;
+}
+.bf-err{
+  background:var(--danger-soft);border:1px solid #EFD6D2;color:#7E2E25;
+  padding:13px 15px;border-radius:9px;font-size:14px;margin-bottom:8px;
+}
+
+.bf-done{text-align:center;padding:70px 0 40px}
+.bf-check{
+  width:56px;height:56px;margin:0 auto 22px;border-radius:50%;
+  background:var(--accent);color:#fff;font-size:26px;
+  display:grid;place-items:center;
+}
+.bf-done h1{font-size:24px;font-weight:700;letter-spacing:-.03em;margin-bottom:14px}
+.bf-done p{font-size:14.5px;line-height:1.85;color:var(--ink-2);margin-bottom:12px}
+.bf-again{font-size:12.5px;color:var(--ink-3)}
+.bf-done .bf-btn{max-width:320px;margin:20px auto 0}
+
+/* ---- 요청서 관리 ---- */
+.newbrief{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.newbrief input{flex:1;min-width:160px;padding:9px 12px;border:1px solid var(--line);border-radius:7px}
+.newbrief input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+
+.brief-answers{margin-top:16px}
+.brief-answers .ba-g{
+  font-size:11px;font-weight:700;letter-spacing:.1em;color:var(--accent);
+  margin-top:22px;padding-bottom:7px;border-bottom:1px solid var(--line);
+}
+.brief-answers .ba-g:first-child{margin-top:4px}
+.brief-answers dt{font-size:12.5px;font-weight:650;color:var(--ink-3);margin-top:14px}
+.brief-answers dd{
+  margin:5px 0 0;font-size:14px;line-height:1.75;color:var(--ink);white-space:pre-wrap;
+}
+.brief-missing{
+  margin-top:22px;padding:14px 15px;background:var(--warn-soft);
+  border:1px solid #EEDFC4;border-radius:9px;
+}
+.brief-missing strong{display:block;font-size:13px;color:#7C4A13;margin-bottom:5px}
+.brief-missing p{font-size:12.5px;color:#7C4A13;line-height:1.6;margin-bottom:9px}
+.brief-missing .words{display:flex;flex-wrap:wrap;gap:5px}
+.brief-missing .w{
+  font-size:11.5px;background:rgba(255,255,255,.7);color:#7C4A13;
+  padding:2px 8px;border-radius:4px;
+}
+
+@media (max-width:640px){
+  .bf-wrap{padding:0 18px 50px}
+  .bf-head{padding:32px 0 24px}
+}

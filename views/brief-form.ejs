@@ -1,0 +1,62 @@
+<%- include('partials/head') %>
+<body class="bf">
+<div class="bf-wrap">
+
+  <% if (sent) { %>
+    <div class="bf-done">
+      <div class="bf-check">✓</div>
+      <h1>보내주셔서 감사합니다</h1>
+      <p>
+        받은 내용으로 원고를 준비하겠습니다.<br>
+        추가로 여쭐 것이 있으면 따로 연락드리겠습니다.
+      </p>
+      <p class="bf-again">
+        고칠 내용이 있으시면 이 주소로 다시 들어와 수정하실 수 있습니다.
+      </p>
+      <a href="/f/<%= brief.token %>" class="bf-btn ghost">다시 열어서 수정하기</a>
+    </div>
+  <% } else { %>
+
+    <header class="bf-head">
+      <p class="bf-from"><%= brief.owner_name %> 드림</p>
+      <h1>블로그에 쓸<br>가게 정보를 여쭙니다</h1>
+      <p class="bf-lead">
+        없는 사실을 지어내지 않기 위해 여쭙는 것입니다.<br>
+        <strong>아시는 것만 적어주셔도 됩니다.</strong> 비워두신 항목은 글에 쓰지 않습니다.
+      </p>
+      <p class="bf-save">한 번에 다 채우지 않으셔도 됩니다. 보내신 뒤에도 이 주소로 다시 들어와 고치실 수 있습니다.</p>
+    </header>
+
+    <% if (error) { %><div class="bf-err"><%= error %></div><% } %>
+
+    <form method="post" action="/f/<%= brief.token %>" class="bf-form">
+      <% let lastG = ''; %>
+      <% fields.forEach(function(f){ %>
+        <% if (f.g !== lastG) { lastG = f.g; %>
+          <h2 class="bf-sec"><%= f.g %></h2>
+        <% } %>
+        <div class="bf-field">
+          <label for="f-<%= f.k %>">
+            <%= f.label %><% if (f.req) { %><span class="req">*</span><% } %>
+          </label>
+          <% if (f.hint) { %><p class="bf-hint"><%= f.hint %></p><% } %>
+          <% if (f.big) { %>
+            <textarea id="f-<%= f.k %>" name="<%= f.k %>" rows="3"
+              placeholder="<%= f.ph || '' %>"><%= data[f.k] || '' %></textarea>
+          <% } else { %>
+            <input type="text" id="f-<%= f.k %>" name="<%= f.k %>"
+              value="<%= data[f.k] || '' %>" placeholder="<%= f.ph || '' %>"
+              <%= f.req ? 'required' : '' %>>
+          <% } %>
+        </div>
+      <% }); %>
+
+      <button type="submit" class="bf-btn">보내기</button>
+      <p class="bf-note">보내주신 정보는 원고 작성에만 쓰이며, 계약이 끝나면 파기합니다.</p>
+    </form>
+
+  <% } %>
+
+</div>
+</body>
+</html>

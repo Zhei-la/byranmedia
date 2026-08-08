@@ -103,3 +103,16 @@ CREATE INDEX IF NOT EXISTS idx_users_kakao ON users (kakao_id);
 ALTER TABLE users ADD COLUMN IF NOT EXISTS referral_code VARCHAR(12) UNIQUE;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS referred_by INT REFERENCES users(id) ON DELETE SET NULL;
 CREATE INDEX IF NOT EXISTS idx_users_ref ON users (referred_by);
+
+-- 업체 정보 요청서
+CREATE TABLE IF NOT EXISTS briefs (
+  id           SERIAL PRIMARY KEY,
+  token        VARCHAR(24) UNIQUE NOT NULL,
+  owner_id     INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  client_name  VARCHAR(120),
+  status       VARCHAR(20) NOT NULL DEFAULT 'open',  -- open | done
+  data         JSONB,
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+  submitted_at TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS idx_briefs_owner ON briefs (owner_id, created_at DESC);
