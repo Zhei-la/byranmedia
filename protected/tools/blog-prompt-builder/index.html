@@ -487,6 +487,7 @@ const INDUSTRY = {
 
 const CONTENT_TYPES = ['정보형','후기·경험형','비교형','사례형','Q&A형','시즌·이슈형'];
 const TONES = ['친근하고 수다스럽게','차분하고 전문적으로','담백하고 간결하게','따뜻하고 다정하게'];
+const VOICES = ['차분한 정보 전달','친근하고 발랄한 후기','담백한 소개','전문가의 설명'];
 
 /* ============================================================
    상태
@@ -499,7 +500,8 @@ const S = {
     name:'',industry:'none',region:'',services:'',target:'',tone:'',diff:'',
     ban:'',info:'',assets:''
   },
-  blog:{ main:'',sub:'',type:'정보형',len:'1800',title:'',special:'' },
+  blog:{ main:'',sub:'',type:'정보형',len:'1800',title:'',special:'',
+         linebreak:true, period:'on', voice:'차분한 정보 전달' },
   threads:{ concept:'',target:'',goal:'',speech:'존댓말',count:'10',ratio:'정보 4 / 경험 3 / 관점 2 / 홍보 1',topic:'' },
   review:{ main:'',draft:'' },
   keyword:{ area:'',target:'',count:'20',season:'' }
@@ -637,6 +639,23 @@ function blogForm(){
         </div>
       </div>
       <div class="field">
+        <label class="lb" for="b-voice">글의 어조</label>
+        <select id="b-voice" data-b="voice">
+          ${VOICES.map(v=>`<option ${S.blog.voice===v?'selected':''}>${esc(v)}</option>`).join('')}
+        </select>
+        <div class="hint">후기형 글은 "친근하고 발랄한 후기"를 고르면 훨씬 자연스러워져.</div>
+      </div>
+
+      <div class="field">
+        <label class="lb">읽기 편하게</label>
+        <div class="chips" role="group">
+          <button class="chip" type="button" data-toggle="blog.linebreak" aria-pressed="${S.blog.linebreak}">문장마다 줄바꿈</button>
+          <button class="chip" type="button" data-period aria-pressed="${S.blog.period==='off'}">마침표 빼기</button>
+        </div>
+        <div class="hint">모바일에서 읽는 글이면 둘 다 켜는 걸 권해.</div>
+      </div>
+
+      <div class="field">
         <label class="lb" for="b-special">이번 글에만 넣을 내용</label>
         <textarea id="b-special" data-b="special" placeholder="예: 이번 달부터 토요일 진료 시작. 신규 장비 도입.">${esc(S.blog.special)}</textarea>
       </div>
@@ -770,8 +789,15 @@ const DENSITY = `## 밀도 규칙
 - 가격: 표로 나열 금지, 서술형으로 1~2회`;
 
 const ANTI_AI = `## 문체 규칙 — AI 티 제거 (가장 중요)
-- 문장 길이를 의도적으로 불규칙하게. 5자 이하 짧은 문장을 문단마다 1개 이상.
-- 구어체 삽입어 활용: 사실 / 솔직히 / 근데 / 막상 / 그쵸
+- 문장 길이를 자연스럽게 섞는다. 다만 짧은 문장을 억지로 끼워 넣지 않는다.
+- 구어체 표현은 문장 안에서 자연스럽게만 쓴다: 사실 / 근데 / 막상
+
+## 추임새 금지 (반드시 지킬 것)
+문단이나 문장 끝에 아래 같은 말을 붙이지 않는다. 하나라도 나오면 실패다.
+  맞죠 / 그쵸 / 딱 봐도요 / 은근 크죠 / 참 그래요 / 그게 맞죠 / 은근 남아요
+  이건 체크 / 꼭 체크 / 이 부분은 참고만 / 솔직히 이런 건 중요하죠
+- 의미를 더하지 않는 한 단어짜리 감탄이나 동의 유도 표현을 문단 끝에 두지 않는다.
+- 각 문단은 정보를 전달하는 문장으로 끝낸다.
 - 다음 표현 전면 금지:
   알아보겠습니다 · 살펴보겠습니다 · 하시길 바랍니다 · 결론적으로 · 종합적으로
   먼저 · 다음으로 · 마지막으로 · 또한 · 뿐만 아니라 · 중요한 역할 · 필수적인
@@ -818,6 +844,7 @@ function buildBlog(){
     if(b.main) t.push(`- 메인 키워드: ${b.main}`);
     if(b.sub) t.push(`- 서브 키워드: ${b.sub}`);
     t.push(`- 콘텐츠 유형: ${b.type}`);
+    t.push(`- 글의 어조: ${b.voice}`);
     t.push(`- 분량: 공백 포함 ${b.len}자 내외`);
     if(b.title) t.push(`- 제목 방향: ${b.title}`);
     if(b.special) t.push(`- 이번 글에 반드시 반영할 내용: ${b.special}`);
@@ -830,15 +857,39 @@ function buildBlog(){
 3. 해시태그 15개
 4. 이미지 요청 목록 — 본문에 [이미지1] 형태로 위치를 표시하고, 하단에 어떤 사진이 필요한지 설명`));
 
+  const lineRule = b.linebreak
+    ? '- 문장이 끝날 때마다 줄바꿈한다. 한 줄에 한 문장씩 쓴다. (모바일 가독성)\n- 3~4문장마다 빈 줄을 한 번 넣어 문단을 나눈다.'
+    : '- 문단은 3~4문장마다 줄바꿈. 한 문단 최대 5줄.';
+  const dotRule = b.period === 'off'
+    ? '\n\n## 마침표 규칙\n- 문장 끝에 마침표(.)를 쓰지 않는다. 물음표와 느낌표는 필요할 때만 쓴다.\n- 마침표 없이도 문장이 끊겨 읽히도록 줄바꿈으로 구분한다.'
+    : '';
+
   out.push(B('본문 규칙',`# 본문 규칙
-- 문단은 3~4문장마다 줄바꿈. 한 문단 최대 5줄.
+${lineRule}${dotRule}
 - 소제목 3~5개. 소제목에도 서브 키워드를 자연스럽게 넣는다.
 - 메인 키워드는 첫 문단과 마지막 문단에 각 1회 반드시 포함.
 - 이미지 위치를 최소 5곳 지정하고 고르게 배치.
 - 도입부는 검색해서 들어온 사람의 고민 상황부터 묘사한 뒤 공감, 그다음 해결을 예고한다.
 - 마무리는 위치·영업시간·문의 방법 안내 후 부담 없는 한 문장으로 닫는다.`));
 
-  out.push(B('문체',ANTI_AI));
+  const VOICE_GUIDE = {
+    '차분한 정보 전달': `- 알려주는 사람의 자리에서 쓴다. 과장 없이 사실 위주로.
+- 감탄사와 이모지를 쓰지 않는다.
+- 문장을 끝까지 맺는다. 말끝을 흐리지 않는다.`,
+    '친근하고 발랄한 후기': `- 실제로 다녀온 사람이 친구에게 말하듯 쓴다.
+- 그 자리에서 보고 느낀 것을 구체적으로 쓴다. 무엇이 어땠는지 눈에 보이게.
+- 감정 표현을 쓰되 문단 끝에 붙이는 추임새가 아니라 문장 안에서 자연스럽게 녹인다.
+  (X) "맛있었어요. 진짜죠."   (O) "한 입 먹자마자 국물부터 찾게 되더라구요"
+- 이모지는 소제목에만, 글 전체에서 최대 3개.
+- 겪지 않은 일을 지어내지 않는다. 제공받은 정보 안에서만 구체적으로 쓴다.`,
+    '담백한 소개': `- 꾸미는 말을 최소한으로 쓴다.
+- 한 문장에 한 가지 정보만 담는다.
+- 감정 표현을 넣지 않는다.`,
+    '전문가의 설명': `- 왜 그런지 이유를 함께 쓴다.
+- 어려운 말을 쓰면 바로 뒤에 쉬운 말로 풀어준다.
+- 단정하지 않고 조건을 밝힌다. "상황에 따라 다를 수 있습니다"`
+  };
+  out.push(B('문체',ANTI_AI + '\n\n## 이 글의 어조 — ' + b.voice + '\n' + (VOICE_GUIDE[b.voice] || '')));
   out.push(B('사실',FACT));
   out.push(B('표현 규제','# 표현 규제 규칙 (최우선 적용)\n'+regulationText(),'auto'));
   out.push(B('밀도',DENSITY,'auto'));
@@ -852,6 +903,7 @@ function buildBlog(){
 - 메인: OOO (본문 O회) / 서브: OOO (O회)
 [표현 점검]
 - 사용한 규제 위험 표현: 없으면 "없음"
+- 문단 끝 추임새: 있으면 그대로 인용, 없으면 "없음"
 - 삽입한 경험 디테일: 2개 이상 나열
 - 안전 문구 삽입 여부: O/X`));
 
@@ -927,7 +979,10 @@ function buildReview(){
   if(ind && ind.banned.length){
     items.push(`3. 업종 법령 위반 — ${ind.label} (${ind.law})\n   금지 표현: ${ind.banned.join(' / ')}\n   ${ind.note||''}`);
   }
-  items.push(`${ind&&ind.banned.length?4:3}. AI 문체: 아래 금칙어가 몇 번 나왔는지 표로 정리\n   알아보겠습니다 / 바랍니다 / 결론적으로 / 다양한 / 효과적인 / 최적의 / 중요한 역할 / 여러분 / 또한 / 뿐만 아니라`);
+  items.push(`${ind&&ind.banned.length?4:3}. 문단 끝 추임새: 문단이나 문장 끝에 붙은 의미 없는 말을 전부 인용
+   (맞죠 / 그쵸 / 딱 봐도요 / 은근 크죠 / 참 그래요 / 그게 맞죠 / 이건 체크 / 꼭 체크 / 이 부분은 참고만 등)
+   하나라도 있으면 발행 불가로 판정한다.`);
+items.push(`${ind&&ind.banned.length?5:4}. AI 문체: 아래 금칙어가 몇 번 나왔는지 표로 정리\n   알아보겠습니다 / 바랍니다 / 결론적으로 / 다양한 / 효과적인 / 최적의 / 중요한 역할 / 여러분 / 또한 / 뿐만 아니라`);
   items.push(`${ind&&ind.banned.length?5:4}. 문체 단조로움: 같은 어미가 3회 이상 연속된 구간을 인용`);
   if(r.main) items.push(`${ind&&ind.banned.length?6:5}. 키워드: "${r.main}"의 등장 횟수를 세고, 5~7회 범위를 벗어나면 지적`);
   items.push(`${ind&&ind.banned.length?(r.main?7:6):(r.main?6:5)}. 구조: 글자 수, 소제목 개수, 이미지 지시문 개수, 최대 문단 줄 수`);
@@ -1048,6 +1103,21 @@ function bindForm(){
         const tag=el.closest('.card')?.querySelector('.tag');
         if(tag && pre==='r' && k==='draft'){ tag.textContent = e.target.value ? e.target.value.length+'자':'붙여넣기 필요'; tag.classList.toggle('on',!!e.target.value); }
       });
+    });
+  });
+  document.querySelectorAll('[data-toggle]').forEach(el=>{
+    el.addEventListener('click',()=>{
+      const [g,k]=el.dataset.toggle.split('.');
+      S[g][k]=!S[g][k];
+      el.setAttribute('aria-pressed',S[g][k]);
+      renderOut();
+    });
+  });
+  document.querySelectorAll('[data-period]').forEach(el=>{
+    el.addEventListener('click',()=>{
+      S.blog.period = S.blog.period==='off' ? 'on' : 'off';
+      el.setAttribute('aria-pressed',S.blog.period==='off');
+      renderOut();
     });
   });
   document.querySelectorAll('[data-chip]').forEach(el=>{

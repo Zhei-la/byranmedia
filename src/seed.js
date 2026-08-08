@@ -38,6 +38,8 @@ async function main() {
   console.log('3. 기본 도구를 등록합니다...');
   const tools = [
     ['blog-prompt-builder', '원고 프롬프트 빌더', '고객사 정보를 채우면 업종 법규까지 반영된 GPT 프롬프트가 만들어집니다.', '블로그 대행', '📝', 10],
+    ['client-brief', '업체 정보 받기', '사장님께 보낼 질문지를 만들고, 받은 답변을 정리합니다. 없는 사실을 쓰지 않으려면 여기부터.', '블로그 대행', '📋', 5],
+    ['proposal', '제안서 만들기', '사장님이 폰으로 읽는 제안서를 만듭니다. 카톡으로 바로 보낼 수 있습니다.', '블로그 대행', '📄', 15],
     ['saju', '루월당 사주', '사주 리포트 발행 플랫폼으로 이동합니다.', '사주', '🔮', 20],
   ];
   for (const [slug, title, description, category, emoji, sort_order] of tools) {

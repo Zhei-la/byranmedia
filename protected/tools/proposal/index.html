@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>제안서 만들기 — 바이란미디어</title>
+<style>
+:root{
+  --bg:#F2F4F3;--surface:#FFFFFF;--line:#DCE1DF;--line-soft:#E9EDEB;
+  --ink:#161D1A;--ink-2:#5A6663;--ink-3:#8A9793;
+  --accent:#2F6F5E;--accent-dark:#265A4C;--accent-soft:#E4F0EB;
+  --warn:#A8641C;--warn-soft:#FBF1E3;
+  --mono:'SF Mono','D2Coding',Consolas,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--sans);background:var(--bg);color:var(--ink);font-size:15px;line-height:1.65}
+button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+
+.shell{display:flex;flex-direction:column;height:100vh;height:100dvh}
+header{background:var(--surface);border-bottom:1px solid var(--line);padding:14px 20px;flex-shrink:0;display:flex;align-items:baseline;gap:9px;flex-wrap:wrap}
+header h1{font-size:17px;font-weight:650;letter-spacing:-.02em}
+header .sub{font-size:12px;color:var(--ink-3)}
+header .right{margin-left:auto;display:flex;gap:6px}
+
+.body{display:grid;grid-template-columns:minmax(0,380px) minmax(0,1fr);flex:1;min-height:0}
+.pane{overflow-y:auto}
+.pane.left{padding:18px 20px 100px;border-right:1px solid var(--line)}
+.pane.right{background:#E7EAE9;padding:24px;display:flex;justify-content:center;align-items:flex-start}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:12px}
+.card h2{font-size:13.5px;font-weight:650;margin-bottom:10px}
+.field{margin-top:12px}
+.field:first-child{margin-top:0}
+label.lb{display:block;font-size:11px;font-weight:650;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3);margin-bottom:5px}
+input[type=text],textarea,select{width:100%;padding:9px 11px;background:var(--surface);border:1px solid var(--line);border-radius:7px}
+textarea{resize:vertical;min-height:64px;line-height:1.55}
+input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.hint{font-size:11.5px;color:var(--ink-3);margin-top:5px;line-height:1.5}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+.btn{padding:8px 13px;border:1px solid var(--line);background:var(--surface);border-radius:7px;cursor:pointer;font-size:12.5px;font-weight:600;color:var(--ink-2);white-space:nowrap}
+.btn:hover{border-color:var(--ink-3);color:var(--ink)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary:hover{background:var(--accent-dark)}
+.btn.block{display:block;width:100%;text-align:center}
+
+/* ---------- 제안서 미리보기 (모바일 화면 크기) ---------- */
+.phone{
+  width:100%;max-width:390px;background:#fff;border-radius:20px;
+  box-shadow:0 8px 40px rgba(22,29,26,.13);overflow:hidden;
+}
+.doc{padding:0}
+.doc-hero{padding:34px 26px 30px;background:var(--ink);color:#fff}
+.doc-hero .mark{font-size:11px;font-weight:700;letter-spacing:.14em;color:#7FC4A9;margin-bottom:16px}
+.doc-hero h1{font-size:24px;font-weight:700;letter-spacing:-.035em;line-height:1.35;margin-bottom:12px}
+.doc-hero p{font-size:13.5px;line-height:1.8;color:#C9D3CF}
+.doc-hero .to{
+  margin-top:20px;padding-top:16px;border-top:1px solid #2C3438;
+  font-size:12.5px;color:#8B9490;
+}
+.doc-hero .to strong{color:#fff;font-weight:650}
+
+.doc-sec{padding:28px 26px;border-bottom:1px solid var(--line-soft)}
+.doc-sec:last-child{border-bottom:none}
+.doc-lbl{font-size:10.5px;font-weight:700;letter-spacing:.13em;color:var(--accent);margin-bottom:12px}
+.doc-sec h2{font-size:18px;font-weight:700;letter-spacing:-.03em;line-height:1.4;margin-bottom:14px}
+.doc-sec p{font-size:13.5px;line-height:1.85;color:var(--ink-2);margin-bottom:12px}
+.doc-sec p:last-child{margin-bottom:0}
+
+.doc-list{list-style:none;margin-top:4px}
+.doc-list li{
+  padding:13px 0;border-bottom:1px solid var(--line-soft);
+  font-size:13.5px;line-height:1.6;
+}
+.doc-list li:last-child{border-bottom:none}
+.doc-list strong{display:block;font-weight:650;margin-bottom:4px;font-size:14px}
+.doc-list span{color:var(--ink-2);font-size:13px}
+
+.doc-plan{background:var(--bg);border-radius:12px;padding:20px;margin-top:6px}
+.doc-plan .pname{font-size:12.5px;font-weight:650;color:var(--ink-2);margin-bottom:8px}
+.doc-plan .pamt{font-size:30px;font-weight:700;letter-spacing:-.04em;line-height:1}
+.doc-plan .pamt span{font-size:14px;font-weight:600;margin-left:3px}
+.doc-plan .pcnt{font-size:13px;color:var(--accent);font-weight:650;margin-top:8px;padding-bottom:14px;border-bottom:1px solid var(--line)}
+.doc-plan ul{list-style:none;margin-top:14px;display:flex;flex-direction:column;gap:9px}
+.doc-plan li{font-size:13px;color:var(--ink-2);padding-left:16px;position:relative;line-height:1.55}
+.doc-plan li::before{content:'';position:absolute;left:1px;top:6px;width:5px;height:8px;border:1.5px solid var(--accent);border-top:0;border-left:0;transform:rotate(42deg)}
+
+.doc-steps{counter-reset:st;list-style:none}
+.doc-steps li{
+  counter-increment:st;display:flex;gap:13px;padding:12px 0;
+  border-bottom:1px solid var(--line-soft);font-size:13.5px;line-height:1.6;
+}
+.doc-steps li:last-child{border-bottom:none}
+.doc-steps li::before{
+  content:counter(st);flex-shrink:0;width:22px;height:22px;border-radius:50%;
+  background:var(--accent-soft);color:var(--accent);font-size:11px;font-weight:700;
+  display:grid;place-items:center;margin-top:1px;
+}
+.doc-steps strong{font-weight:650}
+
+.doc-note{background:var(--warn-soft);border-radius:10px;padding:16px;font-size:12.5px;line-height:1.8;color:#7C4A13}
+.doc-note strong{display:block;font-weight:700;margin-bottom:6px}
+
+.doc-cta{padding:30px 26px 34px;background:var(--bg);text-align:center}
+.doc-cta h3{font-size:17px;font-weight:700;letter-spacing:-.03em;margin-bottom:8px}
+.doc-cta p{font-size:13px;color:var(--ink-2);margin-bottom:18px;line-height:1.75}
+.doc-cta .kbtn{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  background:#FEE500;color:#191600;padding:14px;border-radius:10px;
+  font-size:14.5px;font-weight:700;text-decoration:none;
+}
+.doc-cta .contact{margin-top:14px;font-size:12.5px;color:var(--ink-3);line-height:1.8}
+.doc-cta .contact strong{color:var(--ink);font-weight:650}
+
+.doc-foot{padding:18px 26px 24px;text-align:center;font-size:11px;color:var(--ink-3);background:var(--bg);border-top:1px solid var(--line)}
+
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(60px);background:var(--ink);color:#fff;padding:10px 18px;border-radius:22px;font-size:13px;font-weight:600;opacity:0;pointer-events:none;transition:all .22s;z-index:90}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+.mobile-bar{display:none}
+@media (max-width:900px){
+  .body{grid-template-columns:1fr}
+  .pane.left{border-right:none;padding-bottom:120px}
+  .pane.right{display:none;padding:14px}
+  .pane.right.open{display:flex;position:fixed;inset:0;z-index:60;overflow-y:auto;align-items:flex-start}
+  .phone{max-width:100%;border-radius:14px}
+  .mobile-bar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:70;background:var(--surface);border-top:1px solid var(--line);padding:10px 14px calc(10px + env(safe-area-inset-bottom));gap:8px}
+  .mobile-bar .btn{flex:1}
+  .row{grid-template-columns:1fr}
+  header{padding:12px 14px}
+  .pane.left{padding-left:14px;padding-right:14px}
+}
+@media print{
+  header,.pane.left,.mobile-bar,.toast{display:none!important}
+  .body{display:block}
+  .pane.right{background:#fff;padding:0;display:block}
+  .phone{max-width:100%;box-shadow:none;border-radius:0}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="shell">
+  <header>
+    <h1>제안서 만들기</h1>
+    <span class="sub">사장님이 폰으로 읽는 화면</span>
+    <div class="right">
+      <button class="btn" id="btnPrint">인쇄 · PDF</button>
+      <button class="btn primary" id="btnCopy">글로 복사</button>
+    </div>
+  </header>
+
+  <div class="body">
+    <div class="pane left" id="form"></div>
+    <div class="pane right" id="prev"></div>
+  </div>
+
+  <div class="mobile-bar">
+    <button class="btn" id="btnCloseM" style="display:none">닫기</button>
+    <button class="btn primary" id="btnOpenM">제안서 미리보기</button>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const Store={ok:false,mem:{},
+  init(){try{localStorage.setItem('__t','1');localStorage.removeItem('__t');this.ok=true}catch(e){this.ok=false}},
+  get(k){if(this.ok){try{return localStorage.getItem(k)}catch(e){}}return this.mem[k]??null},
+  set(k,v){if(this.ok){try{localStorage.setItem(k,v);return}catch(e){}}this.mem[k]=v}};
+Store.init();
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const nl=s=>esc(s).replace(/\n/g,'<br>');
+
+const S={
+  client:'', industry:'', problem:'',
+  planName:'스탠다드', amount:'35', count:'20',
+  benefits:'원고 작성부터 발행까지\n썸네일 디자인 제작\n업종 법규 검수\n월간 성과 리포트\n이웃·댓글 관리',
+  sender:'바이란미디어', tel:'', kakao:'http://pf.kakao.com/_TCcBX',
+  note:'상위노출은 보장하지 않습니다. 보장한다는 곳은 결국 검색엔진이 싫어하는 일을 하게 됩니다. 저희는 정상적인 방법으로만 쌓습니다.'
+};
+
+const FORM = () => `
+  <div class="card">
+    <h2>누구에게 드리는 제안서인가</h2>
+    <div class="field">
+      <label class="lb" for="f-client">업체명</label>
+      <input type="text" id="f-client" data-k="client" value="${esc(S.client)}" placeholder="예: 다다닥솥뚜껑">
+    </div>
+    <div class="field">
+      <label class="lb" for="f-ind">업종</label>
+      <input type="text" id="f-ind" data-k="industry" value="${esc(S.industry)}" placeholder="예: 음식점">
+    </div>
+    <div class="field">
+      <label class="lb" for="f-prob">지금 겪고 계신 상황</label>
+      <textarea id="f-prob" data-k="problem" placeholder="상담에서 들은 내용을 그대로 적으세요.&#10;예: 블로그를 개설만 하고 3년째 방치 중이고, 검색해도 가게가 안 나온다">${esc(S.problem)}</textarea>
+      <div class="hint">여기가 제안서에서 제일 중요합니다. 사장님 말을 그대로 쓸수록 잘 읽힙니다.</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>제안하는 내용</h2>
+    <div class="row">
+      <div class="field">
+        <label class="lb" for="f-pname">플랜 이름</label>
+        <input type="text" id="f-pname" data-k="planName" value="${esc(S.planName)}">
+      </div>
+      <div class="field">
+        <label class="lb" for="f-amt">월 금액 (만원)</label>
+        <input type="text" id="f-amt" data-k="amount" value="${esc(S.amount)}">
+      </div>
+    </div>
+    <div class="field">
+      <label class="lb" for="f-cnt">월 발행 수</label>
+      <input type="text" id="f-cnt" data-k="count" value="${esc(S.count)}">
+    </div>
+    <div class="field">
+      <label class="lb" for="f-ben">포함 내용</label>
+      <textarea id="f-ben" data-k="benefits" style="min-height:110px">${esc(S.benefits)}</textarea>
+      <div class="hint">줄바꿈으로 구분하세요.</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>솔직하게 말씀드릴 것</h2>
+    <div class="field">
+      <label class="lb" for="f-note">약속하지 않는 것</label>
+      <textarea id="f-note" data-k="note" style="min-height:90px">${esc(S.note)}</textarea>
+      <div class="hint">이 문단이 오히려 계약률을 올립니다. 다들 보장한다고 할 때 안 한다고 말하면 신뢰가 생깁니다.</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>연락처</h2>
+    <div class="field">
+      <label class="lb" for="f-sender">보내는 사람</label>
+      <input type="text" id="f-sender" data-k="sender" value="${esc(S.sender)}">
+    </div>
+    <div class="row">
+      <div class="field">
+        <label class="lb" for="f-tel">전화번호</label>
+        <input type="text" id="f-tel" data-k="tel" value="${esc(S.tel)}" placeholder="010-0000-0000">
+      </div>
+      <div class="field">
+        <label class="lb" for="f-kakao">카카오톡 채널</label>
+        <input type="text" id="f-kakao" data-k="kakao" value="${esc(S.kakao)}">
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <button class="btn block" id="bSave">이 제안서 저장</button>
+    <div style="height:8px"></div>
+    <select id="bLoad" style="width:100%">
+      <option value="">저장된 제안서 불러오기</option>
+      ${listSaved().map(n=>`<option>${esc(n)}</option>`).join('')}
+    </select>
+  </div>
+`;
+
+function DOC(){
+  const bens=S.benefits.split('\n').filter(x=>x.trim());
+  return `
+  <div class="phone">
+   <div class="doc">
+    <div class="doc-hero">
+      <div class="mark">${esc(S.sender)}</div>
+      <h1>${S.client ? esc(S.client)+' 사장님께<br>드리는 제안' : '블로그 운영 제안서'}</h1>
+      <p>매일 쌓아야 하는 그 일을<br>대신 하겠습니다</p>
+      ${S.client ? `<div class="to"><strong>${esc(S.client)}</strong>${S.industry?' · '+esc(S.industry):''}</div>` : ''}
+    </div>
+
+    ${S.problem ? `
+    <div class="doc-sec">
+      <div class="doc-lbl">지금 상황</div>
+      <h2>이런 점이 어려우셨죠</h2>
+      <p>${nl(S.problem)}</p>
+    </div>` : ''}
+
+    <div class="doc-sec">
+      <div class="doc-lbl">저희가 하는 일</div>
+      <h2>사장님은 사진만<br>보내주시면 됩니다</h2>
+      <ul class="doc-list">
+        <li><strong>키워드를 찾습니다</strong><span>손님이 실제로 검색하는 말을 골라냅니다</span></li>
+        <li><strong>원고를 씁니다</strong><span>사장님께 들은 사실만으로 씁니다. 없는 얘기는 쓰지 않습니다</span></li>
+        <li><strong>법규를 검수합니다</strong><span>업종별로 쓰면 안 되는 표현을 발행 전에 걸러냅니다</span></li>
+        <li><strong>매일 발행합니다</strong><span>몰아서 올리지 않고 정해진 시간에 꾸준히 올립니다</span></li>
+      </ul>
+    </div>
+
+    <div class="doc-sec">
+      <div class="doc-lbl">제안 내용</div>
+      <div class="doc-plan">
+        <div class="pname">${esc(S.planName)}</div>
+        <div class="pamt">${esc(S.amount)}<span>만원 / 월</span></div>
+        <div class="pcnt">월 ${esc(S.count)}건 발행</div>
+        <ul>${bens.map(b=>`<li>${esc(b)}</li>`).join('')}</ul>
+      </div>
+      <p style="margin-top:14px;font-size:12px;color:var(--ink-3)">부가세 별도 · 최소 계약 3개월</p>
+    </div>
+
+    <div class="doc-sec">
+      <div class="doc-lbl">진행 순서</div>
+      <h2>계약 후 일주일이면<br>첫 글이 올라갑니다</h2>
+      <ol class="doc-steps">
+        <li><span><strong>계약과 결제</strong><br>계약서를 드리고 확인 후 진행합니다</span></li>
+        <li><span><strong>사전 인터뷰</strong><br>20분 통화로 가게 이야기를 듣습니다</span></li>
+        <li><span><strong>계정 연동과 자료 전달</strong><br>사진을 보내주시면 됩니다</span></li>
+        <li><span><strong>발행 계획표 확인</strong><br>한 달치 계획을 먼저 보여드립니다</span></li>
+        <li><span><strong>발행 시작</strong><br>매주 현황을 알려드립니다</span></li>
+      </ol>
+    </div>
+
+    ${S.note ? `
+    <div class="doc-sec">
+      <div class="doc-note">
+        <strong>먼저 솔직히 말씀드립니다</strong>
+        ${nl(S.note)}
+      </div>
+    </div>` : ''}
+
+    <div class="doc-cta">
+      <h3>궁금한 것부터 물어보세요</h3>
+      <p>결정하지 않으셔도 괜찮습니다<br>지금 상황에서 시작해도 되는지부터 봐드립니다</p>
+      <a href="${esc(S.kakao)}" class="kbtn" target="_blank" rel="noopener">
+        <svg width="18" height="17" viewBox="0 0 18 17" fill="none" aria-hidden="true">
+          <path d="M9 0C4.03 0 0 3.13 0 6.99c0 2.5 1.68 4.69 4.2 5.92l-1.06 3.9c-.09.34.29.61.59.42l4.66-3.07c.2.02.4.02.61.02 4.97 0 9-3.13 9-6.99C18 3.13 13.97 0 9 0z" fill="#191600"/>
+        </svg>
+        카카오톡으로 물어보기
+      </a>
+      <div class="contact">
+        <strong>${esc(S.sender)}</strong>${S.tel ? '<br>'+esc(S.tel) : ''}
+      </div>
+    </div>
+
+    <div class="doc-foot">본 제안서의 금액과 조건은 상담 내용에 따라 조정될 수 있습니다</div>
+   </div>
+  </div>`;
+}
+
+function TEXT(){
+  const bens=S.benefits.split('\n').filter(x=>x.trim());
+  let t='';
+  t += `${S.client ? S.client+' 사장님께 드리는 제안' : '블로그 운영 제안'}\n`;
+  t += `${S.sender}\n\n`;
+  if(S.problem){ t += `[지금 상황]\n${S.problem}\n\n`; }
+  t += `[저희가 하는 일]\n`;
+  t += `키워드를 찾고, 원고를 쓰고, 업종 법규를 검수하고, 매일 발행합니다\n`;
+  t += `사장님은 사진만 보내주시면 됩니다\n\n`;
+  t += `[제안 내용]\n`;
+  t += `${S.planName} / 월 ${S.amount}만원 (부가세 별도)\n`;
+  t += `월 ${S.count}건 발행\n`;
+  bens.forEach(b=>{ t += `- ${b}\n`; });
+  t += `최소 계약 3개월\n\n`;
+  t += `[진행 순서]\n`;
+  t += `1. 계약과 결제\n2. 사전 인터뷰 20분\n3. 계정 연동과 사진 전달\n4. 발행 계획표 확인\n5. 발행 시작\n\n`;
+  if(S.note){ t += `[먼저 솔직히 말씀드립니다]\n${S.note}\n\n`; }
+  t += `문의: ${S.kakao}`;
+  if(S.tel) t += `\n${S.tel}`;
+  return t;
+}
+
+function listSaved(){
+  try{ return Object.keys(JSON.parse(Store.get('pp_saved')||'{}')); }catch(e){ return []; }
+}
+function saveOne(){
+  const n=(S.client||'').trim();
+  if(!n){ toast('업체명을 먼저 입력해줘'); return; }
+  let all={}; try{ all=JSON.parse(Store.get('pp_saved')||'{}'); }catch(e){}
+  all[n]={...S}; Store.set('pp_saved',JSON.stringify(all));
+  toast(Store.ok?`"${n}" 저장했어`:'이 화면에선 임시 저장만 돼'); render();
+}
+function loadOne(n){
+  if(!n) return;
+  let all={}; try{ all=JSON.parse(Store.get('pp_saved')||'{}'); }catch(e){}
+  if(all[n]){ Object.assign(S,all[n]); render(); toast(`"${n}" 불러왔어`); }
+}
+
+function render(){
+  $('#form').innerHTML=FORM();
+  $('#prev').innerHTML=DOC();
+  document.querySelectorAll('[data-k]').forEach(el=>{
+    el.addEventListener('input',e=>{ S[el.dataset.k]=e.target.value; $('#prev').innerHTML=DOC(); });
+  });
+  $('#bSave').addEventListener('click',saveOne);
+  $('#bLoad').addEventListener('change',e=>loadOne(e.target.value));
+}
+let tt;
+function toast(m){ const el=$('#toast'); el.textContent=m; el.classList.add('on'); clearTimeout(tt); tt=setTimeout(()=>el.classList.remove('on'),1800); }
+
+$('#btnPrint').addEventListener('click',()=>window.print());
+$('#btnCopy').addEventListener('click',async()=>{
+  const t=TEXT();
+  try{ await navigator.clipboard.writeText(t); toast('복사 완료. 카톡에 붙여넣어'); }
+  catch(e){
+    const ta=document.createElement('textarea'); ta.value=t;
+    ta.style.cssText='position:fixed;opacity:0'; document.body.appendChild(ta); ta.select();
+    try{ document.execCommand('copy'); toast('복사 완료'); }catch(e2){ toast('복사가 안 돼'); }
+    document.body.removeChild(ta);
+  }
+});
+$('#btnOpenM').addEventListener('click',()=>{ $('#prev').classList.add('open'); $('#btnCloseM').style.display='block'; });
+$('#btnCloseM').addEventListener('click',()=>{ $('#prev').classList.remove('open'); $('#btnCloseM').style.display='none'; });
+
+render();
+</script>
+</body>
+</html>
