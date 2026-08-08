@@ -29,7 +29,11 @@ router.get(['/', '/home'], async (req, res) => {
     /* 공지가 없어도 첫 화면은 떠야 한다 */
   }
 
-  res.render('landing', { title: '', notices });
+  res.render('landing', {
+    title: '', notices,
+    ogT: '바이란미디어 · AI로 시작하는 1인 창업',
+    ogD: '강의를 파는 게 아니라 도구를 드립니다. 블로그 대행에 쓰는 도구와 계약서까지 그대로.',
+  });
 });
 
 /* ---------------- 문의 접수 ---------------- */

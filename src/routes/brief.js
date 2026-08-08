@@ -33,15 +33,6 @@ const FIELDS = [
   { g: '손님', k: 'faq', label: '가장 많이 물어보시는 것 세 가지', big: true, ph: '한 줄에 하나씩' },
   { g: '손님', k: 'misread', label: '손님들이 오해하고 오시는 게 있나요?', big: true },
 
-  { g: '실제로 있었던 일', k: 'story', label: '최근 기억에 남는 손님이나 일', big: true,
-    hint: '글에서 가장 잘 읽히는 부분입니다. 지어낼 수 없는 내용이라 여쭙습니다.' },
-  { g: '실제로 있었던 일', k: 'start', label: '이 일을 시작하신 계기', big: true },
-  { g: '실제로 있었던 일', k: 'recent', label: '요즘 신경 쓰고 계신 것', big: true,
-    ph: '재료, 시설, 새 메뉴 등' },
-
-  { g: '사진', k: 'photo', label: '보내주실 수 있는 사진', big: true,
-    ph: '예: 가게 외부, 내부, 메뉴 사진 있습니다 / 사진이 없어 촬영이 필요합니다' },
-  { g: '사진', k: 'face', label: '얼굴 노출', ph: '예: 사장님 가능, 직원 불가' },
 
   { g: '하지 말아야 할 것', k: 'ban', label: '절대 쓰면 안 되는 표현', big: true,
     ph: '예: 예전 상호, 특정 경쟁사 언급' },
@@ -118,6 +109,26 @@ router.get('/brief/:id', requireActive, async (req, res) => {
       `폰에서 바로 작성하실 수 있고 중간에 나가셨다가 다시 들어오셔도 됩니다\n` +
       `사진도 보내주시면 글이 훨씬 살아납니다 감사합니다`;
 
+    // 링크 없이 카카오톡으로 그대로 보낼 질문지
+    const qLines = [
+      '안녕하세요 사장님 블로그 원고 준비하면서 가게 정보를 여쭤보려 합니다',
+      '',
+      '없는 내용을 지어내지 않으려고 확인드리는 겁니다',
+      '아시는 것만 편하게 답해주시면 되고 한 번에 다 안 주셔도 괜찮습니다',
+      '',
+    ];
+    let qg = '';
+    let qn = 1;
+    for (const f of FIELDS) {
+      if (f.g !== qg) { qg = f.g; qLines.push(`[${f.g}]`); }
+      qLines.push(`${qn}. ${f.label}`);
+      qn++;
+      if (FIELDS[FIELDS.indexOf(f) + 1] && FIELDS[FIELDS.indexOf(f) + 1].g !== f.g) qLines.push('');
+    }
+    qLines.push('');
+    qLines.push('답변 주시면 초안 잡아서 보여드리겠습니다 감사합니다');
+    const questions = qLines.join('\n');
+
     // 원고 프롬프트에 붙여넣을 형태
     let prompt = '';
     if (b.status === 'done' && b.data) {
@@ -150,11 +161,50 @@ router.get('/brief/:id', requireActive, async (req, res) => {
       title: b.client_name || '정보 요청서',
       brief: b,
       fields: FIELDS,
-      link, msg, prompt,
+      link, msg, prompt, questions,
     });
   } catch (e) {
     console.error('[요청서 보기]', e.message);
     res.redirect('/brief');
+  }
+});
+
+/* 카톡으로 받은 답을 직접 옮겨 적기 */
+router.post('/brief/:id/fill', requireActive, async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  try {
+    const { rows } = await db.query(
+      `SELECT data FROM briefs WHERE id = $1 AND owner_id = $2`,
+      [id, req.user.id]
+    );
+    if (!rows.length) return res.redirect('/brief');
+
+    const data = { ...(rows[0].data || {}) };
+    for (const f of FIELDS) {
+      const v = String(req.body[f.k] || '').trim().slice(0, 3000);
+      if (v) data[f.k] = v;
+      else delete data[f.k];
+    }
+    const done = Boolean(data.name);
+    await db.query(
+      `UPDATE briefs SET data = $1,
+              status = $2,
+              submitted_at = COALESCE(submitted_at, $3),
+              client_name = COALESCE($4, client_name)
+        WHERE id = $5 AND owner_id = $6`,
+      [
+        JSON.stringify(data),
+        done ? 'done' : 'open',
+        done ? new Date() : null,
+        data.name || null,
+        id,
+        req.user.id,
+      ]
+    );
+    res.redirect('/brief/' + id);
+  } catch (e) {
+    console.error('[직접 입력]', e.message);
+    res.redirect('/brief/' + id);
   }
 });
 
@@ -183,6 +233,8 @@ router.get('/f/:token', async (req, res) => {
       data: rows[0].data || {},
       sent: req.query.sent === '1',
       error: null,
+      ogT: '블로그에 쓸 가게 정보를 여쭙니다',
+      ogD: '아시는 것만 적어주시면 됩니다. 폰에서 바로 작성하실 수 있습니다.',
     });
   } catch (e) {
     console.error('[공개 폼]', e.message);

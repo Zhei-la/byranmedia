@@ -19,7 +19,11 @@ router.get(['/login', '/join'], async (req, res) => {
     const owner = await findByCode(raw);
     if (owner) ref = { code: raw, name: owner.name };
   }
-  res.render('login', { title: '회원가입', error: req.query.e || null, ref });
+  res.render('login', {
+    title: '회원가입', error: req.query.e || null, ref,
+    ogT: '바이란미디어 수강생 등록',
+    ogD: '카카오톡으로 바로 시작할 수 있습니다. 승인 후 도구를 쓰실 수 있습니다.',
+  });
 });
 
 router.get('/login/email', (req, res) => {

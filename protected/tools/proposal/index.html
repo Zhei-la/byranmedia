@@ -105,6 +105,23 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent);
 .doc-note{background:var(--warn-soft);border-radius:10px;padding:16px;font-size:12.5px;line-height:1.8;color:#7C4A13}
 .doc-note strong{display:block;font-weight:700;margin-bottom:6px}
 
+.doc-photos{display:flex;flex-direction:column;gap:10px}
+.doc-photos img{width:100%;border-radius:10px;display:block}
+
+.thumbs{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.thumb{position:relative;width:80px;height:80px;border-radius:8px;overflow:hidden;border:1px solid var(--line)}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.thumb button{
+  position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:50%;
+  background:rgba(0,0,0,.6);color:#fff;border:none;cursor:pointer;
+  font-size:13px;line-height:1;display:grid;place-items:center;
+}
+.thumb button:hover{background:#000}
+input[type=file]{
+  width:100%;padding:9px;border:1px dashed var(--line);border-radius:7px;
+  background:var(--surface);font-size:13px;cursor:pointer;
+}
+
 .doc-cta{padding:30px 26px 34px;background:var(--bg);text-align:center}
 .doc-cta h3{font-size:17px;font-weight:700;letter-spacing:-.03em;margin-bottom:8px}
 .doc-cta p{font-size:13px;color:var(--ink-2);margin-bottom:18px;line-height:1.75}
@@ -201,7 +218,8 @@ const nl=s=>esc(s).replace(/\n/g,'<br>');
 
 const S={
   client:'', industry:'', problem:'',
-  planName:'스탠다드', amount:'35', count:'20',
+  planName:'스탠다드', amount:'35', unit:'월', count:'주 5회 발행', terms:'',
+  photos:[],
   benefits:'원고 작성부터 발행까지\n썸네일 디자인 제작\n업종 법규 검수\n월간 성과 리포트\n이웃·댓글 관리',
   sender:'바이란미디어', tel:'', kakao:'http://pf.kakao.com/_TCcBX',
   note:'상위노출은 보장하지 않습니다. 보장한다는 곳은 결국 검색엔진이 싫어하는 일을 하게 됩니다. 저희는 정상적인 방법으로만 쌓습니다.'
@@ -233,19 +251,40 @@ const FORM = () => `
         <input type="text" id="f-pname" data-k="planName" value="${esc(S.planName)}">
       </div>
       <div class="field">
-        <label class="lb" for="f-amt">월 금액 (만원)</label>
+        <label class="lb" for="f-amt">금액 (만원)</label>
         <input type="text" id="f-amt" data-k="amount" value="${esc(S.amount)}">
       </div>
     </div>
-    <div class="field">
-      <label class="lb" for="f-cnt">월 발행 수</label>
-      <input type="text" id="f-cnt" data-k="count" value="${esc(S.count)}">
+    <div class="row">
+      <div class="field">
+        <label class="lb" for="f-unit">기준</label>
+        <select id="f-unit" data-k="unit">
+          ${['월','주','1회','건'].map(v=>`<option ${S.unit===v?'selected':''}>${esc(v)}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field">
+        <label class="lb" for="f-cnt">발행 주기</label>
+        <input type="text" id="f-cnt" data-k="count" value="${esc(S.count)}" placeholder="예: 주 5회 발행">
+      </div>
     </div>
     <div class="field">
       <label class="lb" for="f-ben">포함 내용</label>
       <textarea id="f-ben" data-k="benefits" style="min-height:110px">${esc(S.benefits)}</textarea>
       <div class="hint">줄바꿈으로 구분하세요.</div>
     </div>
+    <div class="field">
+      <label class="lb" for="f-terms">아래에 붙일 조건 (선택)</label>
+      <input type="text" id="f-terms" data-k="terms" value="${esc(S.terms)}" placeholder="비워두면 아무것도 안 나옵니다">
+      <div class="hint">예: 부가세 별도 / 최소 3개월 / 선결제 시 할인</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>작업 사례 사진</h2>
+    <p class="hint" style="margin-bottom:12px">최대 3장까지 넣을 수 있습니다. 제안서 아래쪽에 나란히 들어갑니다.</p>
+    <input type="file" id="f-photos" accept="image/*" multiple>
+    <div class="thumbs" id="thumbs"></div>
+    <div class="hint">저장하거나 다시 열면 사진은 사라집니다. 인쇄·PDF에는 그대로 들어갑니다.</div>
   </div>
 
   <div class="card">
@@ -319,11 +358,11 @@ function DOC(){
       <div class="doc-lbl">제안 내용</div>
       <div class="doc-plan">
         <div class="pname">${esc(S.planName)}</div>
-        <div class="pamt">${esc(S.amount)}<span>만원 / 월</span></div>
-        <div class="pcnt">월 ${esc(S.count)}건 발행</div>
+        <div class="pamt">${esc(S.amount)}<span>만원 / ${esc(S.unit)}</span></div>
+        ${S.count ? `<div class="pcnt">${esc(S.count)}</div>` : ''}
         <ul>${bens.map(b=>`<li>${esc(b)}</li>`).join('')}</ul>
       </div>
-      <p style="margin-top:14px;font-size:12px;color:var(--ink-3)">부가세 별도 · 최소 계약 3개월</p>
+      ${S.terms ? `<p style="margin-top:14px;font-size:12px;color:var(--ink-3)">${esc(S.terms)}</p>` : ''}
     </div>
 
     <div class="doc-sec">
@@ -343,6 +382,14 @@ function DOC(){
       <div class="doc-note">
         <strong>먼저 솔직히 말씀드립니다</strong>
         ${nl(S.note)}
+      </div>
+    </div>` : ''}
+
+    ${S.photos.length ? `
+    <div class="doc-sec">
+      <div class="doc-lbl">작업 사례</div>
+      <div class="doc-photos">
+        ${S.photos.map(src=>`<img src="${src}" alt="">`).join('')}
       </div>
     </div>` : ''}
 
@@ -375,10 +422,11 @@ function TEXT(){
   t += `키워드를 찾고, 원고를 쓰고, 업종 법규를 검수하고, 매일 발행합니다\n`;
   t += `사장님은 사진만 보내주시면 됩니다\n\n`;
   t += `[제안 내용]\n`;
-  t += `${S.planName} / 월 ${S.amount}만원 (부가세 별도)\n`;
-  t += `월 ${S.count}건 발행\n`;
+  t += `${S.planName} / ${S.amount}만원 (${S.unit} 기준)\n`;
+  if(S.count) t += `${S.count}\n`;
   bens.forEach(b=>{ t += `- ${b}\n`; });
-  t += `최소 계약 3개월\n\n`;
+  if(S.terms) t += `${S.terms}\n`;
+  t += `\n`;
   t += `[진행 순서]\n`;
   t += `1. 계약과 결제\n2. 사전 인터뷰 20분\n3. 계정 연동과 사진 전달\n4. 발행 계획표 확인\n5. 발행 시작\n\n`;
   if(S.note){ t += `[먼저 솔직히 말씀드립니다]\n${S.note}\n\n`; }
@@ -394,13 +442,47 @@ function saveOne(){
   const n=(S.client||'').trim();
   if(!n){ toast('업체명을 먼저 입력해줘'); return; }
   let all={}; try{ all=JSON.parse(Store.get('pp_saved')||'{}'); }catch(e){}
-  all[n]={...S}; Store.set('pp_saved',JSON.stringify(all));
+  const { photos, ...rest } = S;
+  all[n]=rest; Store.set('pp_saved',JSON.stringify(all));
   toast(Store.ok?`"${n}" 저장했어`:'이 화면에선 임시 저장만 돼'); render();
 }
 function loadOne(n){
   if(!n) return;
   let all={}; try{ all=JSON.parse(Store.get('pp_saved')||'{}'); }catch(e){}
-  if(all[n]){ Object.assign(S,all[n]); render(); toast(`"${n}" 불러왔어`); }
+  if(all[n]){ Object.assign(S,all[n],{photos:[]}); render(); toast(`"${n}" 불러왔어. 사진은 다시 넣어줘`); }
+}
+
+function drawThumbs(){
+  const box=$('#thumbs'); if(!box) return;
+  box.innerHTML = S.photos.map((src,i)=>
+    `<div class="thumb"><img src="${src}" alt=""><button type="button" data-rm="${i}">×</button></div>`
+  ).join('');
+  box.querySelectorAll('[data-rm]').forEach(b=>{
+    b.addEventListener('click',()=>{
+      S.photos.splice(parseInt(b.dataset.rm,10),1);
+      drawThumbs(); $('#prevIn').innerHTML=DOC();
+    });
+  });
+}
+
+function bindPhotos(){
+  const inp=$('#f-photos'); if(!inp) return;
+  inp.addEventListener('change',e=>{
+    const files=[...e.target.files].slice(0, 3 - S.photos.length);
+    if(!files.length){ toast('사진은 3장까지 넣을 수 있어'); return; }
+    let left=files.length;
+    files.forEach(file=>{
+      if(file.size > 8*1024*1024){ toast('8MB 넘는 사진은 넣을 수 없어'); left--; return; }
+      const r=new FileReader();
+      r.onload=()=>{
+        S.photos.push(r.result);
+        if(--left<=0){ drawThumbs(); $('#prevIn').innerHTML=DOC(); }
+      };
+      r.onerror=()=>{ if(--left<=0){ drawThumbs(); } };
+      r.readAsDataURL(file);
+    });
+    e.target.value='';
+  });
 }
 
 function render(){
@@ -411,6 +493,7 @@ function render(){
   });
   $('#bSave').addEventListener('click',saveOne);
   $('#bLoad').addEventListener('change',e=>loadOne(e.target.value));
+  bindPhotos(); drawThumbs();
 }
 let tt;
 function toast(m){ const el=$('#toast'); el.textContent=m; el.classList.add('on'); clearTimeout(tt); tt=setTimeout(()=>el.classList.remove('on'),1800); }
