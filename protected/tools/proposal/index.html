@@ -27,7 +27,9 @@ header .right{margin-left:auto;display:flex;gap:6px}
 .body{display:grid;grid-template-columns:minmax(0,380px) minmax(0,1fr);flex:1;min-height:0}
 .pane{overflow-y:auto}
 .pane.left{padding:18px 20px 100px;border-right:1px solid var(--line)}
-.pane.right{background:#E7EAE9;padding:24px;display:flex;justify-content:center;align-items:flex-start}
+.pane.right{background:#E7EAE9;padding:24px;display:flex;flex-direction:column;align-items:center}
+.prev-in{width:100%;display:flex;justify-content:center}
+.sheet-top{display:none}
 
 .card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:12px}
 .card h2{font-size:13.5px;font-weight:650;margin-bottom:10px}
@@ -122,10 +124,26 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent);
 .mobile-bar{display:none}
 @media (max-width:900px){
   .body{grid-template-columns:1fr}
-  .pane.left{border-right:none;padding-bottom:120px}
-  .pane.right{display:none;padding:14px}
-  .pane.right.open{display:flex;position:fixed;inset:0;z-index:60;overflow-y:auto;align-items:flex-start}
-  .phone{max-width:100%;border-radius:14px}
+  .pane.left{border-right:none;padding-bottom:100px}
+  .pane.right{display:none}
+  .pane.right.open{
+    display:block;position:fixed;inset:0;z-index:60;
+    overflow-y:auto;-webkit-overflow-scrolling:touch;
+    background:#fff;padding:0;
+  }
+  .sheet-top{
+    display:flex;align-items:center;gap:10px;
+    position:sticky;top:0;z-index:5;
+    background:rgba(255,255,255,.95);backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);
+    padding:11px 14px calc(11px);
+  }
+  .sheet-t{
+    font-size:12px;font-weight:700;letter-spacing:.08em;color:var(--ink-3);
+    margin:0 auto;
+  }
+  .prev-in{padding:0 0 40px}
+  .phone{max-width:100%;border-radius:0;box-shadow:none}
   .mobile-bar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:70;background:var(--surface);border-top:1px solid var(--line);padding:10px 14px calc(10px + env(safe-area-inset-bottom));gap:8px}
   .mobile-bar .btn{flex:1}
   .row{grid-template-columns:1fr}
@@ -133,9 +151,10 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent);
   .pane.left{padding-left:14px;padding-right:14px}
 }
 @media print{
-  header,.pane.left,.mobile-bar,.toast{display:none!important}
+  header,.pane.left,.mobile-bar,.toast,.sheet-top{display:none!important}
   .body{display:block}
-  .pane.right{background:#fff;padding:0;display:block}
+  .pane.right{background:#fff;padding:0;display:block!important;position:static;overflow:visible}
+  .prev-in{padding:0}
   .phone{max-width:100%;box-shadow:none;border-radius:0}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
@@ -154,12 +173,18 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent);
 
   <div class="body">
     <div class="pane left" id="form"></div>
-    <div class="pane right" id="prev"></div>
+    <div class="pane right" id="prev">
+      <div class="sheet-top">
+        <button class="btn" id="btnCloseM2">← 돌아가기</button>
+        <span class="sheet-t">미리보기</span>
+        <button class="btn primary" id="btnCopy2">복사</button>
+      </div>
+      <div class="prev-in" id="prevIn"></div>
+    </div>
   </div>
 
   <div class="mobile-bar">
-    <button class="btn" id="btnCloseM" style="display:none">닫기</button>
-    <button class="btn primary" id="btnOpenM">제안서 미리보기</button>
+    <button class="btn primary block" id="btnOpenM">제안서 미리보기</button>
   </div>
 </div>
 <div class="toast" id="toast"></div>
@@ -380,9 +405,9 @@ function loadOne(n){
 
 function render(){
   $('#form').innerHTML=FORM();
-  $('#prev').innerHTML=DOC();
+  $('#prevIn').innerHTML=DOC();
   document.querySelectorAll('[data-k]').forEach(el=>{
-    el.addEventListener('input',e=>{ S[el.dataset.k]=e.target.value; $('#prev').innerHTML=DOC(); });
+    el.addEventListener('input',e=>{ S[el.dataset.k]=e.target.value; $('#prevIn').innerHTML=DOC(); });
   });
   $('#bSave').addEventListener('click',saveOne);
   $('#bLoad').addEventListener('change',e=>loadOne(e.target.value));
@@ -401,8 +426,12 @@ $('#btnCopy').addEventListener('click',async()=>{
     document.body.removeChild(ta);
   }
 });
-$('#btnOpenM').addEventListener('click',()=>{ $('#prev').classList.add('open'); $('#btnCloseM').style.display='block'; });
-$('#btnCloseM').addEventListener('click',()=>{ $('#prev').classList.remove('open'); $('#btnCloseM').style.display='none'; });
+function openSheet(){ $('#prev').classList.add('open'); document.body.style.overflow='hidden'; $('#prev').scrollTop=0; }
+function closeSheet(){ $('#prev').classList.remove('open'); document.body.style.overflow=''; }
+$('#btnOpenM').addEventListener('click',openSheet);
+$('#btnCloseM2').addEventListener('click',closeSheet);
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeSheet(); });
+$('#btnCopy2').addEventListener('click',()=>$('#btnCopy').click());
 
 render();
 </script>

@@ -318,6 +318,7 @@ const COMMON_BANNED = ['최고','최상','1위','유일한','100%','완벽','무
 
 const INDUSTRY = {
   none:{label:'선택 안 함 / 일반 업종', banned:[], swap:[], closing:'', note:''},
+  custom:{label:'목록에 없음 — 직접 입력', banned:[], swap:[], closing:'', note:'', custom:true},
 
   medical:{
     label:'병의원 · 한의원 · 치과 · 성형 (규제 최상)',
@@ -497,7 +498,8 @@ const S = {
   mode:'full',
   profileName:'',
   p:{ // 고객사 프로필
-    name:'',industry:'none',region:'',services:'',target:'',tone:'',diff:'',
+    name:'',industry:'none',industryText:'',industryRule:'',
+    region:'',services:'',target:'',tone:'',diff:'',
     ban:'',info:'',assets:''
   },
   blog:{ main:'',sub:'',type:'정보형',len:'1800',title:'',special:'',
@@ -542,6 +544,17 @@ function profileCard(open){
         </select>
         <div class="hint">업종을 고르면 해당 법령 금지 표현과 안전 문구가 프롬프트에 자동으로 들어가.</div>
       </div>
+
+      ${S.p.industry==='custom' ? `
+      <div class="field">
+        <label class="lb" for="p-indtext">업종 직접 입력 <span class="req">*</span></label>
+        <input type="text" id="p-indtext" data-p="industryText" value="${esc(S.p.industryText)}" placeholder="예: 사진관 / 세탁소 / 공방">
+      </div>
+      <div class="field">
+        <label class="lb" for="p-indrule">이 업종에서 쓰면 안 되는 표현</label>
+        <textarea id="p-indrule" data-p="industryRule" placeholder="아는 만큼만 적어. 비워둬도 공통 규제는 적용돼.&#10;예: '완치' 표현 금지, 자격증 없이 '전문가' 표기 금지">${esc(S.p.industryRule)}</textarea>
+        <div class="hint">모르면 비워둬. 대신 발행 전에 그 업종 관련 법을 한 번 확인하는 게 좋아.</div>
+      </div>` : ''}
 
       ${regBox(ind)}
 
@@ -594,6 +607,15 @@ function profileCard(open){
 }
 
 function regBox(ind){
+  if(ind && ind.custom){
+    const own = S.p.industryRule.split('\n').filter(x=>x.trim());
+    return `<div class="reg ${own.length?'':'none'}">
+      <h4 style="${own.length?'':'color:var(--accent)'}">${own.length? '직접 넣은 규제 '+own.length+'건' : '공통 규제만 적용'}</h4>
+      ${own.length ? `<div class="words">${own.map(w=>`<span class="w">${esc(w.trim())}</span>`).join('')}</div>`
+        : `<div class="words">${COMMON_BANNED.slice(0,8).map(w=>`<span class="w" style="color:var(--accent)">${esc(w)}</span>`).join('')}</div>`}
+      <div class="note">목록에 없는 업종이야. 관련 법이 있는 업종이면 위 칸에 직접 적어줘.</div>
+    </div>`;
+  }
   if(!ind || ind.banned.length===0){
     return `<div class="reg none"><h4>공통 규제만 적용</h4>
       <div class="words">${COMMON_BANNED.slice(0,8).map(w=>`<span class="w" style="color:var(--accent)">${esc(w)}</span>`).join('')}</div>
@@ -769,6 +791,15 @@ function regulationText(){
   const ind = INDUSTRY[S.p.industry];
   let t = `## 절대 금지 (하나라도 쓰면 실패)\n${COMMON_BANNED.join(' / ')}\n\n## 대체 원칙\n1. 최상급을 쓰고 싶으면 → 검증 가능한 사실로 바꾼다.\n   "최고의 기술" → "이 방식으로 8년째 작업하고 있습니다"\n2. 효과를 말하고 싶으면 → 과정을 말한다.\n3. 결과를 언급했으면 → 개인차 문구로 닫는다.\n4. 홍보 문장은 정보 문장으로 바꾼다.\n   "지금 바로 전화주세요" → "궁금한 점은 편하게 물어보셔도 됩니다"`;
 
+  if(ind && ind.custom){
+    const own = S.p.industryRule.split('\n').map(x=>x.trim()).filter(Boolean);
+    const name = S.p.industryText || '해당 업종';
+    if(own.length){
+      t += `\n\n## 업종 추가 금지 — ${name}\n${own.join(' / ')}`;
+    }
+    t += `\n\n## 주의\n${name} 관련 법령을 확인하지 못했다. 효과를 단정하는 표현, 자격이나 인증을 암시하는 표현, 결과를 약속하는 표현은 쓰지 않는다. 애매하면 쓰지 말고 [확인 필요]에 남긴다.`;
+    return t;
+  }
   if(ind && ind.banned.length){
     t += `\n\n## 업종 추가 금지 — ${ind.label}\n근거: ${ind.law}\n${ind.banned.join(' / ')}`;
     if(ind.swap.length){
@@ -822,7 +853,8 @@ const EXPERIENCE = `## 경험 디테일 의무 (검색 노출의 핵심)
 function profileBlock(){
   const p=S.p, L=[];
   if(p.name) L.push(`- 업체명: ${p.name}`);
-  if(INDUSTRY[p.industry] && p.industry!=='none') L.push(`- 업종: ${INDUSTRY[p.industry].label}`);
+  if(p.industry==='custom' && p.industryText) L.push(`- 업종: ${p.industryText}`);
+  else if(INDUSTRY[p.industry] && p.industry!=='none') L.push(`- 업종: ${INDUSTRY[p.industry].label}`);
   if(p.region) L.push(`- 지역·상권: ${p.region}`);
   if(p.services) L.push(`- 대표 서비스:\n${p.services.split('\n').filter(x=>x.trim()).map(x=>'  · '+x.trim()).join('\n')}`);
   if(p.target) L.push(`- 타겟 고객: ${p.target}`);
@@ -976,6 +1008,9 @@ function buildReview(){
 `1. 사실 조작 의심: 근거 없이 등장한 숫자·가격·경력·수상·후기·통계·인용을 전부 나열`,
 `2. 공통 금지 표현: ${COMMON_BANNED.join(' / ')}`,
   ];
+  if(ind && ind.custom && S.p.industryRule.trim()){
+    items.push(`3. 업종 표현 점검 — ${S.p.industryText || '직접 입력 업종'}\n   금지: ${S.p.industryRule.split('\n').map(x=>x.trim()).filter(Boolean).join(' / ')}`);
+  }
   if(ind && ind.banned.length){
     items.push(`3. 업종 법령 위반 — ${ind.label} (${ind.law})\n   금지 표현: ${ind.banned.join(' / ')}\n   ${ind.note||''}`);
   }
