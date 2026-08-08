@@ -168,11 +168,34 @@ input[type=file]{
   .pane.left{padding-left:14px;padding-right:14px}
 }
 @media print{
+  /* 여백을 0으로 두면 브라우저가 넣는 날짜·제목·주소·쪽번호가 사라진다 */
+  @page{ size:A4; margin:0; }
+
+  html,body{margin:0;padding:0;background:#fff;height:auto}
   header,.pane.left,.mobile-bar,.toast,.sheet-top{display:none!important}
+  .shell{display:block;height:auto}
   .body{display:block}
-  .pane.right{background:#fff;padding:0;display:block!important;position:static;overflow:visible}
-  .prev-in{padding:0}
-  .phone{max-width:100%;box-shadow:none;border-radius:0}
+  .pane.right{
+    background:#fff;padding:0;display:block!important;
+    position:static;overflow:visible;height:auto;
+  }
+  .prev-in{padding:0;display:block}
+  .phone{
+    max-width:100%;width:100%;box-shadow:none;border-radius:0;margin:0;
+  }
+  /* 실제 인쇄 여백은 문서 안쪽에서 만든다 */
+  .doc-hero{padding:16mm 14mm 12mm}
+  .doc-sec{padding:10mm 14mm}
+  .doc-cta{padding:12mm 14mm}
+  .doc-foot{padding:6mm 14mm 10mm}
+
+  /* 항목이 페이지 경계에서 잘리지 않게 */
+  .doc-sec,.doc-plan,.doc-list li,.doc-steps li,.doc-note,.doc-photos img{
+    break-inside:avoid;page-break-inside:avoid;
+  }
+  .doc-hero{break-after:avoid;page-break-after:avoid}
+  a{text-decoration:none;color:inherit}
+  a[href]::after{content:none!important}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
