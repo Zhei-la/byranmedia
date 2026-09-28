@@ -100,7 +100,7 @@ get('/', async (req, res) => {
   res.render('lounge/home', {
     title: '', active: 'home',
     results, board, chat: chat.reverse(), sections, reviews, cohort: cohort[0] || null, prompts, courses,
-    ogT: '바이란 라운지 · 마케팅 대행 커뮤니티',
+    ogT: '바이란 라운지 · AI로 시작하는 1인 창업 커뮤니티',
     ogD: '무료 자료집, AI 프롬프트, 같이 성장하는 커뮤니티. 카카오로 3초면 시작해요.',
   });
 });
