@@ -30,7 +30,7 @@ router.get(['/about', '/home'], async (req, res) => {
 
   res.render('landing', {
     title: '', notices,
-    ogT: '바이란미디어 · AI로 시작하는 1인 창업',
+    ogT: '바이란미디어 · 마케팅 대행',
     ogD: '강의를 파는 게 아니라 도구를 드립니다. 블로그 대행에 쓰는 도구와 계약서까지 그대로.',
   });
 });

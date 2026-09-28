@@ -194,7 +194,7 @@ function checkNick(n) {
   return { ok: true, value: s };
 }
 
-const INTERESTS = ['블로그 부업', '스레드·SNS', 'AI 활용', '사주·타로', '쿠팡파트너스', 'AI 이미지', '1인 창업', '기타'];
+const INTERESTS = ['블로그 부업', '스레드·SNS', 'AI 활용', '사주·타로', '쿠팡파트너스', 'AI 이미지', '마케팅 대행', '기타'];
 
 const CATEGORIES = {
   notice: { label: '공지' },
