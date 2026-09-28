@@ -214,3 +214,8 @@ CREATE TABLE IF NOT EXISTS lounge_prompt_likes (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   PRIMARY KEY (prompt_id, user_id)
 );
+
+-- 수강 과정: 정가·할인 안내·포함 내용
+ALTER TABLE lounge_products ADD COLUMN IF NOT EXISTS list_price VARCHAR(40);   -- 정가 (줄 그어 보여줌)
+ALTER TABLE lounge_products ADD COLUMN IF NOT EXISTS price_note VARCHAR(120);  -- 예: 해당 월 5명 한정
+ALTER TABLE lounge_products ADD COLUMN IF NOT EXISTS perks TEXT;               -- 포함 내용 (한 줄에 하나)

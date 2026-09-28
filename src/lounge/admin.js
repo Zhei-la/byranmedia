@@ -235,18 +235,20 @@ router.post('/admin/lounge/products/save', async (req, res) => {
     int(req.body.point_price) || null, int(req.body.resource_id) || null,
     L.safeUrl(req.body.buy_url) || null, txt(req.body.cta_label, 20) || null,
     req.body.is_challenge === '1', int(req.body.sort_order) || 100, req.body.is_active !== '0',
+    txt(req.body.list_price, 40) || null, txt(req.body.price_note, 120) || null, txt(req.body.perks, 3000) || null,
   ];
   if (!f[0]) return go(res, 'store', '상품 이름을 넣어 주세요.');
   if (id) {
     await db.query(
       `UPDATE lounge_products SET title=$1, subtitle=$2, kind=$3, badge=$4, price_text=$5, point_price=$6, resource_id=$7,
-              buy_url=$8, cta_label=$9, is_challenge=$10, sort_order=$11, is_active=$12 WHERE id=$13`,
+              buy_url=$8, cta_label=$9, is_challenge=$10, sort_order=$11, is_active=$12,
+              list_price=$13, price_note=$14, perks=$15 WHERE id=$16`,
       [...f, id]
     );
   } else {
     await db.query(
-      `INSERT INTO lounge_products (title, subtitle, kind, badge, price_text, point_price, resource_id, buy_url, cta_label, is_challenge, sort_order, is_active)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
+      `INSERT INTO lounge_products (title, subtitle, kind, badge, price_text, point_price, resource_id, buy_url, cta_label, is_challenge, sort_order, is_active, list_price, price_note, perks)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)`,
       f
     );
   }
@@ -342,7 +344,10 @@ router.post('/admin/lounge/prompts/save', async (req, res) => {
   const id = int(req.body.id);
   const title = txt(req.body.title, 120);
   const prompt = txt(req.body.prompt, 12000);
-  if (!title || !prompt) return go(res, 'prompts', '제목과 프롬프트를 넣어 주세요.', id ? `&edit=${id}` : '');
+  if (!title || !prompt) {
+    if (req.body.back === '/prompts') { req.session.flash = '제목과 프롬프트를 넣어 주세요.'; return res.redirect('/prompts#compose'); }
+    return go(res, 'prompts', '제목과 프롬프트를 넣어 주세요.', id ? `&edit=${id}` : '');
+  }
   // 기존 사진 중 남길 것 + 새로 올린 사진
   let keep = [].concat(req.body.keep || []).map((x) => parseInt(x, 10)).filter(Boolean);
   const uploads = [].concat(req.body.images || []).filter(Boolean).slice(0, 8);
@@ -356,17 +361,22 @@ router.post('/admin/lounge/prompts/save', async (req, res) => {
     txt(req.body.negative, 4000) || null, txt(req.body.model, 40) || null, txt(req.body.note, 300) || null,
     keep, req.body.is_active !== '0',
   ];
+  // 갤러리 화면에서 바로 올린 경우 그 화면으로 돌아간다
+  const backTo = String(req.body.back || '');
+  const toGallery = backTo === '/prompts';
   if (id) {
     await db.query(
       `UPDATE lounge_prompts SET title=$1, category=$2, prompt=$3, negative=$4, model=$5, note=$6, image_ids=$7, is_active=$8 WHERE id=$9`,
       [...f, id]
     );
+    if (toGallery) { req.session.flash = '프롬프트를 고쳤어요.'; return res.redirect(`/prompts/${id}`); }
     return go(res, 'prompts', '프롬프트를 고쳤어요.');
   }
-  await db.query(
-    `INSERT INTO lounge_prompts (title, category, prompt, negative, model, note, image_ids, is_active) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+  const { rows: ins } = await db.query(
+    `INSERT INTO lounge_prompts (title, category, prompt, negative, model, note, image_ids, is_active) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id`,
     f
   );
+  if (toGallery) { req.session.flash = '프롬프트를 올렸어요! 🎉'; return res.redirect('/prompts'); }
   go(res, 'prompts', '프롬프트를 올렸어요.');
 });
 router.post('/admin/lounge/prompts/:id/toggle', async (req, res) => {

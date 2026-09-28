@@ -46,6 +46,7 @@
       <label>설명<textarea name="hero_sub" class="lg-in" rows="2"><%= S.hero_sub %></textarea></label>
       <label>가입 안내 한 줄<input name="welcome_note" class="lg-in" value="<%= S.welcome_note %>"></label>
       <label>수강 신청 페이지 안내<input name="course_note" class="lg-in" value="<%= S.course_note %>"></label>
+      <label>현금 결제 할인 안내<input name="cash_note" class="lg-in" value="<%= S.cash_note %>"></label>
     </div>
     <button class="lg-btn primary">저장</button>
   </form>
@@ -139,11 +140,14 @@
       <label>한 줄 설명<input name="subtitle" class="lg-in" maxlength="200" value="<%= e ? e.subtitle || '' : '' %>"></label>
       <label>분류 표시 (작은 글씨)<input name="kind" class="lg-in" maxlength="40" value="<%= e ? e.kind || '' : '' %>" placeholder="예: 1:1 피드백 · 4주"></label>
       <label>배지<input name="badge" class="lg-in" maxlength="12" value="<%= e ? e.badge || '' : '' %>" placeholder="예: 추천, BEST"></label>
-      <label>금액 표시<input name="price_text" class="lg-in" maxlength="40" value="<%= e ? e.price_text || '' : '' %>" placeholder="예: 800,000원 / 금액 문의"></label>
+      <label>판매 금액<input name="price_text" class="lg-in" maxlength="40" value="<%= e ? e.price_text || '' : '' %>" placeholder="예: 1,100,000원 / 금액 문의"></label>
+      <label>정가 (줄 그어 보여줘요, 선택)<input name="list_price" class="lg-in" maxlength="40" value="<%= e ? e.list_price || '' : '' %>" placeholder="예: 1,300,000원"></label>
+      <label>금액 옆 안내 (선택)<input name="price_note" class="lg-in" maxlength="120" value="<%= e ? e.price_note || '' : '' %>" placeholder="예: 해당 월 5명 한정 할인가"></label>
       <label>결제 링크 (선택, 아임웹·스마트스토어 등)<input name="buy_url" class="lg-in" value="<%= e ? e.buy_url || '' : '' %>"></label>
       <label>결제 버튼 글자<input name="cta_label" class="lg-in" maxlength="20" value="<%= e ? e.cta_label || '' : '' %>" placeholder="결제하기"></label>
       <label>순서<input name="sort_order" type="number" class="lg-in" value="<%= e ? e.sort_order : 100 %>"></label>
     </div>
+    <label>포함 내용 (한 줄에 하나씩)<textarea name="perks" class="lg-in" rows="5" placeholder="1:1 피드백 6개월&#10;타로 자료집"><%= e ? e.perks || '' : '' %></textarea></label>
     <label class="lg-check"><input type="checkbox" name="is_challenge" value="1" <%= e && e.is_challenge ? 'checked' : '' %>> 챌린지 과정 (챌린지 페이지로 연결)</label>
     <label class="lg-check"><input type="hidden" name="is_active" value="0"><input type="checkbox" name="is_active" value="1" <%= !e || e.is_active ? 'checked' : '' %>> 공개</label>
     <button class="lg-btn primary">저장</button>
@@ -151,7 +155,7 @@
   <div class="lg-admin-list">
     <% products.forEach(function(p){ %>
       <div class="lg-adrow <%= p.is_active ? '' : 'off' %>">
-        <div class="grow"><b><%= p.title %></b><small><%= p.price_text || '금액 미정' %> · 순서 <%= p.sort_order %></small></div>
+        <div class="grow"><b><%= p.title %></b><small><%= p.price_text || '금액 미정' %><%= p.list_price ? ' (정가 ' + p.list_price + ')' : '' %> · 순서 <%= p.sort_order %></small></div>
         <a href="/admin/lounge?tab=store&edit=<%= p.id %>#sform" class="lg-btn sm">수정</a>
         <form method="post" action="/admin/lounge/products/<%= p.id %>/delete" class="inline" data-confirm="정말 지울까요?"><button class="lg-btn sm ghost danger">삭제</button></form>
       </div>

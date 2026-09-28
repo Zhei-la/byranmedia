@@ -43,6 +43,36 @@
   </form>
 </section>
 
+<% if (user && user.role === 'admin') { %>
+<section class="lg-wrap">
+  <details class="lg-card lg-compose" id="compose" open>
+    <summary><span class="lg-ava"><%= (nick || '운').slice(0,1) %></span><b>새 프롬프트 올리기</b><small>이미지와 프롬프트를 피드처럼 올려요 · 관리자만 보여요</small></summary>
+    <form method="post" action="/admin/lounge/prompts/save" data-multi-image-form class="lg-compose-form">
+      <input type="hidden" name="back" value="/prompts">
+      <label class="lg-dropzone" data-dropzone>
+        <input type="file" accept="image/*" multiple hidden data-multi-file>
+        <span>📷 이미지를 여기로 끌어오거나 눌러서 고르세요 <small>(최대 8장 · 첫 장이 대표)</small></span>
+      </label>
+      <div class="lg-adimgs-row" data-imgs></div>
+      <input name="title" class="lg-in" required maxlength="120" placeholder="제목 (예: 비 오는 날 카페 창가 셀카)">
+      <textarea name="prompt" class="lg-in mono" rows="5" required placeholder="프롬프트를 붙여 넣으세요"></textarea>
+      <details class="lg-compose-more">
+        <summary>부정 프롬프트 · 메모 · 만든 도구 (선택)</summary>
+        <textarea name="negative" class="lg-in mono" rows="2" placeholder="부정 프롬프트"></textarea>
+        <input name="note" class="lg-in" maxlength="300" placeholder="한 줄 메모 (예: 얼굴만 바꿔서 여러 장 뽑기 좋아요)">
+        <input name="model" class="lg-in" maxlength="40" placeholder="만든 도구 (예: 나노바나나, 미드저니 v7)">
+      </details>
+      <div class="lg-compose-foot">
+        <select name="category" class="lg-in" aria-label="카테고리"><% L.PROMPT_CATS.forEach(function(c){ %><option><%= c %></option><% }); %></select>
+        <input type="hidden" name="is_active" value="1">
+        <span class="lg-grow"></span>
+        <button class="lg-btn primary">올리기</button>
+      </div>
+    </form>
+  </details>
+</section>
+<% } %>
+
 <section class="lg-wrap lg-sec">
   <% if (items.length) { %>
     <div class="lg-pgrid">

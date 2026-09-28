@@ -1,45 +1,175 @@
 <%- include('_top') %>
-<section class="lg-wrap lg-pagehead">
-  <p class="lg-kicker">Course</p>
-  <h1 class="lg-h1">수강 신청</h1>
-  <p class="lg-muted"><%= S.course_note || '무료 자료만으로도 시작할 수 있어요. 옆에서 같이 잡아드리는 과정이 필요하신 분들을 위한 페이지예요.' %></p>
+<%
+  const perksOf = (p) => String(p.perks || '').split('\n').map(s => s.trim()).filter(Boolean);
+%>
+<!-- 1. 첫 화면 -->
+<section class="lg-hero lg-cohero">
+  <div class="lg-wrap">
+    <p class="lg-kicker">바이란 수강 안내 · 사주 / 사주 + 타로</p>
+    <h1 class="lg-display">사주도 타로도 몰라도,<br><em>혼자 설 때까지</em> 같이 갑니다</h1>
+    <p class="lg-hero-sub"><%= S.course_note || '배우고 끝나는 강의가 아니라, 오늘부터 손님을 받는 구조를 같이 세팅하는 과정이에요.' %></p>
+    <div class="lg-hero-cta">
+      <a href="#plans" class="lg-btn primary lg">과정·금액 보기</a>
+      <a href="<%= S.consult_url %>" target="_blank" rel="noopener" class="lg-btn kakao lg">카톡으로 먼저 물어보기</a>
+    </div>
+    <div class="lg-cohero-chips">
+      <span>🔮 전용 만세력 엔진</span><span>📄 리포트 PDF 자동 제작</span><span>🃏 타로 운영법</span><span>🧵 스레드로 손님 모으기</span><span>🙋 1:1 피드백</span>
+    </div>
+  </div>
 </section>
 
+<!-- 2. 누구에게 -->
 <section class="lg-wrap lg-sec">
+  <div class="lg-sec-h"><div><p class="lg-kicker">For you</p><h2 class="lg-h2">이런 분께 맞아요</h2></div></div>
+  <div class="lg-fit">
+    <div class="lg-card">
+      <h3 class="lg-h3">👍 이런 분께 권해요</h3>
+      <ul class="lg-check-list">
+        <li>사주·타로를 몰라도 부업으로 시작해 보고 싶은 분</li>
+        <li>내 이름으로 된 상담 페이지와 상품이 필요한 분</li>
+        <li>리포트 만들고 보내는 일을 쉽게 끝내고 싶은 분</li>
+        <li>막힐 때마다 물어볼 사람이 필요한 분</li>
+        <li>사주에 타로까지 더해 상품을 넓히고 싶은 분</li>
+      </ul>
+    </div>
+    <div class="lg-card muted">
+      <h3 class="lg-h3">🙅 이런 분께는 권하지 않아요</h3>
+      <ul class="lg-x-list">
+        <li>손 하나 안 대고 돈이 들어오는 완전 자동화를 기대하는 분</li>
+        <li>알려드린 걸 직접 해보지 않으려는 분</li>
+        <li>명리학·타로를 학문으로 깊게 공부하고 싶은 분</li>
+        <li>짧은 기간 안에 수익 보장이 꼭 필요한 분</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 3. 무엇을 다루나요 -->
+<section class="lg-wrap lg-sec">
+  <div class="lg-sec-h"><div><p class="lg-kicker">What you get</p><h2 class="lg-h2">무엇을 다루나요</h2></div></div>
+  <div class="lg-cover">
+    <div class="lg-cover-col">
+      <h3>🔮 사주</h3>
+      <p class="lg-muted">사주를 몰라도 되는 전용 프로그램으로, 손님 받는 구조를 그대로 가져가요.</p>
+      <ol class="lg-feat">
+        <li><b>전용 만세력 엔진</b><span>생년월일시만 넣으면 명식·대운·세운까지 계산돼요</span></li>
+        <li><b>사주 리포트 PDF</b><span>종합·연애·재물·직업운 리포트를 표지까지 갖춰 만들어요</span></li>
+        <li><b>내 이름 무료사주 웹사이트</b><span>링크만 공유하면 신청이 목록에 정리돼요</span></li>
+        <li><b>이메일 발송 · 추가 질문 응대</b><span>완성된 리포트를 메일로 보내고 질문에도 답해요</span></li>
+        <li><b>전용 GPTs 7가지 이상</b><span>상담·리포트·글쓰기에 바로 쓰는 도구</span></li>
+        <li><b>일진첩 · 스레드 자동화</b><span>매일 올릴 운세 글과 주제가 자동으로 준비돼요</span></li>
+        <li><b>상담 대처법 · 교육생 자료집</b><span>첫 멘트부터 곤란한 질문, 환불 요청 대응까지</span></li>
+      </ol>
+    </div>
+    <div class="lg-cover-col tarot">
+      <h3>🃏 타로 <small>사주 + 타로 과정</small></h3>
+      <p class="lg-muted">78장을 외우지 않고도 시작하는 온라인 타로 운영법을 더해요.</p>
+      <ol class="lg-feat">
+        <li><b>타로 기초 한 장 정리</b><span>수트·숫자·인물 카드와 쓰리카드 배치만으로 시작</span></li>
+        <li><b>AI로 리딩 정리하기</b><span>뽑은 카드를 넣으면 상담 문장으로 다듬는 프롬프트</span></li>
+        <li><b>스레드 타로 글쓰기</b><span>카드 설명 말고 사람 이야기로 쓰는 글 구조</span></li>
+        <li><b>무료 리딩 → 유료 상담</b><span>댓글에서 카톡으로, 첫 메시지와 금액 안내 문구</span></li>
+        <li><b>사주 + 타로 상품 구성</b><span>상품을 나누고 단가를 올리는 순서</span></li>
+        <li><b>계정 세팅 · 글 피드백</b><span>혼자 설 수 있을 때까지 옆에서 같이 봐요</span></li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+<!-- 4. 진행 흐름 -->
+<section class="lg-wrap lg-sec">
+  <div class="lg-sec-h"><div><p class="lg-kicker">How it works</p><h2 class="lg-h2">이렇게 진행돼요</h2></div></div>
+  <ol class="lg-steps">
+    <li><b>세팅</b><span>프로그램 계정, 무료사주 페이지, 스레드 프로필을 같이 맞춰요</span></li>
+    <li><b>사람 모으기</b><span>일진첩과 글 구조로 매일 글을 올려 문의를 받아요</span></li>
+    <li><b>상담 · 리포트</b><span>생년월일시만 넣어 리포트를 만들고, 타로는 쓰리카드로 상담해요</span></li>
+    <li><b>피드백으로 다듬기</b><span>막히는 지점마다 1:1로 물어보고 고쳐 나가요</span></li>
+  </ol>
+</section>
+
+<!-- 5. 과정·금액 -->
+<section class="lg-wrap lg-sec" id="plans">
+  <div class="lg-sec-h"><div><p class="lg-kicker">Plans</p><h2 class="lg-h2">과정과 금액</h2></div></div>
   <% if (products.length) { %>
-    <div class="lg-courses">
-      <% products.forEach(function(p){ %>
-        <article class="lg-course big" id="c<%= p.id %>">
+    <div class="lg-plans">
+      <% products.forEach(function(p){ var perks = perksOf(p); %>
+        <article class="lg-plan <%= p.badge === '추천' ? 'hot' : '' %>" id="c<%= p.id %>">
           <% if (p.badge) { %><span class="lg-badge"><%= p.badge %></span><% } %>
           <% if (p.kind) { %><p class="lg-prod-kind"><%= p.kind %></p><% } %>
-          <h2><%= p.title %></h2>
-          <% if (p.subtitle) { %><p class="lg-course-sub"><%= p.subtitle %></p><% } %>
-          <p class="lg-price"><%= p.price_text || '금액 문의' %></p>
+          <h3><%= p.title %></h3>
+          <% if (p.subtitle) { %><p class="lg-plan-sub"><%= p.subtitle %></p><% } %>
+          <div class="lg-plan-price">
+            <% if (p.list_price) { %><s><%= p.list_price %></s><% } %>
+            <b><%= p.price_text || '금액 문의' %></b>
+            <% if (p.price_note) { %><small><%= p.price_note %></small><% } %>
+          </div>
+          <% if (perks.length) { %>
+            <ul class="lg-check-list sm"><% perks.forEach(function(k){ %><li><%= k %></li><% }); %></ul>
+          <% } %>
           <div class="lg-prod-cta">
-            <% if (p.buy_url) { %><a href="<%= p.buy_url %>" target="_blank" rel="noopener" class="lg-btn primary"><%= p.cta_label || '결제하기' %></a><% } %>
-            <a href="/course?pick=<%= p.id %>#apply" class="lg-btn <%= p.buy_url ? '' : 'primary' %>">신청서 쓰기</a>
-            <% if (p.is_challenge) { %><a href="/challenge" class="lg-btn ghost">챌린지 보기</a><% } %>
+            <a href="/course?pick=<%= p.id %>#apply" class="lg-btn primary block">이 과정 신청하기</a>
+            <% if (p.buy_url) { %><a href="<%= p.buy_url %>" target="_blank" rel="noopener" class="lg-btn block"><%= p.cta_label || '자세히 보기' %></a><% } %>
           </div>
           <% if (p.reviews) { %><a href="/reviews?p=<%= p.id %>" class="lg-more">후기 <%= p.reviews %>개 →</a><% } %>
         </article>
       <% }); %>
     </div>
+    <% if (S.cash_note) { %><div class="lg-cash">💸 <b><%= S.cash_note %></b></div><% } %>
   <% } else { %>
-    <div class="lg-card lg-empty">
-      <b>다음 기수를 준비하고 있어요</b>
-      <p>아래 신청서로 먼저 연락처를 남겨 주시면 열리자마자 알려드릴게요.</p>
-    </div>
+    <div class="lg-card lg-empty"><b>다음 기수를 준비하고 있어요</b><p>아래 신청서로 연락처를 남겨 주시면 열리자마자 알려드릴게요.</p></div>
   <% } %>
 </section>
 
+<!-- 6. 비교 -->
+<section class="lg-wrap lg-sec">
+  <div class="lg-sec-h"><div><p class="lg-kicker">Compare</p><h2 class="lg-h2">한눈에 비교</h2></div></div>
+  <div class="lg-card flush lg-tablewrap">
+    <table class="lg-compare">
+      <thead><tr><th></th><th>사주</th><th>사주 + 타로<br><small>6개월</small></th><th>사주 + 타로<br><small>평생</small></th></tr></thead>
+      <tbody>
+        <tr><td>사주 프로그램 · 자료집</td><td>✓</td><td>✓</td><td>✓</td></tr>
+        <tr><td>타로 운영법 · 자료집</td><td>—</td><td>✓</td><td>✓</td></tr>
+        <tr><td>계정 세팅 · 글 피드백</td><td>✓</td><td>✓</td><td>✓</td></tr>
+        <tr><td>1:1 피드백 기간</td><td>1년</td><td>6개월</td><td><b>평생</b></td></tr>
+        <tr><td>다른 부업 우선 · 할인 참여</td><td>—</td><td>—</td><td>✓</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="lg-hint">6개월은 하는 방법과 세팅을 익히고 혼자 설 수 있을 만큼 넉넉하게 잡은 기간이에요.</p>
+</section>
+
+<!-- 7. 후기 -->
+<section class="lg-wrap lg-sec">
+  <a href="/reviews" class="lg-builderbar">
+    <span>⭐</span>
+    <div><b>먼저 해 본 분들의 이야기</b><small>수익 금액은 싣지 않아요. 결과는 시작 시기·쓰는 시간·꾸준함에 따라 사람마다 달라요.</small></div>
+    <em>후기 보기 →</em>
+  </a>
+</section>
+
+<!-- 8. 자주 묻는 질문 -->
+<section class="lg-wrap narrow lg-sec">
+  <div class="lg-sec-h"><div><p class="lg-kicker">FAQ</p><h2 class="lg-h2">자주 묻는 질문</h2></div></div>
+  <div class="lg-faq">
+    <details><summary>사주나 타로를 하나도 몰라도 되나요?</summary><p>네. 사주는 전용 엔진이 계산과 해석을 맡고, 타로는 기초 몇 가지와 쓰리카드 배치만으로 시작해요. 나이보다 끝까지 해보시려는 마음이 더 중요해요.</p></details>
+    <details><summary>6개월 과정과 평생 과정은 뭐가 다른가요?</summary><p>배우는 내용은 같아요. 6개월 과정은 혼자 설 수 있을 때까지 넉넉하게 6개월 동안 1:1 피드백을 드리고, 평생 과정은 기간 제한 없이 계속 피드백을 드려요. 평생 과정은 바이란의 다른 부업 과정도 먼저, 더 저렴하게 시작할 수 있어요.</p></details>
+    <details><summary>"해당 월 5명 할인"은 무슨 뜻인가요?</summary><p>매달 먼저 신청하신 5분까지만 할인가로 받아요. 5명이 차면 그 달은 정가로 안내드려요.</p></details>
+    <details><summary>피드백은 어떻게 받나요?</summary><p>카카오톡으로 막히는 지점마다 물어보시면 돼요. 올린 글, 상담 문구, 세팅 화면을 보내 주시면 같이 보고 고쳐 드려요. 다만 직접 해보지 않고 대신 다 해주길 바라시는 분은 받지 않아요.</p></details>
+    <details><summary>결제는 어떻게 하나요?</summary><p>아래 신청서를 남겨 주시면 결제 방법을 안내드려요. <%= S.cash_note || '' %></p></details>
+    <details><summary>프로그램에 추가로 드는 비용이 있나요?</summary><p>사주 프로그램 사용료는 따로 없어요. PDF 자동 제작이나 자동 발행에 외부 서비스를 쓰시면 그 비용만 본인 부담이고, 무료 방식만 쓰시면 추가 비용이 들지 않아요.</p></details>
+    <details><summary>환불은 어떻게 되나요?</summary><p>수강 시작일 전날까지 말씀하시면 전액 환불해 드려요. 수강 시작일부터는 자료와 계정이 한 번에 제공되기 때문에 환불이 어려워요. 결제 전에 꼭 확인해 주세요.</p></details>
+  </div>
+</section>
+
+<!-- 9. 신청서 -->
 <section class="lg-wrap narrow lg-sec" id="apply">
   <div class="lg-card">
-    <h2 class="lg-h2">신청서</h2>
+    <h2 class="lg-h2">수강 신청서</h2>
     <% if (sent) { %>
       <div class="lg-alert ok">신청을 받았어요! 확인하고 바로 연락드릴게요.</div>
       <a href="<%= S.consult_url %>" target="_blank" rel="noopener" class="lg-btn kakao block">카카오톡으로 먼저 말 걸기</a>
     <% } else { %>
-      <p class="lg-muted">남겨 주시면 확인 후 카톡이나 문자로 안내드려요. 결제는 안내를 받은 뒤에 하시면 돼요.</p>
+      <p class="lg-muted">남겨 주시면 확인 후 카톡이나 문자로 결제 방법과 시작일을 안내드려요.</p>
       <form method="post" action="/course/apply">
         <input type="text" name="website" class="lg-hp" tabindex="-1" autocomplete="off" aria-hidden="true">
         <label class="lg-lb" for="cp">어떤 과정인가요</label>
@@ -52,7 +182,7 @@
         <label class="lg-lb" for="cph">연락처 (전화번호나 카톡 아이디)</label>
         <input id="cph" name="phone" class="lg-in" maxlength="40" required>
         <label class="lg-lb" for="cm">하고 싶은 말 (선택)</label>
-        <textarea id="cm" name="message" class="lg-in" rows="3" maxlength="2000" placeholder="지금 상황, 궁금한 점을 편하게 적어 주세요"></textarea>
+        <textarea id="cm" name="message" class="lg-in" rows="3" maxlength="2000" placeholder="지금 상황, 궁금한 점, 현금 결제 여부 등을 편하게 적어 주세요"></textarea>
         <button class="lg-btn primary block lg" <%= products.length ? '' : 'disabled' %>>신청하기</button>
       </form>
     <% } %>

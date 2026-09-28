@@ -2,6 +2,7 @@
 const express = require('express');
 const db = require('../db');
 const L = require('./core');
+const T = require('./translate');
 
 const router = express.Router();
 
@@ -93,7 +94,7 @@ get('/', async (req, res) => {
         WHERE status IN ('recruiting','running') ORDER BY start_date DESC LIMIT 1`),
     q(`SELECT id, title, category, image_ids FROM lounge_prompts
         WHERE is_active=true AND cardinality(image_ids) > 0 ORDER BY created_at DESC LIMIT 8`),
-    q(`SELECT id, title, subtitle, price_text, badge FROM lounge_products WHERE is_active=true ORDER BY sort_order, id LIMIT 3`),
+    q(`SELECT id, title, subtitle, price_text, list_price, price_note, badge FROM lounge_products WHERE is_active=true ORDER BY sort_order, id LIMIT 3`),
   ]);
 
   res.render('lounge/home', {
@@ -477,7 +478,7 @@ get('/prompts', async (req, res) => {
 
 get('/prompts/builder', (req, res) => {
   res.render('lounge/builder', {
-    title: '프롬프트 생성기', active: 'prompts',
+    title: '프롬프트 생성기', active: 'prompts', aiOn: T.aiReady(),
     ogT: '프롬프트 생성기 · 칸만 채우면 완성',
     ogD: '인물·화보·제품 이미지 프롬프트를 칸만 채워서 만들어요. 미드저니·챗지피티·Flux용.',
   });
@@ -508,6 +509,20 @@ get('/prompts/:id(\\d+)', async (req, res) => {
     ogD: '이미지를 누르면 프롬프트를 바로 복사할 수 있어요.',
     ogImg: p.image_ids[0] ? `/u/img/${p.image_ids[0]}` : null,
   });
+});
+
+// 생성기: 한국어 → 영어 (AI 키가 있으면 AI, 없으면 단어장)
+const tHits = new Map();
+post('/prompts/translate', async (req, res) => {
+  const key = req.ip;
+  const now = Date.now();
+  const arr = (tHits.get(key) || []).filter((t) => now - t < 10 * 60 * 1000);
+  if (arr.length >= 40) return res.status(429).json({ error: '잠시 후 다시 눌러 주세요.' });
+  arr.push(now);
+  tHits.set(key, arr);
+  if (tHits.size > 5000) tHits.clear();
+  const out = await T.translateFields((req.body && req.body.fields) || {});
+  res.json(out);
 });
 
 post('/prompts/:id(\\d+)/copied', async (req, res) => {

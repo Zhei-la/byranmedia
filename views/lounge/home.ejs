@@ -182,7 +182,8 @@
         <% if (c.badge) { %><span class="lg-badge"><%= c.badge %></span><% } %>
         <b><%= c.title %></b>
         <% if (c.subtitle) { %><p><%= c.subtitle %></p><% } %>
-        <% if (c.price_text) { %><span class="lg-price"><%= c.price_text %></span><% } %>
+        <% if (c.price_text) { %><span class="lg-price"><% if (c.list_price) { %><s class="lg-list-s"><%= c.list_price %></s> <% } %><%= c.price_text %></span><% } %>
+        <% if (c.price_note) { %><small class="lg-price-note"><%= c.price_note %></small><% } %>
       </a>
     <% }); %>
   </div>

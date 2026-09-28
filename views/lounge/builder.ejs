@@ -1,12 +1,19 @@
 <%- include('_top') %>
 <section class="lg-wrap lg-pagehead">
   <a href="/prompts" class="lg-back">← 프롬프트 모음</a>
-  <p class="lg-kicker">Prompt Studio · 인터넷 연결 없이 바로 만들어져요</p>
+  <p class="lg-kicker">Prompt Studio</p>
   <h1 class="lg-h1">프롬프트 생성기</h1>
-  <p class="lg-muted">패턴을 고르고 칸을 채우면 이미지 AI에 바로 넣을 수 있는 영어 프롬프트가 완성돼요. 칸 아래 버튼을 누르면 자주 쓰는 표현이 들어가요.</p>
+  <p class="lg-muted">패턴을 고르고, 칸에 <b>한국어로</b> 원하는 걸 적거나 아래 버튼을 눌러 채우세요. 다 채웠으면 <b>[적용하기]</b>를 누르면 영어 프롬프트가 만들어져요.</p>
 </section>
 
-<section class="lg-wrap lg-builder" data-builder>
+<section class="lg-wrap lg-builder" data-builder data-ai="<%= aiOn ? '1' : '' %>">
+  <ol class="lg-bsteps">
+    <li><b>1</b> 패턴 고르기</li>
+    <li><b>2</b> 한국어로 채우기</li>
+    <li><b>3</b> 적용하기</li>
+    <li><b>4</b> 복사해서 챗지피티에 붙여넣기</li>
+  </ol>
+
   <div class="lg-bpatterns" role="radiogroup" aria-label="패턴 고르기" data-patterns></div>
 
   <div class="lg-bgrid">
@@ -16,57 +23,61 @@
         <span class="lg-muted" data-filled>0% 채워짐</span>
         <button type="button" class="lg-linkbtn" data-reset>비우기</button>
       </div>
+      <p class="lg-hint">한국어로 써도 돼요. 예) 비 오는 날 카페 창가, 우산 든 20대 한국 여성</p>
       <div data-fields></div>
-    </div>
-
-    <div class="lg-bout">
-      <div class="lg-card">
-        <h2 class="lg-h3">출력 설정</h2>
-        <label class="lg-lb" for="bModel">어디에 쓸 건가요</label>
-        <select id="bModel" class="lg-in" data-opt="model">
-          <option value="chatgpt">챗지피티 이미지 · 나노바나나 (문장형)</option>
-          <option value="mj">미드저니</option>
-          <option value="flux">Flux · SDXL (키워드형)</option>
-          <option value="any">어디든 (범용)</option>
-        </select>
+      <div class="lg-bapply">
         <div class="lg-bopts">
+          <div>
+            <label class="lg-lb" for="bModel">어디에 쓸 건가요</label>
+            <select id="bModel" class="lg-in" data-opt="model">
+              <option value="chatgpt">챗지피티 · 나노바나나 (이미지 만들기)</option>
+              <option value="mj">미드저니</option>
+              <option value="flux">Flux · SDXL (키워드형)</option>
+            </select>
+          </div>
+          <div>
+            <label class="lg-lb" for="bReal">사진 느낌</label>
+            <select id="bReal" class="lg-in" data-opt="real">
+              <option value="photo">진짜 사진처럼 (실사)</option>
+              <option value="phone">폰으로 막 찍은 일상</option>
+              <option value="editorial">잡지 화보</option>
+            </select>
+          </div>
           <div>
             <label class="lg-lb" for="bRatio">비율</label>
             <select id="bRatio" class="lg-in" data-opt="ratio">
-              <option value="4:5">4:5 · 피드</option>
+              <option value="4:5">4:5 · 인스타 피드</option>
               <option value="9:16">9:16 · 릴스·쇼츠</option>
               <option value="1:1">1:1 · 정사각형</option>
               <option value="2:3">2:3 · 세로 화보</option>
               <option value="16:9">16:9 · 가로</option>
             </select>
           </div>
-          <div>
-            <label class="lg-lb" for="bStyle">형식</label>
-            <select id="bStyle" class="lg-in" data-opt="style">
-              <option value="detail">상세형 (항목별)</option>
-              <option value="short">간단형 (한 문단)</option>
-            </select>
-          </div>
         </div>
+        <button type="button" class="lg-btn primary block lg" data-apply>✨ 적용하기 · 영어 프롬프트 만들기</button>
+        <p class="lg-hint center" data-mode><%= aiOn ? 'AI가 한국어를 영어로 바꿔 줘요.' : '자주 쓰는 단어는 영어로 바뀌고, 모르는 단어는 한국어 그대로 들어가요.' %></p>
       </div>
+    </div>
 
+    <div class="lg-bout">
       <div class="lg-card lg-bresult">
         <div class="lg-pbox-h">
           <b>완성된 프롬프트</b>
           <span class="lg-muted" data-count>0 words</span>
         </div>
-        <textarea class="lg-in mono" rows="12" data-out aria-label="완성된 프롬프트" spellcheck="false"></textarea>
+        <div class="lg-alert warn" data-stale hidden>칸 내용이 바뀌었어요. [적용하기]를 다시 눌러 주세요.</div>
+        <textarea class="lg-in mono" rows="14" data-out aria-label="완성된 프롬프트" spellcheck="false" readonly></textarea>
         <div class="lg-bbtns">
           <button type="button" class="lg-btn primary" data-copy-out>복사하기</button>
           <button type="button" class="lg-btn" data-save-txt>TXT 저장</button>
           <button type="button" class="lg-btn ghost" data-remember>최근 기록에 저장</button>
         </div>
         <div class="lg-pbox-h mt">
-          <b>부정 프롬프트 (넣지 말 것)</b>
+          <b>넣지 말 것 (부정 프롬프트)</b>
           <button type="button" class="lg-btn sm" data-copy-neg>복사</button>
         </div>
         <textarea class="lg-in mono" rows="3" data-neg aria-label="부정 프롬프트" spellcheck="false"></textarea>
-        <p class="lg-hint">결과창은 직접 고쳐도 돼요. 실제 사람(연예인 등)을 닮게 만들거나, 남의 사진을 그대로 따라 만드는 용도로는 쓰지 말아 주세요.</p>
+        <p class="lg-hint">챗지피티용 프롬프트는 맨 위에 "이미지를 바로 만들어 달라"는 요청이 들어가 있어서, 되묻지 않고 바로 그려 줘요. 실제 사람(연예인 등)을 닮게 만들거나 남의 사진을 그대로 따라 만드는 데는 쓰지 말아 주세요.</p>
       </div>
 
       <div class="lg-card" data-history-wrap hidden>
@@ -77,13 +88,13 @@
   </div>
 
   <div class="lg-card lg-btips">
-    <h2 class="lg-h3">프롬프트 잘 쓰는 법</h2>
+    <h2 class="lg-h3">더 사진 같게 만드는 법</h2>
     <ul>
       <li><b>구체적으로</b> — "예쁜 여자" 말고 "20대 한국 여성, 어깨 길이 웨이브, 크림색 니트"</li>
-      <li><b>순서대로</b> — 누구 → 외모 → 옷 → 포즈 → 장소 → 빛 → 분위기</li>
-      <li><b>빛이 분위기를 정해요</b> — 창가 햇빛, 골든아워, 흐린 날, 네온</li>
-      <li><b>카메라 정보</b> — 폰카 느낌이면 smartphone, 화보면 85mm 렌즈</li>
-      <li><b>빼고 싶은 건 부정 프롬프트로</b> — 손가락 이상, 글자, 과한 보정</li>
+      <li><b>장소와 빛을 꼭</b> — "창가 햇빛", "흐린 날", "골든아워" 한 줄이 사진 느낌을 가장 크게 바꿔요</li>
+      <li><b>완벽하지 않게</b> — 잔머리, 옷 주름, 자연스러운 피부를 넣으면 AI 티가 줄어요</li>
+      <li><b>폰카 느낌</b> — 일상 사진처럼 보이게 하려면 "사진 느낌"에서 "폰으로 막 찍은 일상"을 고르세요</li>
+      <li><b>여러 번 뽑기</b> — 같은 프롬프트로 2~3장 뽑아서 제일 자연스러운 걸 고르세요</li>
     </ul>
   </div>
 </section>

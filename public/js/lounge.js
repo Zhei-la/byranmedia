@@ -63,16 +63,17 @@
     });
   });
 
-  // 여러 장 (관리자 프롬프트)
+  // 여러 장 (관리자 프롬프트) — 눌러서 고르기 + 끌어다 놓기
   $$('[data-multi-image-form]').forEach(function (form) {
-    var input = $('[data-multi-file]', form), row = $('[data-imgs]', form);
+    var input = $('[data-multi-file]', form), row = $('[data-imgs]', form), zone = $('[data-dropzone]', form);
     if (!input) return;
-    input.addEventListener('change', function () {
-      var files = Array.prototype.slice.call(input.files || []).slice(0, 8);
+    function addFiles(list) {
+      var have = $$('input[name=images], input[name=keep]:checked', form).length;
+      var files = Array.prototype.slice.call(list || []).filter(function (f) { return /^image\//.test(f.type); }).slice(0, Math.max(0, 8 - have));
       files.forEach(function (f) {
         shrink(f, 1400, function (data) {
           if (!data) return;
-          var lab = document.createElement('label');
+          var lab = document.createElement('div');
           lab.className = 'lg-adimg';
           lab.innerHTML = '<img alt=""><span><button type="button" class="lg-linkbtn sm">빼기</button></span>';
           $('img', lab).src = data;
@@ -83,7 +84,21 @@
           row.appendChild(lab);
         });
       });
-      input.value = '';
+    }
+    input.addEventListener('change', function () { addFiles(input.files); input.value = ''; });
+    if (zone) {
+      ['dragenter', 'dragover'].forEach(function (ev) {
+        zone.addEventListener(ev, function (e) { e.preventDefault(); zone.classList.add('over'); });
+      });
+      ['dragleave', 'drop'].forEach(function (ev) {
+        zone.addEventListener(ev, function (e) { e.preventDefault(); zone.classList.remove('over'); });
+      });
+      zone.addEventListener('drop', function (e) { if (e.dataTransfer) addFiles(e.dataTransfer.files); });
+    }
+    // 붙여넣기(Ctrl+V)로 이미지 넣기
+    form.addEventListener('paste', function (e) {
+      var items = (e.clipboardData && e.clipboardData.files) || [];
+      if (items.length) addFiles(items);
     });
   });
 

@@ -8,6 +8,57 @@ async function migrate() {
   const sql = fs.readFileSync(path.join(__dirname, '..', '..', 'schema-lounge.sql'), 'utf8');
   await db.query(sql);
   await seedOnce();
+  await seedCourses();
+}
+
+/* 수강 과정 3종과 금액 (운영자가 이미 금액을 넣었으면 건드리지 않는다) */
+async function seedCourses() {
+  const { rows } = await db.query(`SELECT 1 FROM lounge_settings WHERE key='seeded_courses_v2'`);
+  if (rows.length) return;
+  const PLANS = [
+    {
+      old: '사주 과정', title: '사주 과정 · 3기', sort: 10, badge: '마지막 기수',
+      subtitle: '사주를 몰라도 퇴근 후 시작하는 AI 사주 운영 과정 (루월당 3기)',
+      kind: '1:1 멘토링 1년', price: '800,000원', list: '1,000,000원', note: '3기 라이브 특가 · 10명 한정',
+      perks: ['전용 만세력 엔진 (명리학자 제작)', '운세별 사주 리포트 PDF 자동 제작', '내 이름으로 된 무료사주 웹사이트', '이메일 발송 · 추가 질문 응대', '전용 GPTs 7가지 이상', '일진첩 · 스레드 자동화', '상담 대처법 · 교육생 자료집', '1:1 멘토링 1년 (횟수 제한 없음)'],
+    },
+    {
+      old: '사주 + 타로 과정', title: '사주 + 타로 · 6개월 피드백', sort: 20, badge: '추천',
+      subtitle: '사주와 타로를 같이 운영하는 방법부터 세팅까지, 혼자 설 수 있을 때까지 6개월',
+      kind: '1:1 피드백 6개월', price: '1,100,000원', list: '1,300,000원', note: '해당 월 5명 한정 할인가',
+      perks: ['사주 과정 구성 전부 포함', '온라인 타로 운영법 · 타로 자료집', '계정 세팅 · 글 · 상담 흐름 피드백', '사주 + 타로 상품 구성과 단가 잡기', '1:1 피드백 6개월'],
+    },
+    {
+      old: null, title: '사주 + 타로 · 평생 피드백', sort: 30, badge: 'VIP',
+      subtitle: '기간 걱정 없이 끝까지 같이 가는 과정. 다음 부업도 먼저, 더 저렴하게',
+      kind: '1:1 피드백 평생', price: '1,400,000원', list: '1,600,000원', note: '해당 월 5명 한정 할인가',
+      perks: ['사주 + 타로 6개월 과정 구성 전부 포함', '1:1 피드백 평생 (말 그대로 평생)', '바이란의 다른 부업 과정 우선 · 할인 참여 혜택'],
+    },
+  ];
+  for (const p of PLANS) {
+    const vals = [p.title, p.subtitle, p.kind, p.badge, p.price, p.list, p.note, p.perks.join('\n'), p.sort];
+    let done = false;
+    if (p.old) {
+      const r = await db.query(
+        `UPDATE lounge_products SET title=$1, subtitle=$2, kind=$3, badge=$4, price_text=$5, list_price=$6, price_note=$7, perks=$8, sort_order=$9
+          WHERE title=$10 AND price_text IS NULL`,
+        [...vals, p.old]
+      );
+      done = r.rowCount > 0;
+    }
+    if (!done) {
+      const ex = await db.query(`SELECT 1 FROM lounge_products WHERE title=$1`, [p.title]);
+      if (!ex.rows.length) {
+        await db.query(
+          `INSERT INTO lounge_products (title, subtitle, kind, badge, price_text, list_price, price_note, perks, sort_order)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+          vals
+        );
+      }
+    }
+  }
+  await db.query(`INSERT INTO lounge_settings (key, value) VALUES ('seeded_courses_v2', '1') ON CONFLICT (key) DO NOTHING`);
+  console.log('[라운지] 수강 과정 금액을 넣었습니다.');
 }
 
 /* 처음 한 번만 기본 자료·과정을 넣는다. 지워도 다시 생기지 않는다. */
@@ -49,6 +100,7 @@ const SETTING_DEFAULTS = {
   live_note: '무료 라이브에 참여하시면 코드를 알려드려요',
   prompt_public: '0',                           // 1이면 로그인 없이도 프롬프트 복사 가능
   course_note: '',                              // 수강 신청 페이지 위쪽 안내
+  cash_note: '현금(계좌이체)으로 결제하시면 10만원을 더 할인해 드려요',
 };
 
 let settingsCache = null;
