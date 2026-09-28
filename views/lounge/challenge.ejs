@@ -1,0 +1,95 @@
+<%- include('_top') %>
+<% const isAdmin = user && user.role === 'admin'; %>
+<section class="lg-wrap lg-pagehead">
+  <p class="lg-kicker">Challenge</p>
+  <h1 class="lg-h1"><%= cur ? cur.name + ' · ' + cur.title : '기수 챌린지' %></h1>
+  <p class="lg-muted">정해진 기간 동안 매일 미션 하나. 같은 기수와 끝까지 가요.</p>
+</section>
+
+<section class="lg-wrap lg-sec">
+  <% if (!cur) { %>
+    <div class="lg-card lg-empty">
+      <b>지금은 모집 중인 챌린지가 없어요</b>
+      <p>다음 기수가 열리면 공지로 알려드릴게요. <a href="/course">수강 신청</a>에서 미리 신청해 두셔도 돼요.</p>
+    </div>
+  <% } else { %>
+    <div class="lg-card lg-cohort">
+      <div class="lg-cohort-top">
+        <span class="lg-tag <%= cur.status === 'running' ? 'ok' : '' %>"><%= cur.status === 'recruiting' ? '모집 중' : '진행 중' %></span>
+        <span class="lg-muted">시작 <%= new Date(cur.start_date).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', timeZone: 'Asia/Seoul' }) %> · <%= cur.days %>일</span>
+        <% if (today >= 1 && today <= cur.days) { %><b class="lg-dday">Day <%= today %> / <%= cur.days %></b><% } else if (today < 1) { %><b class="lg-dday">D-<%= 1 - today %></b><% } %>
+      </div>
+      <% if (cur.intro) { %><div class="lg-post-body"><%- L.linkify(cur.intro) %></div><% } %>
+
+      <% if (!user) { %>
+        <a href="/login?next=/challenge" class="lg-btn kakao">가입하고 참가 신청</a>
+      <% } else if (!me) { %>
+        <a href="/onboard?next=/challenge" class="lg-btn primary">닉네임 정하고 참가 신청</a>
+      <% } else if (!mine || mine.status === 'rejected') { %>
+        <details class="lg-apply" <%= mine ? 'open' : '' %>>
+          <summary class="lg-btn primary">참가 신청하기</summary>
+          <form method="post" action="/challenge/apply" class="lg-write-form">
+            <input type="hidden" name="cohort_id" value="<%= cur.id %>">
+            <% if (mine && mine.status === 'rejected') { %><div class="lg-alert err">확인이 되지 않았어요. 정보를 다시 확인해 주세요.</div><% } %>
+            <label class="lg-lb" for="ord">결제하셨다면 주문번호 (선택)</label>
+            <input id="ord" name="order_no" class="lg-in" maxlength="60">
+            <label class="lg-lb" for="ct">연락처 (전화번호나 카톡 아이디)</label>
+            <input id="ct" name="contact" class="lg-in" maxlength="80" required>
+            <button class="lg-btn primary">신청 보내기</button>
+            <p class="lg-hint">결제는 <a href="/course">수강 신청</a>에서 안내받을 수 있어요. 확인되면 참가자로 열어 드려요.</p>
+          </form>
+        </details>
+      <% } else if (mine.status === 'pending') { %>
+        <div class="lg-alert warn">⏳ 신청을 확인하고 있어요. 24시간 안에 안 열리면 <a href="/consult">1:1 상담</a>으로 알려 주세요.</div>
+      <% } else { %>
+        <div class="lg-alert ok">✅ <%= cur.name %> 참가자예요. 미션을 하나씩 제출해 주세요!</div>
+        <% if (cur.kakao_url) { %><a href="<%= cur.kakao_url %>" target="_blank" rel="noopener" class="lg-btn kakao">💬 <%= cur.name %> 카톡방 들어가기</a><% } %>
+      <% } %>
+    </div>
+
+    <% if (missions.length) { %>
+      <h2 class="lg-h2 mt">미션</h2>
+      <ol class="lg-missions">
+        <% missions.forEach(function(m){ var openDay = m.day <= today; var done = subs.has(m.id); %>
+          <li id="m<%= m.id %>" class="<%= done ? 'done' : '' %> <%= openDay ? '' : 'locked' %>">
+            <details <%= openDay && !done && m.day === today ? 'open' : '' %>>
+              <summary>
+                <span class="d">Day <%= m.day %></span>
+                <b><%= m.title %></b>
+                <span class="s"><%= done ? '✓ 완료' : (openDay ? '진행 가능' : '🔒 ' + (m.day - today) + '일 뒤 열림') %></span>
+              </summary>
+              <% if (openDay || isAdmin) { %>
+                <% if (m.body) { %><div class="lg-post-body"><%- L.linkify(m.body) %></div><% } %>
+                <% if (mine && mine.status === 'approved' && openDay) { %>
+                  <form method="post" action="/challenge/submit" class="lg-write-form">
+                    <input type="hidden" name="mission_id" value="<%= m.id %>">
+                    <textarea name="body" class="lg-in" rows="3" maxlength="3000" placeholder="오늘 한 것을 적어 주세요"></textarea>
+                    <input name="link" class="lg-in" placeholder="올린 글 링크 (선택)" maxlength="500">
+                    <button class="lg-btn primary sm"><%= done ? '다시 제출' : '제출하기' %></button>
+                  </form>
+                <% } %>
+              <% } %>
+            </details>
+          </li>
+        <% }); %>
+      </ol>
+    <% } %>
+
+    <% if (board.length) { %>
+      <h2 class="lg-h2 mt">같은 기수 현황</h2>
+      <div class="lg-card lg-cohort-board">
+        <% board.forEach(function(b){ %>
+          <div><b><%= b.nick %></b><span class="lg-progress-bar"><i style="width:<%= Math.min(100, Math.round(b.done / cur.days * 100)) %>%"></i></span><small><%= b.done %>/<%= cur.days %></small></div>
+        <% }); %>
+      </div>
+    <% } %>
+  <% } %>
+
+  <% if (past.length) { %>
+    <h2 class="lg-h2 mt">내가 참여한 지난 기수</h2>
+    <ul class="lg-list">
+      <% past.forEach(function(c){ %><li><b><%= c.name %></b> <%= c.title %> <span class="lg-muted">· <%= c.done %>/<%= c.days %> 완료</span></li><% }); %>
+    </ul>
+  <% } %>
+</section>
+<%- include('_bottom') %>

@@ -83,7 +83,7 @@ router.post('/login', async (req, res) => {
       if (err) return fail('로그인 처리 중 문제가 생겼습니다. 다시 시도해 주세요.');
       req.session.userId = rows[0].id;
       db.query(`UPDATE users SET last_login_at = now() WHERE id = $1`, [rows[0].id]).catch(() => {});
-      const safe = nextUrl.startsWith('/') && !nextUrl.startsWith('//') ? nextUrl : '/hub';
+      const safe = nextUrl.startsWith('/') && !nextUrl.startsWith('//') ? nextUrl : '/';
       res.redirect(safe);
     });
   } catch (e) {

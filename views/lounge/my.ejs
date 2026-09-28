@@ -1,0 +1,85 @@
+<%- include('_top') %>
+<section class="lg-wrap lg-pagehead">
+  <p class="lg-kicker">My</p>
+  <h1 class="lg-h1"><%= nick %>님의 라운지</h1>
+  <p class="lg-muted"><%= user.interest ? '관심: ' + user.interest + ' · ' : '' %>가입 <%= new Date(acct.created_at).toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul' }) %></p>
+  <div class="lg-pagehead-actions">
+    <a href="/onboard?edit=1" class="lg-btn sm">프로필 바꾸기</a>
+    <form method="post" action="/logout" class="inline"><button class="lg-btn sm ghost">로그아웃</button></form>
+  </div>
+</section>
+
+<section class="lg-wrap lg-sec lg-mygrid">
+  <div class="lg-card">
+    <h2 class="lg-h3">🛠 수강생 도구</h2>
+    <% if (acct.status === 'active') { %>
+      <p class="lg-muted">수강생 도구를 쓰실 수 있어요.</p>
+      <a href="/hub" class="lg-btn primary block">도구 열기</a>
+    <% } else if (acct.status === 'suspended') { %>
+      <p class="lg-muted">도구 이용이 중지된 계정이에요. 1:1 상담으로 문의해 주세요.</p>
+    <% } else if (acct.referred_by) { %>
+      <p class="lg-muted">⏳ 도구 이용 승인을 기다리고 있어요.</p>
+    <% } else { %>
+      <p class="lg-muted">바이란 수강생이시면 추천인 코드를 넣고 도구 이용을 신청해 주세요.</p>
+      <a href="/welcome" class="lg-btn block">추천인 코드 넣기</a>
+    <% } %>
+  </div>
+
+  <div class="lg-card" id="box">
+    <h2 class="lg-h3">📚 내가 본 자료</h2>
+    <% if (opened.length) { %>
+      <ul class="lg-list">
+        <% opened.forEach(function(r){ %><li><a href="/library/<%= r.id %>"><%= r.title %></a> <span class="lg-muted">· <%= r.section %></span></li><% }); %>
+      </ul>
+    <% } else { %>
+      <p class="lg-muted">아직 연 자료가 없어요. <a href="/library">자료실</a>에서 무료 자료집부터 챙겨 가세요.</p>
+    <% } %>
+  </div>
+
+  <div class="lg-card">
+    <h2 class="lg-h3">♡ 즐겨찾기한 프롬프트</h2>
+    <% if (favs.length) { %>
+      <div class="lg-pgrid tiny">
+        <% favs.forEach(function(p){ %>
+          <a href="/prompts/<%= p.id %>" class="lg-pcard">
+            <div class="lg-pcard-img"><% if (p.image_ids.length) { %><img src="/u/img/<%= p.image_ids[0] %>" alt="<%= p.title %>" loading="lazy"><% } else { %><div class="lg-pcard-noimg">TEXT</div><% } %></div>
+            <b><%= p.title %></b>
+          </a>
+        <% }); %>
+      </div>
+    <% } else { %>
+      <p class="lg-muted">마음에 드는 프롬프트에서 ♡를 누르면 여기에 모여요.</p>
+    <% } %>
+  </div>
+
+  <div class="lg-card">
+    <h2 class="lg-h3">✍️ 내가 쓴 글</h2>
+    <% if (posts.length) { %>
+      <ul class="lg-list">
+        <% posts.forEach(function(p){ %><li><a href="/community/<%= p.id %>"><%= p.title %></a> <span class="lg-muted">· <%= L.ago(p.created_at) %></span></li><% }); %>
+      </ul>
+    <% } else { %>
+      <p class="lg-muted">아직 쓴 글이 없어요. <a href="/community?write=1&wc=hello#write">가입 인사</a>부터 남겨 볼까요?</p>
+    <% } %>
+  </div>
+
+  <div class="lg-card">
+    <h2 class="lg-h3">⭐ 내 후기</h2>
+    <% if (myReviews.length) { %>
+      <ul class="lg-list">
+        <% myReviews.forEach(function(r){ %>
+          <li><span class="lg-tag <%= r.status === 'approved' ? 'ok' : r.status === 'rejected' ? 'warn' : '' %>"><%= { approved: '올라감', pending: '확인 중', rejected: '반려' }[r.status] %></span> <%= r.product || '무료 자료집·라운지' %> <span class="lg-muted">· <%= r.body.slice(0, 30) %>…</span></li>
+        <% }); %>
+      </ul>
+    <% } else { %>
+      <p class="lg-muted">자료집이나 강의가 도움이 됐다면 <a href="/reviews?write=1#write">후기</a>를 남겨 주세요.</p>
+    <% } %>
+  </div>
+
+  <div class="lg-card">
+    <h2 class="lg-h3">🏆 성과 올리기</h2>
+    <p class="lg-muted">첫 수익, 첫 문의, 팔로워 100명… 작은 것도 좋아요. 다른 분들께 큰 힘이 돼요.</p>
+    <button type="button" class="lg-btn block" data-open="resultModal">＋ 성과 인증샷 올리기</button>
+  </div>
+</section>
+<%- include('_bottom') %>

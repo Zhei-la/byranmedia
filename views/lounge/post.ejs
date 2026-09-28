@@ -16,7 +16,7 @@
       <h1 class="lg-h1"><%= p.title %></h1>
       <div class="lg-post-meta">
         <span class="lg-ava"><%= (p.nick || '?').slice(0,1) %></span>
-        <b><%= p.nick %></b> <%= p.role === 'admin' ? '👑' : L.tierOf(p.earned).icon %>
+        <b><%= p.nick %></b><%= p.role === 'admin' ? ' 👑' : '' %>
         <span class="lg-muted">· <%= L.ago(p.created_at) %> · 조회 <%= p.views + 1 %></span>
       </div>
     </header>
@@ -53,7 +53,7 @@
       <% comments.forEach(function(cm){ %>
         <li id="c<%= cm.id %>">
           <div class="lg-cm-h">
-            <b><%= cm.nick %></b> <%= cm.role === 'admin' ? '👑' : L.tierOf(cm.earned).icon %>
+            <b><%= cm.nick %></b><%= cm.role === 'admin' ? ' 👑' : '' %>
             <small class="lg-muted"><%= L.ago(cm.created_at) %></small>
             <span class="lg-grow"></span>
             <% if (user && (user.id === cm.user_id || isAdmin)) { %>
@@ -72,7 +72,7 @@
     </ul>
     <% if (user && me) { %>
       <form method="post" action="/community/<%= p.id %>/comment" class="lg-cm-form">
-        <textarea name="body" class="lg-in" rows="2" maxlength="1000" required placeholder="따뜻한 한마디 (댓글 +2P, 하루 5번까지)"></textarea>
+        <textarea name="body" class="lg-in" rows="2" maxlength="1000" required placeholder="따뜻한 한마디 남겨 주세요"></textarea>
         <button class="lg-btn primary">등록</button>
       </form>
     <% } else { %>

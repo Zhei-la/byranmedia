@@ -22,29 +22,6 @@ CREATE TABLE IF NOT EXISTS lounge_images (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- 포인트 장부. 잔액 = 합계, 등급 = 지금까지 번 포인트 합계
-CREATE TABLE IF NOT EXISTS lounge_points (
-  id         BIGSERIAL PRIMARY KEY,
-  user_id    INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  amount     INT NOT NULL,
-  reason     VARCHAR(20) NOT NULL,   -- attend | proof | hello | comment | result | review | mission | unlock | buy | admin
-  memo       VARCHAR(120),
-  ref_id     INT,
-  day        DATE NOT NULL DEFAULT (now() AT TIME ZONE 'Asia/Seoul')::date,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-CREATE INDEX IF NOT EXISTS idx_lp_user ON lounge_points (user_id, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_lp_day  ON lounge_points (day, reason);
--- 하루 한 번만 받는 보상
-CREATE UNIQUE INDEX IF NOT EXISTS uq_lp_daily ON lounge_points (user_id, reason, day)
-  WHERE reason IN ('attend', 'proof', 'result');
--- 딱 한 번만 받는 보상
-CREATE UNIQUE INDEX IF NOT EXISTS uq_lp_once ON lounge_points (user_id, reason)
-  WHERE reason IN ('hello');
--- 같은 대상에 대해 한 번만
-CREATE UNIQUE INDEX IF NOT EXISTS uq_lp_ref ON lounge_points (user_id, reason, ref_id)
-  WHERE reason IN ('mission', 'review', 'unlock');
-
 -- 게시판
 CREATE TABLE IF NOT EXISTS lounge_posts (
   id         SERIAL PRIMARY KEY,
@@ -207,4 +184,33 @@ CREATE TABLE IF NOT EXISTS lounge_submissions (
   link       TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (mission_id, user_id)
+);
+
+-- 자료실 칸 나누기 + 라이브 코드로 여는 자료
+ALTER TABLE lounge_resources ADD COLUMN IF NOT EXISTS section VARCHAR(30) NOT NULL DEFAULT '무료 자료';
+ALTER TABLE lounge_resources ADD COLUMN IF NOT EXISTS access  VARCHAR(10) NOT NULL DEFAULT 'member'; -- member | code
+ALTER TABLE lounge_resources ADD COLUMN IF NOT EXISTS lock_note VARCHAR(120);
+
+-- 프롬프트 갤러리
+CREATE TABLE IF NOT EXISTS lounge_prompts (
+  id         SERIAL PRIMARY KEY,
+  title      VARCHAR(120) NOT NULL,
+  category   VARCHAR(30) NOT NULL DEFAULT '인물/화보',
+  prompt     TEXT NOT NULL,
+  negative   TEXT,
+  model      VARCHAR(40),
+  note       VARCHAR(300),
+  image_ids  INT[] NOT NULL DEFAULT '{}',
+  views      INT NOT NULL DEFAULT 0,
+  copies     INT NOT NULL DEFAULT 0,
+  is_active  BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_prompts ON lounge_prompts (is_active, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS lounge_prompt_likes (
+  prompt_id  INT NOT NULL REFERENCES lounge_prompts(id) ON DELETE CASCADE,
+  user_id    INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (prompt_id, user_id)
 );

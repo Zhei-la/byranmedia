@@ -1,0 +1,35 @@
+<%- include('_top') %>
+<section class="lg-wrap narrow lg-sec">
+  <p class="lg-kicker">1:1 Consult</p>
+  <h1 class="lg-h1">1:1 무료 상담</h1>
+  <p class="lg-muted">지금 상황을 편하게 남겨 주세요. 바이란이 직접 확인하고 연락드려요.</p>
+
+  <div class="lg-card mt">
+    <% if (sent) { %>
+      <div class="lg-alert ok">상담 신청을 받았어요! 확인하고 연락드릴게요.</div>
+      <p class="lg-muted">급하시면 카카오톡으로 바로 말 걸어 주셔도 돼요.</p>
+      <a href="<%= S.consult_url %>" target="_blank" rel="noopener" class="lg-btn kakao block">카카오톡으로 이어서 말하기</a>
+    <% } else { %>
+      <% if (error) { %><div class="lg-alert err"><%= error %></div><% } %>
+      <form method="post" action="/consult">
+        <input type="text" name="website" class="lg-hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+        <label class="lg-lb">어떤 상황이세요?</label>
+        <div class="lg-chips">
+          <% TYPES.forEach(function(t, i){ %>
+            <label class="lg-chip"><input type="radio" name="type" value="<%= t %>" <%= (form.type ? form.type === t : i === 0) ? 'checked' : '' %>><span><%= t %></span></label>
+          <% }); %>
+        </div>
+        <label class="lg-lb" for="cn">이름 또는 닉네임</label>
+        <input id="cn" name="name" class="lg-in" maxlength="100" required value="<%= form.name || (user ? (user.nickname || user.name) : '') %>">
+        <label class="lg-lb" for="cp">연락처 (전화번호나 카톡 아이디)</label>
+        <input id="cp" name="phone" class="lg-in" maxlength="40" required value="<%= form.phone || '' %>">
+        <label class="lg-lb" for="cm">내용</label>
+        <textarea id="cm" name="message" class="lg-in" rows="5" maxlength="3000" placeholder="예) 스레드 시작한 지 2주 됐는데 조회수가 안 나와요 / 사주 과정이랑 사주+타로 과정 차이가 궁금해요"><%= form.message || '' %></textarea>
+        <button class="lg-btn primary block lg">상담 신청하기</button>
+      </form>
+      <div class="lg-or"><span>또는</span></div>
+      <a href="<%= S.consult_url %>" target="_blank" rel="noopener" class="lg-btn kakao block">카카오톡 채널로 바로 문의</a>
+    <% } %>
+  </div>
+</section>
+<%- include('_bottom') %>

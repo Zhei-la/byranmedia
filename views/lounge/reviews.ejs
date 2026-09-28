@@ -7,7 +7,7 @@
     <% if (st.n) { %><span class="lg-rating">★ <b><%= st.avg %></b> · 후기 <%= st.n %>개</span><% } %>
     <% if (S.review_link) { %><a href="<%= S.review_link %>" target="_blank" rel="noopener" class="lg-btn sm ghost">후기 원문 모음 보기 →</a><% } %>
     <% if (user && me) { %>
-      <a href="/reviews?write=1#write" class="lg-btn sm primary">후기 남기기 <span class="lg-plus light">+50P</span></a>
+      <a href="/reviews?write=1#write" class="lg-btn sm primary">후기 남기기</a>
     <% } else { %>
       <a href="/login?next=/reviews" class="lg-btn sm">후기 남기기</a>
     <% } %>
@@ -21,7 +21,7 @@
     <form method="post" action="/reviews" data-image-form class="lg-write-form">
       <label class="lg-lb" for="rp">어떤 후기인가요?</label>
       <select id="rp" name="product_id" class="lg-in">
-        <option value="">라운지 전체 (무료 자료·커뮤니티)</option>
+        <option value="">무료 자료집 · 라운지</option>
         <% all.forEach(function(p){ %><option value="<%= p.id %>"><%= p.title %></option><% }); %>
       </select>
       <label class="lg-lb">별점</label>
@@ -41,7 +41,7 @@
         <span class="lg-grow"></span>
         <button class="lg-btn primary">승인 요청 보내기</button>
       </div>
-      <p class="lg-hint">운영자 확인 후 올라가고, 그때 50P가 들어가요.</p>
+      <p class="lg-hint">운영자가 확인한 뒤 올라가요.</p>
     </form>
   </details>
 </section>
@@ -88,7 +88,7 @@
   <% } else { %>
     <div class="lg-card lg-empty">
       <b>첫 후기를 기다리고 있어요</b>
-      <p>라운지나 강의를 이용해 보셨다면 솔직한 이야기를 남겨 주세요. 승인되면 50P!</p>
+      <p>자료집이나 강의를 이용해 보셨다면 솔직한 이야기를 남겨 주세요.</p>
     </div>
   <% } %>
 </section>

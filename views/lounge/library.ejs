@@ -1,78 +1,80 @@
 <%- include('_top') %>
-<% const KIND = { pdf: 'PDF', video: '강의', link: '링크', text: '읽을거리' }; %>
+<%
+  const KIND = { pdf: 'PDF', video: '강의', link: '자료집', text: '읽을거리' };
+  const SEC_ICON = { '수강 안내': '🎓', '사주·타로': '🔮', '쿠팡파트너스': '🛒', '스레드 글쓰기': '✍️', 'AI 이미지': '🎨', '무료 자료': '🎁' };
+%>
 <section class="lg-wrap lg-pagehead">
   <p class="lg-kicker">Library</p>
-  <h1 class="lg-h1">포인트로 하나씩 여는 자료실</h1>
-  <p class="lg-muted">출석하고 인증하며 모은 포인트로 자료를 열어요. 연 자료는 보관함에 계속 남아요.</p>
+  <h1 class="lg-h1">무료 자료실</h1>
+  <p class="lg-muted">가입하면 바로 볼 수 있어요. 🔒 표시가 있는 자료는 무료 라이브에서 알려드리는 코드로 열려요.</p>
+  <% if (groups.length > 1) { %>
+    <nav class="lg-tabs" aria-label="자료 칸">
+      <% groups.forEach(function(g){ %>
+        <a href="#s-<%= encodeURIComponent(g.name) %>" class="<%= sec === g.name ? 'on' : '' %>"><%= SEC_ICON[g.name] || '📁' %> <%= g.name %></a>
+      <% }); %>
+    </nav>
+  <% } %>
 </section>
 
-<section class="lg-wrap lg-cols">
-  <div class="lg-col-main">
-    <% if (!user) { %>
-      <div class="lg-lockcard">
-        <span>🔒</span>
-        <div><b>자료실은 회원만 열 수 있어요</b><p>가입하면 가입 선물 자료가 바로 보관함에 들어가요.</p></div>
-        <a href="/login?next=/library" class="lg-btn kakao sm">시작하기</a>
-      </div>
-    <% } %>
-
-    <% if (items.length) { %>
-      <div class="lg-lib">
-        <% items.forEach(function(r){ %>
-          <div class="lg-libitem <%= r.owned ? 'owned' : '' %>">
-            <span class="lg-gift-k"><%= KIND[r.kind] || '자료' %></span>
-            <h3><%= r.title %></h3>
-            <% if (r.description) { %><p><%= r.description %></p><% } %>
-            <div class="lg-libitem-f">
-              <% if (r.owned) { %>
-                <span class="lg-tag ok"><%= r.is_welcome ? '🎁 가입 선물' : '열림' %></span>
-                <a href="/library/<%= r.id %>" class="lg-btn primary sm">열어보기</a>
-              <% } else if (!user) { %>
-                <span class="lg-cost"><%= r.is_welcome ? '🎁 가입 선물' : (r.cost ? r.cost.toLocaleString() + 'P' : '무료') %></span>
-                <a href="/login?next=/library" class="lg-btn sm">가입하고 받기</a>
-              <% } else { %>
-                <span class="lg-cost"><%= r.cost ? '🔒 ' + r.cost.toLocaleString() + 'P' : '무료' %></span>
-                <form method="post" action="/library/<%= r.id %>/unlock" class="inline" <% if (r.cost) { %>data-confirm="<%= r.cost %>P를 써서 열까요?"<% } %>>
-                  <button class="lg-btn sm <%= me && me.balance >= r.cost ? 'primary' : '' %>" <%= me && me.balance < r.cost ? 'disabled' : '' %>>
-                    <%= me && me.balance < r.cost ? (r.cost - me.balance).toLocaleString() + 'P 더 필요' : (r.cost ? '포인트로 열기' : '받기') %>
-                  </button>
-                </form>
-              <% } %>
-            </div>
-          </div>
-        <% }); %>
-      </div>
-    <% } else { %>
-      <div class="lg-card lg-empty">
-        <b>자료를 준비하고 있어요</b>
-        <p>곧 강의·PDF·체크리스트가 올라와요. 그동안 출석으로 포인트를 모아 두세요!</p>
-      </div>
-    <% } %>
-  </div>
-
-  <aside class="lg-col-side">
-    <% if (user && me) { %>
-      <div class="lg-card lg-pointcard">
-        <p class="lg-muted">내 포인트</p>
-        <p class="lg-bignum"><%= me.balance.toLocaleString() %><small>P</small></p>
-        <p class="lg-muted"><%= me.tier.icon %> <%= me.tier.name %> · 지금까지 <%= me.earned.toLocaleString() %>P 모음</p>
-        <ul class="lg-ledger">
-          <% history.forEach(function(h){ %>
-            <li><span><%= L.REASON_LABEL[h.reason] || h.reason %><% if (h.memo) { %> <small>· <%= h.memo %></small><% } %></span><b class="<%= h.amount < 0 ? 'minus' : '' %>"><%= h.amount > 0 ? '+' : '' %><%= h.amount %></b></li>
-          <% }); %>
-          <% if (!history.length) { %><li class="lg-muted">아직 기록이 없어요</li><% } %>
-        </ul>
-      </div>
-    <% } %>
-    <div class="lg-card">
-      <h3 class="lg-h3">포인트 모으는 법</h3>
-      <ul class="lg-rulelist">
-        <% ['attend','proof','hello','result','mission','review','comment'].forEach(function(k){ var r = L.RULES[k]; %>
-          <li><span><%= r.label %></span><b>+<%= r.amount %>P</b></li>
-        <% }); %>
-      </ul>
-      <p class="lg-hint">출석·인증·성과는 하루 한 번, 댓글은 하루 5번까지 쌓여요.</p>
+<section class="lg-wrap lg-sec" id="sec">
+  <% if (!user) { %>
+    <div class="lg-lockcard">
+      <span>🔒</span>
+      <div><b>자료실은 회원만 볼 수 있어요</b><p>카카오로 3초면 가입돼요. 가입하면 바로 열려요.</p></div>
+      <a href="/login?next=/library" class="lg-btn kakao sm">시작하기</a>
     </div>
-  </aside>
+  <% } else if (!me) { %>
+    <div class="lg-lockcard">
+      <span>👋</span>
+      <div><b>닉네임만 정하면 바로 열려요</b></div>
+      <a href="/onboard?next=/library" class="lg-btn primary sm">닉네임 정하기</a>
+    </div>
+  <% } %>
+
+  <% if (hasCode && user && me && !codeOk && user.role !== 'admin') { %>
+    <form method="post" action="/library/code" class="lg-codebox">
+      <div>
+        <b>🎟 라이브 코드가 있으신가요?</b>
+        <p><%= S.live_note %></p>
+      </div>
+      <input name="code" class="lg-in" placeholder="코드 입력" autocomplete="off" required maxlength="40" aria-label="라이브 코드">
+      <button class="lg-btn primary">열기</button>
+    </form>
+  <% } %>
+
+  <% if (groups.length) { %>
+    <% groups.forEach(function(g){ %>
+      <div class="lg-libgroup" id="s-<%= encodeURIComponent(g.name) %>">
+        <h2 class="lg-h2"><span><%= SEC_ICON[g.name] || '📁' %></span> <%= g.name %></h2>
+        <div class="lg-lib">
+          <% g.items.forEach(function(r){ %>
+            <div class="lg-libitem <%= r.open ? 'owned' : '' %>">
+              <span class="lg-gift-k"><%= KIND[r.kind] || '자료' %><% if (r.access === 'code') { %> · 라이브 전용<% } %></span>
+              <h3><%= r.title %></h3>
+              <% if (r.description) { %><p><%= r.description %></p><% } %>
+              <div class="lg-libitem-f">
+                <% if (r.open) { %>
+                  <span class="lg-tag ok">열림</span>
+                  <a href="/library/<%= r.id %>" class="lg-btn primary sm">열어보기</a>
+                <% } else if (!user) { %>
+                  <span class="lg-cost"><%= r.access === 'code' ? '🔒 라이브 전용' : '회원 무료' %></span>
+                  <a href="/login?next=/library" class="lg-btn sm">가입하고 보기</a>
+                <% } else if (r.access === 'code') { %>
+                  <span class="lg-cost">🔒 <%= r.lock_note || '무료 라이브에서 받아가세요' %></span>
+                <% } else { %>
+                  <a href="/onboard?next=/library" class="lg-btn sm">닉네임 정하고 보기</a>
+                <% } %>
+              </div>
+            </div>
+          <% }); %>
+        </div>
+      </div>
+    <% }); %>
+  <% } else { %>
+    <div class="lg-card lg-empty">
+      <b>자료를 준비하고 있어요</b>
+      <p>곧 무료 자료집이 올라와요. 조금만 기다려 주세요!</p>
+    </div>
+  <% } %>
 </section>
 <%- include('_bottom') %>

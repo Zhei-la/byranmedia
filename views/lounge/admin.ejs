@@ -1,0 +1,312 @@
+<%- include('_top') %>
+<%
+  const TABS = [['home','⚙️ 설정'],['prompts','🎨 프롬프트'],['library','📚 자료실'],['store','🎓 수강 과정'],['board','💬 게시판·신고'],['reviews','⭐ 후기'],['challenge','🔥 챌린지'],['members','👥 회원']];
+  const d = (x) => x ? new Date(x).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric', timeZone: 'Asia/Seoul' }) : '';
+%>
+<section class="lg-wrap wide lg-pagehead">
+  <p class="lg-kicker">Admin</p>
+  <h1 class="lg-h1">라운지 관리</h1>
+  <p class="lg-muted">회원 승인·도구·문의는 <a href="/admin">기존 관리 화면</a>에서 해요.</p>
+  <div class="lg-adstats">
+    <span>회원 <b><%= counts.members %></b></span>
+    <span>이번 주 새 회원 <b><%= counts.new7 %></b></span>
+    <span>프롬프트 <b><%= counts.prompts %></b></span>
+    <span>글 <b><%= counts.posts %></b></span>
+    <span class="<%= counts.pending_reviews ? 'hi' : '' %>">후기 승인 대기 <b><%= counts.pending_reviews %></b></span>
+    <span class="<%= counts.reports ? 'hi' : '' %>">신고 <b><%= counts.reports %></b></span>
+    <span class="<%= counts.pending_members ? 'hi' : '' %>">챌린지 신청 <b><%= counts.pending_members %></b></span>
+  </div>
+  <nav class="lg-tabs"><% TABS.forEach(function(t){ %><a href="/admin/lounge?tab=<%= t[0] %>" class="<%= tab === t[0] ? 'on' : '' %>"><%= t[1] %></a><% }); %></nav>
+  <% if (msg) { %><div class="lg-alert ok"><%= msg %></div><% } %>
+</section>
+
+<section class="lg-wrap wide lg-sec lg-admin">
+
+<% if (tab === 'home') { %>
+  <form method="post" action="/admin/lounge/settings" class="lg-card lg-adform">
+    <h2 class="lg-h3">기본 설정</h2>
+    <div class="lg-adgrid">
+      <label>1:1 상담 카톡 주소<input name="consult_url" class="lg-in" value="<%= S.consult_url %>"></label>
+      <label>전체 카톡방(오픈채팅) 주소<input name="live_room_url" class="lg-in" value="<%= S.live_room_url %>" placeholder="https://open.kakao.com/..."></label>
+      <label>오픈채팅 참여코드<input name="live_room_code" class="lg-in" value="<%= S.live_room_code %>"></label>
+      <label>외부 후기 모음 주소 (카페 등)<input name="review_link" class="lg-in" value="<%= S.review_link %>"></label>
+    </div>
+    <h2 class="lg-h3 mt">라이브 전용 자료 코드</h2>
+    <div class="lg-adgrid">
+      <label>🎟 라이브 코드 (라이브 때 알려줄 단어)<input name="live_code" class="lg-in" value="<%= S.live_code %>" placeholder="예: 타로0930"></label>
+      <label>코드 안내 문구<input name="live_note" class="lg-in" value="<%= S.live_note %>"></label>
+    </div>
+    <p class="lg-hint">코드를 바꾸면 새로 들어오는 사람만 새 코드로 열려요. 이미 연 사람은 로그아웃 전까지 계속 볼 수 있어요.</p>
+    <h2 class="lg-h3 mt">프롬프트</h2>
+    <label class="lg-check"><input type="hidden" name="prompt_public" value="0"><input type="checkbox" name="prompt_public" value="1" <%= S.prompt_public === '1' ? 'checked' : '' %>> 로그인 안 한 사람도 전체 프롬프트를 복사할 수 있게 하기</label>
+    <p class="lg-hint">끄면 앞부분만 보이고, 카카오로 가입하면 전체가 열려요. (가입자 모으기에 좋아요)</p>
+    <h2 class="lg-h3 mt">홈 문구</h2>
+    <div class="lg-adgrid">
+      <label>큰 제목 (줄바꿈 가능)<textarea name="hero_title" class="lg-in" rows="2"><%= S.hero_title %></textarea></label>
+      <label>설명<textarea name="hero_sub" class="lg-in" rows="2"><%= S.hero_sub %></textarea></label>
+      <label>가입 안내 한 줄<input name="welcome_note" class="lg-in" value="<%= S.welcome_note %>"></label>
+      <label>수강 신청 페이지 안내<input name="course_note" class="lg-in" value="<%= S.course_note %>"></label>
+    </div>
+    <button class="lg-btn primary">저장</button>
+  </form>
+<% } %>
+
+<% if (tab === 'prompts') { const e = edit; %>
+  <form method="post" action="/admin/lounge/prompts/save" class="lg-card lg-adform" data-multi-image-form id="pform">
+    <h2 class="lg-h3"><%= e ? '프롬프트 고치기' : '새 프롬프트 올리기' %></h2>
+    <% if (e) { %><input type="hidden" name="id" value="<%= e.id %>"><% } %>
+    <div class="lg-adgrid">
+      <label>제목 (카드에 보이는 이름)<input name="title" class="lg-in" required maxlength="120" value="<%= e ? e.title : '' %>" placeholder="예: 비 오는 날 카페 창가 셀카"></label>
+      <label>카테고리<select name="category" class="lg-in"><% L.PROMPT_CATS.forEach(function(c){ %><option <%= e && e.category === c ? 'selected' : '' %>><%= c %></option><% }); %></select></label>
+      <label>만든 도구 (선택)<input name="model" class="lg-in" maxlength="40" value="<%= e ? e.model || '' : '' %>" placeholder="예: 나노바나나, 미드저니 v7"></label>
+      <label>한 줄 메모 (선택)<input name="note" class="lg-in" maxlength="300" value="<%= e ? e.note || '' : '' %>" placeholder="예: 인물 얼굴만 바꿔서 여러 장 뽑기 좋아요"></label>
+    </div>
+    <label>프롬프트<textarea name="prompt" class="lg-in mono" rows="8" required><%= e ? e.prompt : '' %></textarea></label>
+    <label>부정 프롬프트 (선택)<textarea name="negative" class="lg-in mono" rows="2"><%= e ? e.negative || '' : '' %></textarea></label>
+    <div class="lg-adimgs">
+      <b>이미지 (최대 8장, 첫 장이 대표)</b>
+      <div class="lg-adimgs-row" data-imgs>
+        <% if (e) { e.image_ids.forEach(function(id){ %>
+          <label class="lg-adimg"><img src="/u/img/<%= id %>" alt=""><span><input type="checkbox" name="keep" value="<%= id %>" checked> 남기기</span></label>
+        <% }); } %>
+      </div>
+      <label class="lg-btn sm">📷 이미지 추가<input type="file" accept="image/*" multiple hidden data-multi-file></label>
+      <p class="lg-hint">사진은 올리기 전에 자동으로 줄여서 저장돼요.</p>
+    </div>
+    <label class="lg-check"><input type="hidden" name="is_active" value="0"><input type="checkbox" name="is_active" value="1" <%= !e || e.is_active ? 'checked' : '' %>> 공개</label>
+    <div class="lg-bbtns">
+      <button class="lg-btn primary"><%= e ? '고친 내용 저장' : '올리기' %></button>
+      <% if (e) { %><a href="/admin/lounge?tab=prompts" class="lg-btn ghost">새로 쓰기</a><a href="/prompts/<%= e.id %>" class="lg-btn ghost" target="_blank">페이지 보기</a><% } %>
+    </div>
+  </form>
+
+  <div class="lg-admin-list">
+    <% prompts.forEach(function(p){ %>
+      <div class="lg-adrow <%= p.is_active ? '' : 'off' %>">
+        <% if (p.image_ids.length) { %><img src="/u/img/<%= p.image_ids[0] %>" alt="" class="lg-adthumb"><% } else { %><span class="lg-adthumb"></span><% } %>
+        <div class="grow"><b><%= p.title %></b><small><%= p.category %> · 조회 <%= p.views %> · 복사 <%= p.copies %> · <%= d(p.created_at) %></small></div>
+        <a href="/admin/lounge?tab=prompts&edit=<%= p.id %>#pform" class="lg-btn sm">수정</a>
+        <form method="post" action="/admin/lounge/prompts/<%= p.id %>/toggle" class="inline"><button class="lg-btn sm ghost"><%= p.is_active ? '숨기기' : '공개' %></button></form>
+        <form method="post" action="/admin/lounge/prompts/<%= p.id %>/delete" class="inline" data-confirm="정말 지울까요?"><button class="lg-btn sm ghost danger">삭제</button></form>
+      </div>
+    <% }); %>
+    <% if (!prompts.length) { %><p class="lg-muted">아직 올린 프롬프트가 없어요.</p><% } %>
+  </div>
+<% } %>
+
+<% if (tab === 'library') { const e = edit; %>
+  <form method="post" action="/admin/lounge/resources/save" class="lg-card lg-adform" id="rform">
+    <h2 class="lg-h3"><%= e ? '자료 고치기' : '새 자료 올리기' %></h2>
+    <% if (e) { %><input type="hidden" name="id" value="<%= e.id %>"><% } %>
+    <div class="lg-adgrid">
+      <label>제목<input name="title" class="lg-in" required maxlength="120" value="<%= e ? e.title : '' %>"></label>
+      <label>칸 (자료실 구역)<select name="section" class="lg-in"><% L.SECTIONS.forEach(function(s){ %><option <%= e && e.section === s ? 'selected' : '' %>><%= s %></option><% }); %></select></label>
+      <label>새 칸 이름 (직접 입력하면 위 선택보다 우선)<input name="section_custom" class="lg-in" maxlength="30"></label>
+      <label>종류<select name="kind" class="lg-in">
+        <% [['link','자료집(노션 등 링크)'],['pdf','PDF'],['video','강의 영상'],['text','글로 바로 보기']].forEach(function(k){ %><option value="<%= k[0] %>" <%= e && e.kind === k[0] ? 'selected' : '' %>><%= k[1] %></option><% }); %>
+      </select></label>
+      <label>링크 (노션 공개 주소, 구글드라이브 등)<input name="url" class="lg-in" value="<%= e ? e.url || '' : '' %>" placeholder="https://..."></label>
+      <label>짧은 설명<input name="description" class="lg-in" maxlength="300" value="<%= e ? e.description || '' : '' %>"></label>
+      <label>누가 볼 수 있나요<select name="access" class="lg-in">
+        <option value="member" <%= e && e.access === 'member' ? 'selected' : '' %>>회원 누구나</option>
+        <option value="code" <%= e && e.access === 'code' ? 'selected' : '' %>>🎟 라이브 코드 넣은 사람만</option>
+      </select></label>
+      <label>잠겼을 때 문구<input name="lock_note" class="lg-in" maxlength="120" value="<%= e ? e.lock_note || '' : '' %>" placeholder="무료 라이브에서 받아가세요"></label>
+      <label>순서 (작을수록 위)<input name="sort_order" type="number" class="lg-in" value="<%= e ? e.sort_order : 100 %>"></label>
+    </div>
+    <label>본문 (링크 대신 글로 보여줄 때)<textarea name="body" class="lg-in" rows="4"><%= e ? e.body || '' : '' %></textarea></label>
+    <label class="lg-check"><input type="hidden" name="is_active" value="0"><input type="checkbox" name="is_active" value="1" <%= !e || e.is_active ? 'checked' : '' %>> 공개</label>
+    <button class="lg-btn primary">저장</button>
+    <p class="lg-hint">노션 자료집은 노션에서 [공유 → 웹에 게시]를 켠 뒤 나오는 주소를 넣어 주세요. 그래야 회원들이 열 수 있어요.</p>
+  </form>
+  <div class="lg-admin-list">
+    <% resources.forEach(function(r){ %>
+      <div class="lg-adrow <%= r.is_active ? '' : 'off' %>">
+        <div class="grow"><b><%= r.title %></b><small><%= r.section %> · <%= r.access === 'code' ? '🎟 라이브 코드' : '회원' %> · 순서 <%= r.sort_order %> · 연 사람 <%= r.opened %></small></div>
+        <a href="/admin/lounge?tab=library&edit=<%= r.id %>#rform" class="lg-btn sm">수정</a>
+        <form method="post" action="/admin/lounge/resources/<%= r.id %>/delete" class="inline" data-confirm="정말 지울까요?"><button class="lg-btn sm ghost danger">삭제</button></form>
+      </div>
+    <% }); %>
+  </div>
+<% } %>
+
+<% if (tab === 'store') { const e = edit; %>
+  <form method="post" action="/admin/lounge/products/save" class="lg-card lg-adform" id="sform">
+    <h2 class="lg-h3"><%= e ? '과정 고치기' : '새 과정 추가' %></h2>
+    <% if (e) { %><input type="hidden" name="id" value="<%= e.id %>"><% } %>
+    <div class="lg-adgrid">
+      <label>이름<input name="title" class="lg-in" required maxlength="120" value="<%= e ? e.title : '' %>" placeholder="예: 사주 + 타로 과정"></label>
+      <label>한 줄 설명<input name="subtitle" class="lg-in" maxlength="200" value="<%= e ? e.subtitle || '' : '' %>"></label>
+      <label>분류 표시 (작은 글씨)<input name="kind" class="lg-in" maxlength="40" value="<%= e ? e.kind || '' : '' %>" placeholder="예: 1:1 피드백 · 4주"></label>
+      <label>배지<input name="badge" class="lg-in" maxlength="12" value="<%= e ? e.badge || '' : '' %>" placeholder="예: 추천, BEST"></label>
+      <label>금액 표시<input name="price_text" class="lg-in" maxlength="40" value="<%= e ? e.price_text || '' : '' %>" placeholder="예: 800,000원 / 금액 문의"></label>
+      <label>결제 링크 (선택, 아임웹·스마트스토어 등)<input name="buy_url" class="lg-in" value="<%= e ? e.buy_url || '' : '' %>"></label>
+      <label>결제 버튼 글자<input name="cta_label" class="lg-in" maxlength="20" value="<%= e ? e.cta_label || '' : '' %>" placeholder="결제하기"></label>
+      <label>순서<input name="sort_order" type="number" class="lg-in" value="<%= e ? e.sort_order : 100 %>"></label>
+    </div>
+    <label class="lg-check"><input type="checkbox" name="is_challenge" value="1" <%= e && e.is_challenge ? 'checked' : '' %>> 챌린지 과정 (챌린지 페이지로 연결)</label>
+    <label class="lg-check"><input type="hidden" name="is_active" value="0"><input type="checkbox" name="is_active" value="1" <%= !e || e.is_active ? 'checked' : '' %>> 공개</label>
+    <button class="lg-btn primary">저장</button>
+  </form>
+  <div class="lg-admin-list">
+    <% products.forEach(function(p){ %>
+      <div class="lg-adrow <%= p.is_active ? '' : 'off' %>">
+        <div class="grow"><b><%= p.title %></b><small><%= p.price_text || '금액 미정' %> · 순서 <%= p.sort_order %></small></div>
+        <a href="/admin/lounge?tab=store&edit=<%= p.id %>#sform" class="lg-btn sm">수정</a>
+        <form method="post" action="/admin/lounge/products/<%= p.id %>/delete" class="inline" data-confirm="정말 지울까요?"><button class="lg-btn sm ghost danger">삭제</button></form>
+      </div>
+    <% }); %>
+  </div>
+  <p class="lg-hint">수강 신청서는 기존 관리 화면의 <a href="/admin?tab=inquiries">문의</a> 탭에 "수강 신청 · 과정이름"으로 들어와요.</p>
+<% } %>
+
+<% if (tab === 'board') { %>
+  <h2 class="lg-h3">🚨 신고 (<%= reports.length %>)</h2>
+  <div class="lg-admin-list">
+    <% reports.forEach(function(r){ %>
+      <div class="lg-adrow">
+        <div class="grow"><b><%= { post: '글', comment: '댓글', chat: '채팅', result: '인증샷' }[r.target_type] %></b> <%= r.preview || '(지워진 내용)' %><small>신고: <%= r.reporter || '?' %> · <%= d(r.created_at) %><% if (r.target_type === 'post') { %> · <a href="/community/<%= r.target_id %>" target="_blank">보기</a><% } else if (r.post_id) { %> · <a href="/community/<%= r.post_id %>" target="_blank">보기</a><% } %></small></div>
+        <form method="post" action="/admin/lounge/reports/<%= r.id %>" class="inline"><input type="hidden" name="action" value="hide"><button class="lg-btn sm danger">숨기기</button></form>
+        <form method="post" action="/admin/lounge/reports/<%= r.id %>" class="inline"><input type="hidden" name="action" value="keep"><button class="lg-btn sm ghost">그대로 두기</button></form>
+      </div>
+    <% }); %>
+    <% if (!reports.length) { %><p class="lg-muted">처리할 신고가 없어요.</p><% } %>
+  </div>
+  <h2 class="lg-h3 mt">최근 글</h2>
+  <div class="lg-admin-list">
+    <% posts.forEach(function(p){ %>
+      <div class="lg-adrow <%= p.is_hidden ? 'off' : '' %>">
+        <div class="grow"><b>[<%= (L.CATEGORIES[p.category] || {}).label %>] <a href="/community/<%= p.id %>" target="_blank"><%= p.title %></a></b><small><%= p.nick %> · <%= d(p.created_at) %><%= p.is_pinned ? ' · 📌 고정' : '' %></small></div>
+        <% if (p.category === 'notice') { %><form method="post" action="/admin/lounge/posts/<%= p.id %>/toggle" class="inline"><input type="hidden" name="field" value="pin"><button class="lg-btn sm ghost"><%= p.is_pinned ? '고정 해제' : '고정' %></button></form><% } %>
+        <form method="post" action="/admin/lounge/posts/<%= p.id %>/toggle" class="inline"><input type="hidden" name="field" value="hide"><button class="lg-btn sm ghost"><%= p.is_hidden ? '다시 보이기' : '숨기기' %></button></form>
+      </div>
+    <% }); %>
+  </div>
+  <h2 class="lg-h3 mt">채팅</h2>
+  <div class="lg-admin-list">
+    <% chat.forEach(function(c){ %>
+      <div class="lg-adrow <%= c.is_hidden ? 'off' : '' %>"><div class="grow"><b><%= c.nick %></b> <%= c.body %><small><%= d(c.created_at) %></small></div>
+        <form method="post" action="/admin/lounge/chat/<%= c.id %>/toggle" class="inline"><button class="lg-btn sm ghost"><%= c.is_hidden ? '보이기' : '숨기기' %></button></form></div>
+    <% }); %>
+  </div>
+  <h2 class="lg-h3 mt">성과 인증샷</h2>
+  <div class="lg-admin-list">
+    <% results.forEach(function(r){ %>
+      <div class="lg-adrow <%= r.is_hidden ? 'off' : '' %>"><% if (r.image_id) { %><img src="/u/img/<%= r.image_id %>" alt="" class="lg-adthumb"><% } %><div class="grow"><b><%= r.headline %></b><small><%= r.nick %></small></div>
+        <form method="post" action="/admin/lounge/results/<%= r.id %>/toggle" class="inline"><button class="lg-btn sm ghost"><%= r.is_hidden ? '보이기' : '숨기기' %></button></form></div>
+    <% }); %>
+  </div>
+<% } %>
+
+<% if (tab === 'reviews') { %>
+  <form method="post" action="/admin/lounge/reviews/new" class="lg-card lg-adform">
+    <h2 class="lg-h3">받은 후기 직접 올리기</h2>
+    <p class="lg-hint">카톡이나 카페로 받은 <b>실제 후기</b>만 올려 주세요. 올리기 전에 본인에게 동의를 받아 주세요.</p>
+    <div class="lg-adgrid">
+      <label>작성자 표시 (예: 김**)<input name="author_name" class="lg-in" required maxlength="40"></label>
+      <label>과정<select name="product_id" class="lg-in"><option value="">무료 자료집·라운지</option><% products.forEach(function(p){ %><option value="<%= p.id %>"><%= p.title %></option><% }); %></select></label>
+      <label>별점<select name="rating" class="lg-in"><% for (let i = 5; i >= 1; i--) { %><option><%= i %></option><% } %></select></label>
+      <label>하시는 일 (선택)<input name="industry" class="lg-in" maxlength="40"></label>
+    </div>
+    <label>내용<textarea name="body" class="lg-in" rows="3" required></textarea></label>
+    <button class="lg-btn primary">올리기</button>
+  </form>
+  <div class="lg-admin-list">
+    <% reviews.forEach(function(r){ %>
+      <div class="lg-adrow <%= r.status === 'rejected' ? 'off' : '' %>">
+        <% if (r.image_id) { %><img src="/u/img/<%= r.image_id %>" alt="" class="lg-adthumb"><% } %>
+        <div class="grow"><b><span class="lg-tag <%= r.status === 'approved' ? 'ok' : r.status === 'pending' ? 'warn' : '' %>"><%= { approved: '올라감', pending: '대기', rejected: '반려' }[r.status] %></span> <%= '★'.repeat(r.rating) %> <%= r.nick %></b><small><%= r.product || '라운지' %> · <%= d(r.created_at) %></small><p><%= r.body %></p></div>
+        <% if (r.status !== 'approved') { %><form method="post" action="/admin/lounge/reviews/<%= r.id %>/status" class="inline"><input type="hidden" name="status" value="approved"><button class="lg-btn sm primary">승인</button></form><% } %>
+        <% if (r.status !== 'rejected') { %><form method="post" action="/admin/lounge/reviews/<%= r.id %>/status" class="inline"><input type="hidden" name="status" value="rejected"><button class="lg-btn sm ghost">반려</button></form><% } %>
+        <form method="post" action="/admin/lounge/reviews/<%= r.id %>/delete" class="inline" data-confirm="정말 지울까요?"><button class="lg-btn sm ghost danger">삭제</button></form>
+      </div>
+    <% }); %>
+  </div>
+<% } %>
+
+<% if (tab === 'challenge') { const e = editCohort; %>
+  <div class="lg-tabs sub">
+    <% cohorts.forEach(function(c){ %><a href="/admin/lounge?tab=challenge&c=<%= c.id %>" class="<%= cur && cur.id === c.id ? 'on' : '' %>"><%= c.name %> <small><%= { recruiting: '모집', running: '진행', ended: '종료' }[c.status] %></small></a><% }); %>
+    <a href="/admin/lounge?tab=challenge&editc=0#cform">＋ 새 기수</a>
+  </div>
+
+  <% if (cur) { %>
+    <div class="lg-card">
+      <h2 class="lg-h3"><%= cur.name %> · <%= cur.title %></h2>
+      <p class="lg-muted">시작 <%= d(cur.start_date) %> · <%= cur.days %>일 · 참가 <%= cur.approved %>명 · 대기 <%= cur.pending %>명 · 미션 <%= cur.missions %>개</p>
+      <div class="lg-bbtns">
+        <a href="/admin/lounge?tab=challenge&c=<%= cur.id %>&editc=<%= cur.id %>#cform" class="lg-btn sm">기수 정보 수정</a>
+        <form method="post" action="/admin/lounge/cohorts/<%= cur.id %>/template" class="inline" data-confirm="비어 있는 날에 기본 미션(AI 블로그 14일)을 넣을까요?"><button class="lg-btn sm ghost">기본 미션 넣기</button></form>
+        <form method="post" action="/admin/lounge/cohorts/<%= cur.id %>/delete" class="inline" data-confirm="기수와 제출물이 모두 지워져요. 정말 지울까요?"><button class="lg-btn sm ghost danger">기수 삭제</button></form>
+      </div>
+    </div>
+
+    <h2 class="lg-h3 mt">참가자</h2>
+    <form method="post" action="/admin/lounge/cohorts/<%= cur.id %>/add" class="lg-inlineform"><input name="nickname" class="lg-in" placeholder="닉네임으로 바로 추가" required><button class="lg-btn sm">추가</button></form>
+    <div class="lg-admin-list">
+      <% members.forEach(function(m){ %>
+        <div class="lg-adrow <%= m.status === 'rejected' ? 'off' : '' %>">
+          <div class="grow"><b><span class="lg-tag <%= m.status === 'approved' ? 'ok' : m.status === 'pending' ? 'warn' : '' %>"><%= { approved: '참가', pending: '대기', rejected: '거절' }[m.status] %></span> <%= m.nick %> <small>(<%= m.realname %>)</small></b><small>주문번호 <%= m.order_no || '-' %> · 연락처 <%= m.contact || '-' %> · 제출 <%= m.done %>개</small></div>
+          <% if (m.status !== 'approved') { %><form method="post" action="/admin/lounge/cohorts/<%= cur.id %>/members/<%= m.user_id %>" class="inline"><input type="hidden" name="action" value="approve"><button class="lg-btn sm primary">승인</button></form><% } %>
+          <% if (m.status === 'pending') { %><form method="post" action="/admin/lounge/cohorts/<%= cur.id %>/members/<%= m.user_id %>" class="inline"><input type="hidden" name="action" value="reject"><button class="lg-btn sm ghost">거절</button></form><% } %>
+          <form method="post" action="/admin/lounge/cohorts/<%= cur.id %>/members/<%= m.user_id %>" class="inline" data-confirm="명단에서 뺄까요?"><input type="hidden" name="action" value="remove"><button class="lg-btn sm ghost danger">빼기</button></form>
+        </div>
+      <% }); %>
+      <% if (!members.length) { %><p class="lg-muted">아직 신청이 없어요.</p><% } %>
+    </div>
+
+    <h2 class="lg-h3 mt">미션</h2>
+    <form method="post" action="/admin/lounge/missions/save" class="lg-card lg-adform">
+      <input type="hidden" name="cohort_id" value="<%= cur.id %>">
+      <div class="lg-adgrid">
+        <label>Day<input name="day" type="number" min="1" max="60" class="lg-in" required></label>
+        <label>미션 제목<input name="title" class="lg-in" required maxlength="120"></label>
+      </div>
+      <label>설명<textarea name="body" class="lg-in" rows="3"></textarea></label>
+      <button class="lg-btn sm primary">미션 저장 (같은 Day면 덮어써요)</button>
+    </form>
+    <div class="lg-admin-list">
+      <% missions.forEach(function(m){ %>
+        <div class="lg-adrow"><div class="grow"><b>Day <%= m.day %> · <%= m.title %></b><small><%= (m.body || '').slice(0, 80) %></small></div>
+          <form method="post" action="/admin/lounge/missions/<%= m.id %>/delete" class="inline" data-confirm="미션을 지울까요?"><button class="lg-btn sm ghost danger">삭제</button></form></div>
+      <% }); %>
+    </div>
+
+    <h2 class="lg-h3 mt">최근 제출</h2>
+    <div class="lg-admin-list">
+      <% subs.forEach(function(s){ %>
+        <div class="lg-adrow"><div class="grow"><b>Day <%= s.day %> · <%= s.nick %></b><p><%= s.body %></p><% if (s.link) { %><a href="<%= s.link %>" target="_blank" rel="noopener"><%= s.link %></a><% } %><small><%= d(s.created_at) %></small></div></div>
+      <% }); %>
+    </div>
+  <% } %>
+
+  <form method="post" action="/admin/lounge/cohorts/save" class="lg-card lg-adform mt" id="cform">
+    <h2 class="lg-h3"><%= e ? e.name + ' 수정' : '새 기수 만들기' %></h2>
+    <% if (e) { %><input type="hidden" name="id" value="<%= e.id %>"><% } %>
+    <div class="lg-adgrid">
+      <label>기수 이름<input name="name" class="lg-in" required maxlength="20" value="<%= e ? e.name : '' %>" placeholder="예: 1기"></label>
+      <label>제목<input name="title" class="lg-in" required maxlength="120" value="<%= e ? e.title : '' %>" placeholder="예: AI 블로그 14일 챌린지"></label>
+      <label>시작일<input name="start_date" type="date" class="lg-in" required value="<%= e ? new Date(e.start_date).toISOString().slice(0,10) : '' %>"></label>
+      <label>기간(일)<input name="days" type="number" min="1" max="60" class="lg-in" value="<%= e ? e.days : 14 %>"></label>
+      <label>기수 카톡방 주소<input name="kakao_url" class="lg-in" value="<%= e ? e.kakao_url || '' : '' %>"></label>
+      <label>상태<select name="status" class="lg-in"><% [['recruiting','모집 중'],['running','진행 중'],['ended','종료']].forEach(function(s){ %><option value="<%= s[0] %>" <%= e && e.status === s[0] ? 'selected' : '' %>><%= s[1] %></option><% }); %></select></label>
+    </div>
+    <label>소개<textarea name="intro" class="lg-in" rows="3"><%= e ? e.intro || '' : '' %></textarea></label>
+    <button class="lg-btn primary">저장</button>
+  </form>
+<% } %>
+
+<% if (tab === 'members') { %>
+  <form method="get" action="/admin/lounge" class="lg-inlineform"><input type="hidden" name="tab" value="members"><input name="s" class="lg-in" value="<%= s %>" placeholder="닉네임·이름 검색"><button class="lg-btn sm">검색</button></form>
+  <div class="lg-admin-list">
+    <% members.forEach(function(m){ %>
+      <div class="lg-adrow">
+        <div class="grow"><b><%= m.nickname %> <small>(<%= m.name %>)</small></b><small><%= m.interest || '관심 미선택' %> · 글 <%= m.posts %> · 연 자료 <%= m.opened %> · 가입 <%= d(m.lounge_at) %> · 도구 <%= { active: '이용 중', pending: '미승인', suspended: '중지' }[m.status] %></small></div>
+        <a href="/admin/users/<%= m.id %>" class="lg-btn sm ghost">회원 정보</a>
+      </div>
+    <% }); %>
+  </div>
+<% } %>
+
+</section>
+<%- include('_bottom') %>

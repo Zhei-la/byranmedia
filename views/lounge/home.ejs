@@ -1,12 +1,11 @@
 <%- include('_top') %>
 <%
   const heroLines = String(S.hero_title || '').split('\n');
-  const showStats = (stat.members || 0) >= 10;
   const kakaoStart = '/login?next=/';
+  const SEC_ICON = { '수강 안내': '🎓', '사주·타로': '🔮', '쿠팡파트너스': '🛒', '스레드 글쓰기': '✍️', 'AI 이미지': '🎨', '무료 자료': '🎁' };
 %>
 
 <% if (!user) { %>
-  <!-- 처음 온 사람 -->
   <section class="lg-hero">
     <div class="lg-wrap lg-hero-grid">
       <div class="lg-hero-copy">
@@ -20,111 +19,112 @@
             <svg width="18" height="17" viewBox="0 0 18 17" aria-hidden="true"><path d="M9 0C4.03 0 0 3.13 0 6.99c0 2.5 1.68 4.69 4.2 5.92l-1.06 3.9c-.09.34.29.61.59.42l4.66-3.07c.2.02.4.02.61.02 4.97 0 9-3.13 9-6.99C18 3.13 13.97 0 9 0z" fill="currentColor"/></svg>
             카카오로 3초 시작
           </a>
-          <a href="/reviews" class="lg-btn ghost lg">후기 먼저 보기 →</a>
+          <a href="/prompts" class="lg-btn ghost lg">AI 프롬프트 구경하기 →</a>
         </div>
         <p class="lg-hero-note"><%= S.welcome_note %></p>
       </div>
-      <div class="lg-hero-card" aria-label="라운지에서 하는 일">
+      <div class="lg-hero-card" aria-label="라운지에서 받을 수 있는 것">
         <div class="lg-byline"><span>BY</span> 바이란 라운지</div>
         <ol class="lg-howto">
-          <li><b>출석</b><span>매일 한 번 누르면 +10P</span></li>
-          <li><b>인증</b><span>오늘 한 일을 한 줄로 +20P</span></li>
-          <li><b>성장</b><span>포인트로 자료를 열고 등급이 올라요</span></li>
+          <li><b>무료 자료집</b><span>사주·타로, 쿠팡파트너스, 스레드 글쓰기</span></li>
+          <li><b>AI 프롬프트</b><span>이미지 누르고 바로 복사, 생성기까지</span></li>
+          <li><b>같이 크는 곳</b><span>질문하고, 인증하고, 피드백 받기</span></li>
         </ol>
-        <div class="lg-tiers-mini">
-          <% L.TIERS.forEach(function(t){ %>
-            <span><%= t.icon %> <%= t.name %></span>
-          <% }); %>
-        </div>
       </div>
     </div>
   </section>
 <% } else { %>
-  <!-- 로그인한 회원 -->
   <section class="lg-wrap lg-greet">
     <div class="lg-greet-card">
       <div class="lg-greet-l">
-        <p class="lg-kicker"><%= me.tier.icon %> <%= me.tier.name %> · <%= nick %>님</p>
-        <h1 class="lg-h1"><%= me.attended_today ? '오늘도 와 주셨네요 👋' : '오늘 출석 아직이에요!' %></h1>
-        <div class="lg-greet-stats">
-          <div><b><%= me.streak %></b><span>연속 출석</span></div>
-          <div><b><%= me.balance.toLocaleString() %></b><span>보유 포인트</span></div>
-          <div><b><%= me.attend_days %></b><span>누적 출석</span></div>
-        </div>
-        <% if (me.tier.next) { %>
-          <div class="lg-progress" aria-label="다음 등급까지">
-            <div class="lg-progress-bar"><i style="width:<%= me.tier.pct %>%"></i></div>
-            <span><%= me.tier.next.icon %> <%= me.tier.next.name %>까지 <%= me.tier.toNext.toLocaleString() %>P</span>
-          </div>
-        <% } %>
+        <p class="lg-kicker"><%= nick %>님</p>
+        <h1 class="lg-h1">오늘은 뭐부터 해볼까요?</h1>
+        <p class="lg-muted">자료집 보고, 프롬프트 복사하고, 막히면 커뮤니티에 물어보세요.</p>
       </div>
-      <ol class="lg-todo">
-        <li class="<%= me.attended_today ? 'done' : '' %>">
-          <span class="n">01</span>
-          <div><b>출석체크</b><small>+10P · 하루 한 번</small></div>
-          <% if (me.attended_today) { %>
-            <span class="lg-done">완료</span>
-          <% } else { %>
-            <form method="post" action="/attend"><button class="lg-btn primary sm">출석하기</button></form>
-          <% } %>
-        </li>
-        <li class="<%= me.proofed_today ? 'done' : '' %>">
-          <span class="n">02</span>
-          <div><b>오늘의 인증 남기기</b><small>+20P · 한 줄이면 충분해요</small></div>
-          <% if (me.proofed_today) { %><span class="lg-done">완료</span>
-          <% } else { %><a href="/community?write=1&wc=proof" class="lg-btn sm">쓰기</a><% } %>
-        </li>
-        <li>
-          <span class="n">03</span>
-          <div><b>보관함 자료 보기</b><small>가입 선물 · 포인트로 연 자료</small></div>
-          <a href="/my#box" class="lg-btn sm">열기</a>
-        </li>
-      </ol>
+      <div class="lg-quick">
+        <a href="/library"><span>📚</span><b>자료실</b><small>무료 자료집</small></a>
+        <a href="/prompts"><span>🎨</span><b>AI 프롬프트</b><small>복사해서 바로</small></a>
+        <a href="/prompts/builder"><span>🪄</span><b>프롬프트 생성기</b><small>칸만 채우면 완성</small></a>
+        <a href="/community?write=1"><span>✍️</span><b>글쓰기</b><small>질문·인증·인사</small></a>
+      </div>
     </div>
   </section>
 <% } %>
 
-<% if (showStats) { %>
-  <section class="lg-wrap">
-    <div class="lg-statrow">
-      <div><b><%= stat.members.toLocaleString() %></b><span>라운지 회원</span></div>
-      <div><b><%= stat.today_attend.toLocaleString() %></b><span>오늘 출석</span></div>
-      <div><b><%= stat.proofs.toLocaleString() %></b><span>쌓인 인증글</span></div>
-      <div><b><%= stat.results.toLocaleString() %></b><span>성과 인증샷</span></div>
-    </div>
-  </section>
-<% } %>
-
-<!-- 성과 인증 벽 -->
+<!-- 자료실 -->
+<% if (sections.length) { %>
 <section class="lg-wrap lg-sec">
   <div class="lg-sec-h">
-    <div>
-      <p class="lg-kicker">Real Results</p>
-      <h2 class="lg-h2">회원들이 직접 올린 성과</h2>
-    </div>
-    <% if (user && me) { %>
-      <button type="button" class="lg-btn sm" data-open="resultModal">＋ 성과 올리기 <span class="lg-plus">+20P</span></button>
-    <% } %>
+    <div><p class="lg-kicker">Library</p><h2 class="lg-h2"><%= user ? '자료실' : '가입하면 바로 보는 무료 자료집' %></h2></div>
+    <a href="/library" class="lg-more">자료실 전체 →</a>
   </div>
-  <% if (results.length) { %>
-    <div class="lg-wall" data-wall>
-      <% results.forEach(function(r){ var k = L.RESULT_KINDS[r.kind] || L.RESULT_KINDS.income; %>
-        <figure class="lg-shot">
-          <% if (r.image_id) { %><img src="/u/img/<%= r.image_id %>" alt="<%= r.headline %> 인증 사진" loading="lazy"><% } %>
-          <figcaption><span class="k"><%= k.icon %> <%= k.label %></span><b><%= r.headline %></b><small><%= r.nick %><%= r.channel ? ' · ' + r.channel : '' %></small></figcaption>
-        </figure>
-      <% }); %>
-    </div>
-  <% } else { %>
-    <div class="lg-empty">
-      <b>첫 성과의 주인공이 되어 주세요</b>
-      <p>첫 문의, 첫 수익, 팔로워 100명… 작은 것도 좋아요. 올리면 +20P를 드려요.</p>
-      <% if (!user) { %><a href="<%= kakaoStart %>" class="lg-btn sm">가입하고 올리기</a><% } %>
-    </div>
-  <% } %>
+  <div class="lg-secgrid">
+    <% sections.forEach(function(s){ %>
+      <a href="/library?s=<%= encodeURIComponent(s.section) %>#sec" class="lg-seccard">
+        <span class="i"><%= SEC_ICON[s.section] || '📁' %></span>
+        <b><%= s.section %></b>
+        <small><%= s.n %>개 자료<%= s.has_code ? ' · 🔒 라이브 전용 포함' : '' %></small>
+      </a>
+    <% }); %>
+  </div>
 </section>
+<% } %>
 
-<!-- 채팅 + 오늘의 인증 -->
+<!-- 프롬프트 -->
+<% if (prompts.length) { %>
+<section class="lg-wrap lg-sec">
+  <div class="lg-sec-h">
+    <div><p class="lg-kicker">AI Prompts</p><h2 class="lg-h2">이미지 누르면 프롬프트가 나와요</h2></div>
+    <a href="/prompts" class="lg-more">프롬프트 전체 →</a>
+  </div>
+  <div class="lg-pgrid mini">
+    <% prompts.forEach(function(p){ %>
+      <a href="/prompts/<%= p.id %>" class="lg-pcard">
+        <div class="lg-pcard-img"><img src="/u/img/<%= p.image_ids[0] %>" alt="<%= p.title %>" loading="lazy"><% if (p.image_ids.length > 1) { %><span class="n">▣ <%= p.image_ids.length %></span><% } %></div>
+        <b><%= p.title %></b>
+      </a>
+    <% }); %>
+  </div>
+  <a href="/prompts/builder" class="lg-builderbar">
+    <span>🪄</span>
+    <div><b>프롬프트 생성기로 나만의 프롬프트 만들기</b><small>인물·화보·제품 패턴에 칸만 채우면 영어 프롬프트가 완성돼요</small></div>
+    <em>열기 →</em>
+  </a>
+</section>
+<% } %>
+
+<% if (cohort) { %>
+  <section class="lg-wrap lg-sec">
+    <a href="/challenge" class="lg-banner">
+      <div>
+        <p class="lg-kicker light"><%= cohort.status === 'recruiting' ? '모집 중' : '진행 중' %> · <%= cohort.name %></p>
+        <h2><%= cohort.title %></h2>
+        <p><%= cohort.days %>일 동안 매일 미션 하나. 같은 기수와 끝까지 가요.</p>
+      </div>
+      <span class="lg-btn light">자세히 보기 →</span>
+    </a>
+  </section>
+<% } %>
+
+<!-- 성과 -->
+<% if (results.length) { %>
+<section class="lg-wrap lg-sec">
+  <div class="lg-sec-h">
+    <div><p class="lg-kicker">Real Results</p><h2 class="lg-h2">회원들이 직접 올린 성과</h2></div>
+    <% if (user && me) { %><button type="button" class="lg-btn sm" data-open="resultModal">＋ 성과 올리기</button><% } %>
+  </div>
+  <div class="lg-wall">
+    <% results.forEach(function(r){ var k = L.RESULT_KINDS[r.kind] || L.RESULT_KINDS.income; %>
+      <figure class="lg-shot">
+        <% if (r.image_id) { %><img src="/u/img/<%= r.image_id %>" alt="<%= r.headline %> 인증 사진" loading="lazy"><% } %>
+        <figcaption><span class="k"><%= k.icon %> <%= k.label %></span><b><%= r.headline %></b><small><%= r.nick %><%= r.channel ? ' · ' + r.channel : '' %></small></figcaption>
+      </figure>
+    <% }); %>
+  </div>
+</section>
+<% } %>
+
+<!-- 채팅 + 게시판 -->
 <section class="lg-wrap lg-sec lg-two">
   <div class="lg-card lg-chat" data-chat data-after="<%= chat.length ? chat[chat.length-1].id : 0 %>" data-login="<%= user && me ? '1' : '' %>">
     <div class="lg-card-h">
@@ -147,74 +147,11 @@
     <% } %>
   </div>
 
-  <div class="lg-card">
-    <div class="lg-card-h">
-      <h3>오늘의 인증</h3>
-      <a href="/community?cat=proof" class="lg-more">전체 →</a>
-    </div>
-    <% if (proofs.length) { %>
-      <ul class="lg-feed">
-        <% proofs.forEach(function(p){ %>
-          <li>
-            <a href="/community/<%= p.id %>">
-              <div class="lg-feed-h"><span class="lg-ava"><%= p.nick.slice(0,1) %></span><b><%= p.nick %></b> <%= L.tierOf(p.earned).icon %><small><%= L.ago(p.created_at) %></small></div>
-              <p><%= p.title %></p>
-              <small class="lg-muted">♥ <%= p.likes %></small>
-            </a>
-          </li>
-        <% }); %>
-      </ul>
-    <% } else { %>
-      <div class="lg-empty sm"><p>오늘 한 일을 한 줄로 남겨 보세요.</p></div>
-    <% } %>
-    <a href="<%= user ? '/community?write=1&wc=proof' : kakaoStart %>" class="lg-btn block">인증 남기기 <span class="lg-plus">+20P</span></a>
-  </div>
-</section>
-
-<!-- 랭킹 -->
-<section class="lg-wrap lg-sec">
-  <div class="lg-sec-h">
-    <div><p class="lg-kicker">Ranking</p><h2 class="lg-h2">이번 달 열심히 한 사람들</h2></div>
-    <small class="lg-muted">매월 1일 새로 시작해요</small>
-  </div>
-  <div class="lg-ranks">
-    <% [['today','오늘의 랭킹','P'],['month','이번 달 랭킹','P'],['attend','이번 달 출석왕','일']].forEach(function(b){ var list = rank[b[0]]; %>
-      <div class="lg-card lg-rank">
-        <h3><%= b[1] %></h3>
-        <% if (list.length) { %>
-          <ol>
-            <% list.forEach(function(r, i){ %>
-              <li><span class="no no<%= i+1 %>"><%= i+1 %></span><b><%= r.nick %></b> <%= r.tier.icon %><em><%= r.n.toLocaleString() %><%= b[2] %></em></li>
-            <% }); %>
-          </ol>
-        <% } else { %>
-          <p class="lg-muted lg-rank-empty">아직 아무도 없어요.<br>지금 하면 1등!</p>
-        <% } %>
-      </div>
-    <% }); %>
-  </div>
-</section>
-
-<% if (cohort) { %>
-  <section class="lg-wrap lg-sec">
-    <a href="/challenge" class="lg-banner">
-      <div>
-        <p class="lg-kicker light"><%= cohort.status === 'recruiting' ? '모집 중' : '진행 중' %> · <%= cohort.name %></p>
-        <h2><%= cohort.title %></h2>
-        <p><%= cohort.days %>일 동안 매일 미션 하나. 같은 기수와 끝까지 가요.</p>
-      </div>
-      <span class="lg-btn light">자세히 보기 →</span>
-    </a>
-  </section>
-<% } %>
-
-<!-- 게시판 -->
-<section class="lg-wrap lg-sec">
-  <div class="lg-sec-h">
-    <div><p class="lg-kicker">Board</p><h2 class="lg-h2">라운지 게시판</h2></div>
-    <a href="/community" class="lg-more">전체 보기 →</a>
-  </div>
   <div class="lg-card flush">
+    <div class="lg-card-h pad">
+      <h3>라운지 게시판</h3>
+      <a href="/community" class="lg-more">전체 →</a>
+    </div>
     <% if (board.length) { %>
       <ul class="lg-board">
         <% board.forEach(function(p){ var c = L.CATEGORIES[p.category] || {label:'자유'}; %>
@@ -228,28 +165,28 @@
         <% }); %>
       </ul>
     <% } else { %>
-      <div class="lg-empty"><p>첫 글을 기다리고 있어요. 가입 인사를 남기면 +30P!</p></div>
+      <div class="lg-empty"><p>첫 글을 기다리고 있어요. 가입 인사부터 남겨 주세요!</p></div>
     <% } %>
   </div>
 </section>
 
-<% if (gifts.length) { %>
-  <section class="lg-wrap lg-sec">
-    <div class="lg-sec-h">
-      <div><p class="lg-kicker">Free</p><h2 class="lg-h2"><%= user ? '라운지 자료실' : '가입하면 바로 받는 자료' %></h2></div>
-      <a href="/library" class="lg-more">자료실 →</a>
-    </div>
-    <div class="lg-gifts">
-      <% gifts.forEach(function(g){ %>
-        <a href="/library" class="lg-gift">
-          <span class="lg-gift-k"><%= {pdf:'PDF', video:'강의', link:'링크', text:'읽을거리'}[g.kind] || '자료' %></span>
-          <b><%= g.title %></b>
-          <% if (g.description) { %><p><%= g.description %></p><% } %>
-          <span class="lg-gift-c"><%= g.is_welcome ? '🎁 가입 선물' : (g.cost ? g.cost.toLocaleString() + 'P로 열기' : '무료') %></span>
-        </a>
-      <% }); %>
-    </div>
-  </section>
+<% if (courses.length) { %>
+<section class="lg-wrap lg-sec">
+  <div class="lg-sec-h">
+    <div><p class="lg-kicker">Course</p><h2 class="lg-h2">옆에서 같이 잡아드리는 과정</h2></div>
+    <a href="/course" class="lg-more">수강 신청 →</a>
+  </div>
+  <div class="lg-courses mini">
+    <% courses.forEach(function(c){ %>
+      <a href="/course#c<%= c.id %>" class="lg-course">
+        <% if (c.badge) { %><span class="lg-badge"><%= c.badge %></span><% } %>
+        <b><%= c.title %></b>
+        <% if (c.subtitle) { %><p><%= c.subtitle %></p><% } %>
+        <% if (c.price_text) { %><span class="lg-price"><%= c.price_text %></span><% } %>
+      </a>
+    <% }); %>
+  </div>
+</section>
 <% } %>
 
 <% if (reviews.length) { %>
@@ -270,7 +207,6 @@
   </section>
 <% } %>
 
-<!-- 상담 -->
 <section class="lg-wrap lg-sec">
   <div class="lg-consult-box">
     <div>
@@ -279,7 +215,7 @@
       <p class="lg-muted">상황을 골라 남겨 주시면 바이란이 직접 연락드려요.</p>
     </div>
     <div class="lg-consult-opts">
-      <a href="/consult?type=start" class="lg-opt"><b>이제 시작하고 싶어요</b><span>AI 블로그·부업, 뭐부터 할지 →</span></a>
+      <a href="/consult?type=start" class="lg-opt"><b>이제 시작하고 싶어요</b><span>AI 부업, 뭐부터 할지 →</span></a>
       <a href="/consult?type=grow" class="lg-opt"><b>하고 있는데 매출을 올리고 싶어요</b><span>1:1 컨설팅 · 대행 문의 →</span></a>
     </div>
   </div>
@@ -288,7 +224,7 @@
 <% if (!user) { %>
   <section class="lg-wrap lg-sec">
     <div class="lg-final">
-      <h2 class="lg-display sm">지금 가입하면<br>무료 자료부터 챙겨 드려요</h2>
+      <h2 class="lg-display sm">가입하면<br>무료 자료집부터 챙겨 드려요</h2>
       <a href="<%= kakaoStart %>" class="lg-btn kakao lg">카카오로 3초 시작</a>
     </div>
   </section>

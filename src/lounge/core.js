@@ -1,4 +1,4 @@
-/* 바이란 라운지 공통 도구: 포인트, 등급, 설정, 글자 다듬기 */
+/* 바이란 라운지 공통 도구: 설정, 글자 다듬기, 사진 */
 const fs = require('fs');
 const path = require('path');
 const db = require('../db');
@@ -7,177 +7,33 @@ const db = require('../db');
 async function migrate() {
   const sql = fs.readFileSync(path.join(__dirname, '..', '..', 'schema-lounge.sql'), 'utf8');
   await db.query(sql);
+  await seedOnce();
 }
 
-/* ---------------- 포인트 규칙 ---------------- */
-const RULES = {
-  attend:  { amount: 10, label: '출석체크' },
-  proof:   { amount: 20, label: '오늘의 인증글' },
-  hello:   { amount: 30, label: '가입 인사' },
-  comment: { amount: 2,  label: '댓글', dailyMax: 5 },
-  result:  { amount: 20, label: '성과 인증샷' },
-  review:  { amount: 50, label: '후기 승인' },
-  mission: { amount: 20, label: '챌린지 미션' },
-};
-
-const REASON_LABEL = {
-  attend: '출석체크', proof: '인증글', hello: '가입 인사', comment: '댓글',
-  result: '성과 인증샷', review: '후기 승인', mission: '챌린지 미션',
-  unlock: '자료 열기', buy: '포인트 구매', admin: '운영자 지급',
-};
-
-/** 보상 지급. 이미 받은 보상이면 0을 돌려준다. */
-async function award(userId, reason, { refId = null, memo = null, amount = null } = {}) {
-  const rule = RULES[reason];
-  const amt = amount != null ? amount : rule ? rule.amount : 0;
-  if (!amt) return 0;
-
-  if (rule && rule.dailyMax) {
-    const { rows } = await db.query(
-      `SELECT count(*)::int AS n FROM lounge_points
-        WHERE user_id=$1 AND reason=$2 AND day=(now() AT TIME ZONE 'Asia/Seoul')::date`,
-      [userId, reason]
-    );
-    if (rows[0].n >= rule.dailyMax) return 0;
-  }
-
-  try {
+/* 처음 한 번만 기본 자료·과정을 넣는다. 지워도 다시 생기지 않는다. */
+async function seedOnce() {
+  const { rows } = await db.query(`SELECT 1 FROM lounge_settings WHERE key='seeded_v1'`);
+  if (rows.length) return;
+  const res = [
+    ['수강 안내', '수강 신청 안내', '사주 과정 / 사주 + 타로 과정 — 금액과 신청 방법', 'link', '/course', 'member', null, 5],
+    ['사주·타로', '온라인 사주 무료 자료집', '스레드로 무료 사주를 봐주고 유료 상담까지 이어지는 흐름', 'link', 'https://app.notion.com/p/3a8716819fd8805ea568eb7d1e0aac3a', 'member', null, 10],
+    ['사주·타로', '온라인 타로 무료 자료집', '78장 몰라도 시작하는 타로 부업 — 기초, 글쓰기, 단가, 14일 실행표', 'link', 'https://app.notion.com/p/3e9716819fd8817aa7cbee9cbfd1a1db', 'code', '무료 라이브에서 받아가세요', 11],
+    ['쿠팡파트너스', '쿠팡파트너스 무료 자료집', '가입부터 첫 정산, 공정위 문구, 스레드에 올리는 순서까지', 'link', 'https://app.notion.com/p/3e9716819fd881ef97f7f71a526059c2', 'member', null, 20],
+    ['스레드 글쓰기', '스레드 글쓰기 무료 자료집', '첫 줄 쓰는 법, 글 구조 4개, 조회수 진단, 7일 실행표', 'link', 'https://app.notion.com/p/3e9716819fd8817f817effe8cf8fb3ec', 'member', null, 30],
+  ];
+  for (const r of res) {
     await db.query(
-      `INSERT INTO lounge_points (user_id, amount, reason, ref_id, memo) VALUES ($1,$2,$3,$4,$5)`,
-      [userId, amt, reason, refId, memo]
+      `INSERT INTO lounge_resources (section, title, description, kind, url, access, lock_note, sort_order) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+      r
     );
-    return amt;
-  } catch (e) {
-    if (e.code === '23505') return 0; // 이미 받음
-    throw e;
   }
-}
-
-/** 포인트 사용. 잔액이 모자라면 false */
-async function spend(userId, amount, reason, refId, memo) {
-  const client = await db.pool.connect();
-  try {
-    await client.query('BEGIN');
-    // 같은 사람이 동시에 두 번 누르는 경우를 막는다
-    await client.query('SELECT pg_advisory_xact_lock($1)', [userId]);
-    const { rows } = await client.query(
-      `SELECT COALESCE(sum(amount),0)::int AS bal FROM lounge_points WHERE user_id=$1`,
-      [userId]
-    );
-    if (rows[0].bal < amount) {
-      await client.query('ROLLBACK');
-      return false;
-    }
-    await client.query(
-      `INSERT INTO lounge_points (user_id, amount, reason, ref_id, memo) VALUES ($1,$2,$3,$4,$5)`,
-      [userId, -amount, reason, refId, memo]
-    );
-    await client.query('COMMIT');
-    return true;
-  } catch (e) {
-    await client.query('ROLLBACK').catch(() => {});
-    if (e.code === '23505') return false;
-    throw e;
-  } finally {
-    client.release();
-  }
-}
-
-/* ---------------- 등급 ---------------- */
-// 이름은 '바이라인(기사 끝 기자 이름)'에서 따왔다
-const TIERS = [
-  { key: 'sprout', name: '새싹', icon: '🌱', min: 0 },
-  { key: 'writer', name: '기자', icon: '✏️', min: 500 },
-  { key: 'editor', name: '에디터', icon: '📰', min: 2000 },
-  { key: 'byline', name: '바이라이너', icon: '🏅', min: 5000 },
-];
-
-function tierOf(earned) {
-  let t = TIERS[0];
-  for (const x of TIERS) if (earned >= x.min) t = x;
-  const idx = TIERS.indexOf(t);
-  const next = TIERS[idx + 1] || null;
-  return {
-    ...t,
-    next,
-    toNext: next ? next.min - earned : 0,
-    pct: next ? Math.min(100, Math.round(((earned - t.min) / (next.min - t.min)) * 100)) : 100,
-  };
-}
-
-/** 한 사람의 포인트 요약 */
-async function summary(userId) {
-  const { rows } = await db.query(
-    `SELECT COALESCE(sum(amount),0)::int AS balance,
-            COALESCE(sum(amount) FILTER (WHERE amount > 0),0)::int AS earned,
-            bool_or(reason='attend' AND day=(now() AT TIME ZONE 'Asia/Seoul')::date) AS attended_today,
-            bool_or(reason='proof'  AND day=(now() AT TIME ZONE 'Asia/Seoul')::date) AS proofed_today,
-            count(*) FILTER (WHERE reason='mission')::int AS missions,
-            count(DISTINCT day) FILTER (WHERE reason='attend')::int AS attend_days
-       FROM lounge_points WHERE user_id=$1`,
-    [userId]
+  await db.query(
+    `INSERT INTO lounge_products (title, subtitle, kind, sort_order) VALUES
+      ('사주 과정', '사주 자료집 + 계정 세팅·글 피드백·상담 흐름까지 같이 잡아드려요', '1:1 피드백', 10),
+      ('사주 + 타로 과정', '사주와 타로를 같이 운영하는 과정 — 타로 자료집과 피드백 포함', '1:1 피드백', 20)`
   );
-  const s = rows[0];
-  s.attended_today = !!s.attended_today;
-  s.proofed_today = !!s.proofed_today;
-  s.streak = await streak(userId);
-  s.tier = tierOf(s.earned);
-  return s;
-}
-
-/** 연속 출석 일수 (오늘 안 했으면 어제까지 기준) */
-async function streak(userId) {
-  const { rows } = await db.query(
-    `SELECT day FROM lounge_points WHERE user_id=$1 AND reason='attend'
-      ORDER BY day DESC LIMIT 400`,
-    [userId]
-  );
-  if (!rows.length) return 0;
-  const today = kstToday();
-  const toKey = (d) => (d instanceof Date ? ymd(d) : String(d).slice(0, 10));
-  const days = new Set(rows.map((r) => toKey(r.day)));
-  let cur = new Date(today + 'T00:00:00Z');
-  if (!days.has(ymd(cur))) cur.setUTCDate(cur.getUTCDate() - 1);
-  let n = 0;
-  while (days.has(ymd(cur))) {
-    n++;
-    cur.setUTCDate(cur.getUTCDate() - 1);
-  }
-  return n;
-}
-
-function ymd(d) {
-  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
-}
-function kstToday() {
-  return ymd(new Date(Date.now() + 9 * 3600 * 1000));
-}
-
-/* ---------------- 랭킹 ---------------- */
-async function rankings() {
-  const q = (sql) => db.query(sql).then((r) => r.rows).catch(() => []);
-  const nameCol = `COALESCE(u.nickname, u.name)`;
-  const [today, month, attend] = await Promise.all([
-    q(`SELECT ${nameCol} AS nick, sum(p.amount)::int AS n,
-              (SELECT COALESCE(sum(amount) FILTER (WHERE amount>0),0) FROM lounge_points x WHERE x.user_id=u.id)::int AS earned
-         FROM lounge_points p JOIN users u ON u.id=p.user_id
-        WHERE p.amount > 0 AND p.reason <> 'admin' AND p.day=(now() AT TIME ZONE 'Asia/Seoul')::date
-        GROUP BY u.id ORDER BY n DESC, min(p.created_at) LIMIT 5`),
-    q(`SELECT ${nameCol} AS nick, sum(p.amount)::int AS n,
-              (SELECT COALESCE(sum(amount) FILTER (WHERE amount>0),0) FROM lounge_points x WHERE x.user_id=u.id)::int AS earned
-         FROM lounge_points p JOIN users u ON u.id=p.user_id
-        WHERE p.amount > 0 AND p.reason <> 'admin'
-          AND date_trunc('month', p.day) = date_trunc('month', (now() AT TIME ZONE 'Asia/Seoul')::date)
-        GROUP BY u.id ORDER BY n DESC, min(p.created_at) LIMIT 5`),
-    q(`SELECT ${nameCol} AS nick, count(*)::int AS n,
-              (SELECT COALESCE(sum(amount) FILTER (WHERE amount>0),0) FROM lounge_points x WHERE x.user_id=u.id)::int AS earned
-         FROM lounge_points p JOIN users u ON u.id=p.user_id
-        WHERE p.reason='attend'
-          AND date_trunc('month', p.day) = date_trunc('month', (now() AT TIME ZONE 'Asia/Seoul')::date)
-        GROUP BY u.id ORDER BY n DESC, min(p.created_at) LIMIT 5`),
-  ]);
-  const deco = (arr) => arr.map((r) => ({ ...r, tier: tierOf(r.earned) }));
-  return { today: deco(today), month: deco(month), attend: deco(attend) };
+  await db.query(`INSERT INTO lounge_settings (key, value) VALUES ('seeded_v1', '1') ON CONFLICT (key) DO NOTHING`);
+  console.log('[라운지] 기본 자료와 과정을 넣었습니다.');
 }
 
 /* ---------------- 설정 ---------------- */
@@ -186,9 +42,13 @@ const SETTING_DEFAULTS = {
   live_room_url: '',                            // 전체 카톡방 (오픈채팅)
   live_room_code: '',                           // 오픈채팅 참여코드
   hero_title: '혼자 하면 멈추고,\n같이 하면 쌓입니다',
-  hero_sub: 'AI로 블로그·스레드·부업을 시작한 사람들이\n매일 한 줄씩 기록하며 같이 크는 곳',
+  hero_sub: 'AI로 블로그·스레드·부업을 시작한 사람들이\n같이 묻고, 같이 크는 곳',
   review_link: '',                              // 외부 후기 모음 (카페 등)
-  welcome_note: '가입하면 무료 자료가 보관함에 바로 들어가요',
+  welcome_note: '가입하면 무료 자료집을 바로 볼 수 있어요',
+  live_code: '',                                // 무료 라이브에서 알려주는 자료 코드
+  live_note: '무료 라이브에 참여하시면 코드를 알려드려요',
+  prompt_public: '0',                           // 1이면 로그인 없이도 프롬프트 복사 가능
+  course_note: '',                              // 수강 신청 페이지 위쪽 안내
 };
 
 let settingsCache = null;
@@ -243,6 +103,18 @@ function safeUrl(u) {
   const s = String(u || '').trim();
   return /^https?:\/\//i.test(s) ? s : '';
 }
+/** 바깥 주소(http) 또는 사이트 안 주소(/course 등) */
+function safeLink(u) {
+  const s = String(u || '').trim();
+  if (/^\/[^/\\]/.test(s)) return s;
+  return safeUrl(s);
+}
+function ymd(d) {
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
+}
+function kstToday() {
+  return ymd(new Date(Date.now() + 9 * 3600 * 1000));
+}
 
 /* ---------------- 사진 ---------------- */
 const IMG_RE = /^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)$/;
@@ -251,7 +123,7 @@ async function saveImage(userId, dataUrl) {
   const m = IMG_RE.exec(String(dataUrl || ''));
   if (!m) return null;
   const buf = Buffer.from(m[2], 'base64');
-  if (buf.length > 1.6 * 1024 * 1024) return null;
+  if (buf.length > 2.5 * 1024 * 1024) return null;
   const { rows } = await db.query(
     `INSERT INTO lounge_images (user_id, mime, data) VALUES ($1,$2,$3) RETURNING id`,
     [userId, m[1], buf]
@@ -270,15 +142,15 @@ function checkNick(n) {
   return { ok: true, value: s };
 }
 
-const INTERESTS = ['블로그 부업', '스레드·SNS', 'AI 활용', '사주·콘텐츠', '1인 창업', '가게 홍보', '기타'];
+const INTERESTS = ['블로그 부업', '스레드·SNS', 'AI 활용', '사주·타로', '쿠팡파트너스', 'AI 이미지', '1인 창업', '기타'];
 
 const CATEGORIES = {
-  notice: { label: '공지', write: 'admin' },
-  hello:  { label: '가입인사', write: 'all' },
-  proof:  { label: '오늘의 인증', write: 'all' },
-  free:   { label: '자유', write: 'all' },
-  qna:    { label: '질문', write: 'all' },
-  secret: { label: '1:1 문의', write: 'all' },
+  notice: { label: '공지' },
+  hello:  { label: '가입인사' },
+  proof:  { label: '오늘의 인증' },
+  free:   { label: '자유' },
+  qna:    { label: '질문' },
+  secret: { label: '1:1 문의' },
 };
 
 const RESULT_KINDS = {
@@ -288,8 +160,12 @@ const RESULT_KINDS = {
   view:     { label: '조회수', icon: '👀' },
 };
 
+// 자료실 칸 (관리자 화면에서 고를 수 있는 기본값. 직접 입력도 된다)
+const SECTIONS = ['수강 안내', '사주·타로', '쿠팡파트너스', '스레드 글쓰기', 'AI 이미지', '무료 자료'];
+
+const PROMPT_CATS = ['인물/화보', '셀카/일상', '뷰티/클로즈업', '캐릭터/코스프레', '음식/제품', '일러스트', '기타'];
+
 module.exports = {
-  migrate, RULES, REASON_LABEL, award, spend, TIERS, tierOf, summary, streak, rankings,
-  settings, saveSettings, SETTING_DEFAULTS, esc, linkify, ago, safeUrl, saveImage,
-  checkNick, INTERESTS, CATEGORIES, RESULT_KINDS, kstToday,
+  migrate, safeLink, settings, saveSettings, SETTING_DEFAULTS, esc, linkify, ago, safeUrl, saveImage,
+  checkNick, INTERESTS, CATEGORIES, RESULT_KINDS, SECTIONS, PROMPT_CATS, kstToday,
 };

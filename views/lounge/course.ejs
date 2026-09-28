@@ -1,0 +1,61 @@
+<%- include('_top') %>
+<section class="lg-wrap lg-pagehead">
+  <p class="lg-kicker">Course</p>
+  <h1 class="lg-h1">수강 신청</h1>
+  <p class="lg-muted"><%= S.course_note || '무료 자료만으로도 시작할 수 있어요. 옆에서 같이 잡아드리는 과정이 필요하신 분들을 위한 페이지예요.' %></p>
+</section>
+
+<section class="lg-wrap lg-sec">
+  <% if (products.length) { %>
+    <div class="lg-courses">
+      <% products.forEach(function(p){ %>
+        <article class="lg-course big" id="c<%= p.id %>">
+          <% if (p.badge) { %><span class="lg-badge"><%= p.badge %></span><% } %>
+          <% if (p.kind) { %><p class="lg-prod-kind"><%= p.kind %></p><% } %>
+          <h2><%= p.title %></h2>
+          <% if (p.subtitle) { %><p class="lg-course-sub"><%= p.subtitle %></p><% } %>
+          <p class="lg-price"><%= p.price_text || '금액 문의' %></p>
+          <div class="lg-prod-cta">
+            <% if (p.buy_url) { %><a href="<%= p.buy_url %>" target="_blank" rel="noopener" class="lg-btn primary"><%= p.cta_label || '결제하기' %></a><% } %>
+            <a href="/course?pick=<%= p.id %>#apply" class="lg-btn <%= p.buy_url ? '' : 'primary' %>">신청서 쓰기</a>
+            <% if (p.is_challenge) { %><a href="/challenge" class="lg-btn ghost">챌린지 보기</a><% } %>
+          </div>
+          <% if (p.reviews) { %><a href="/reviews?p=<%= p.id %>" class="lg-more">후기 <%= p.reviews %>개 →</a><% } %>
+        </article>
+      <% }); %>
+    </div>
+  <% } else { %>
+    <div class="lg-card lg-empty">
+      <b>다음 기수를 준비하고 있어요</b>
+      <p>아래 신청서로 먼저 연락처를 남겨 주시면 열리자마자 알려드릴게요.</p>
+    </div>
+  <% } %>
+</section>
+
+<section class="lg-wrap narrow lg-sec" id="apply">
+  <div class="lg-card">
+    <h2 class="lg-h2">신청서</h2>
+    <% if (sent) { %>
+      <div class="lg-alert ok">신청을 받았어요! 확인하고 바로 연락드릴게요.</div>
+      <a href="<%= S.consult_url %>" target="_blank" rel="noopener" class="lg-btn kakao block">카카오톡으로 먼저 말 걸기</a>
+    <% } else { %>
+      <p class="lg-muted">남겨 주시면 확인 후 카톡이나 문자로 안내드려요. 결제는 안내를 받은 뒤에 하시면 돼요.</p>
+      <form method="post" action="/course/apply">
+        <input type="text" name="website" class="lg-hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+        <label class="lg-lb" for="cp">어떤 과정인가요</label>
+        <select id="cp" name="product_id" class="lg-in" required>
+          <% products.forEach(function(p){ %><option value="<%= p.id %>" <%= pick === p.id ? 'selected' : '' %>><%= p.title %><%= p.price_text ? ' · ' + p.price_text : '' %></option><% }); %>
+          <% if (!products.length) { %><option value="">다음 기수 알림 받기</option><% } %>
+        </select>
+        <label class="lg-lb" for="cn">이름</label>
+        <input id="cn" name="name" class="lg-in" maxlength="100" required value="<%= user ? (user.nickname || user.name) : '' %>">
+        <label class="lg-lb" for="cph">연락처 (전화번호나 카톡 아이디)</label>
+        <input id="cph" name="phone" class="lg-in" maxlength="40" required>
+        <label class="lg-lb" for="cm">하고 싶은 말 (선택)</label>
+        <textarea id="cm" name="message" class="lg-in" rows="3" maxlength="2000" placeholder="지금 상황, 궁금한 점을 편하게 적어 주세요"></textarea>
+        <button class="lg-btn primary block lg" <%= products.length ? '' : 'disabled' %>>신청하기</button>
+      </form>
+    <% } %>
+  </div>
+</section>
+<%- include('_bottom') %>

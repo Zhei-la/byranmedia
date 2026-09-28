@@ -33,7 +33,7 @@
         <form method="post" action="/community" data-image-form class="lg-write-form">
           <div class="lg-chips" role="radiogroup" aria-label="분류">
             <% Object.keys(CATS).forEach(function(k){ if (k === 'notice' && !isAdmin) return; %>
-              <label class="lg-chip"><input type="radio" name="category" value="<%= k %>" <%= writeCat === k ? 'checked' : '' %>><span><%= CATS[k].label %><% if (k === 'proof') { %> <em>+20P</em><% } else if (k === 'hello') { %> <em>+30P</em><% } %></span></label>
+              <label class="lg-chip"><input type="radio" name="category" value="<%= k %>" <%= writeCat === k ? 'checked' : '' %>><span><%= CATS[k].label %></span></label>
             <% }); %>
           </div>
           <input name="title" class="lg-in" maxlength="120" required placeholder="제목">
@@ -46,7 +46,7 @@
             <span class="lg-grow"></span>
             <button type="submit" class="lg-btn primary">올리기</button>
           </div>
-          <p class="lg-hint">1:1 문의는 운영자만 볼 수 있어요. 인증 포인트는 하루 한 번 들어와요.</p>
+          <p class="lg-hint">1:1 문의는 쓴 사람과 운영자만 볼 수 있어요.</p>
         </form>
       </details>
     <% } %>
@@ -78,7 +78,7 @@
                 <% if (p.image_id) { %> <span class="lg-muted" title="사진 있음">📷</span><% } %>
                 <% if (p.comments) { %> <em>[<%= p.comments %>]</em><% } %>
               </span>
-              <span class="m"><%= p.nick %> <%= L.tierOf(p.earned).icon %> · <%= L.ago(p.created_at) %> · ♥ <%= p.likes %></span>
+              <span class="m"><%= p.nick %><%= p.role === 'admin' ? ' 👑' : '' %> · <%= L.ago(p.created_at) %> · ♥ <%= p.likes %></span>
             </a>
           </li>
         <% }); %>
@@ -118,16 +118,11 @@
         <a href="/login?next=/community" class="lg-chat-lock">🔒 가입하면 같이 이야기할 수 있어요</a>
       <% } %>
     </div>
-    <% if (user && me) { %>
-      <div class="lg-card lg-mini-me">
-        <p><%= me.tier.icon %> <b><%= nick %></b> · <%= me.balance.toLocaleString() %>P</p>
-        <% if (!me.attended_today) { %>
-          <form method="post" action="/attend"><button class="lg-btn primary block sm">오늘 출석하기 +10P</button></form>
-        <% } else { %>
-          <p class="lg-muted">오늘 출석 완료 · 연속 <%= me.streak %>일</p>
-        <% } %>
-      </div>
-    <% } %>
+    <div class="lg-card lg-mini-me">
+      <h3 class="lg-h3">처음 오셨나요?</h3>
+      <p class="lg-muted">가입 인사로 어떤 걸 해보고 싶은지 남겨 주세요. 비슷한 분들이 먼저 말 걸어 줄 거예요.</p>
+      <a href="<%= user ? '/community?write=1&wc=hello#write' : '/login?next=/community' %>" class="lg-btn block sm">가입 인사 쓰기</a>
+    </div>
   </aside>
 </section>
 <%- include('_bottom') %>

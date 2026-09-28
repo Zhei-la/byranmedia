@@ -31,7 +31,7 @@ app.use(
   })
 );
 // 사진은 브라우저에서 줄여서 글자(data URL)로 보내므로 넉넉하게 받는다
-app.use(express.urlencoded({ extended: false, limit: '4mb' }));
+app.use(express.urlencoded({ extended: false, limit: '12mb' }));
 app.use(express.json({ limit: '100kb' }));
 app.use(express.static(path.join(__dirname, '..', 'public'), { maxAge: PROD ? '7d' : 0 }));
 

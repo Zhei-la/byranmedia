@@ -1,0 +1,77 @@
+<%- include('_top') %>
+<section class="lg-wrap lg-sec">
+  <a href="/prompts" class="lg-back">← 프롬프트 모음</a>
+  <div class="lg-pdetail">
+    <div class="lg-pdetail-media" data-gallery>
+      <% if (p.image_ids.length) { %>
+        <figure class="lg-pmain"><img src="/u/img/<%= p.image_ids[0] %>" alt="<%= p.title %>" data-main></figure>
+        <% if (p.image_ids.length > 1) { %>
+          <div class="lg-pthumbs">
+            <% p.image_ids.forEach(function(id, i){ %>
+              <button type="button" class="<%= i === 0 ? 'on' : '' %>" data-thumb="/u/img/<%= id %>" aria-label="<%= i + 1 %>번째 이미지"><img src="/u/img/<%= id %>" alt="" loading="lazy"></button>
+            <% }); %>
+          </div>
+        <% } %>
+      <% } else { %>
+        <div class="lg-pcard-noimg big">텍스트 프롬프트</div>
+      <% } %>
+    </div>
+
+    <div class="lg-pdetail-body">
+      <div class="lg-pcard-meta"><span>NO. <%= String(p.id).padStart(3, '0') %></span><span><%= p.category %></span><% if (p.model) { %><span><%= p.model %></span><% } %></div>
+      <h1 class="lg-h1"><%= p.title %></h1>
+      <% if (p.note) { %><p class="lg-muted"><%= p.note %></p><% } %>
+
+      <div class="lg-pbox">
+        <div class="lg-pbox-h">
+          <b>PROMPT</b>
+          <% if (canCopy) { %>
+            <button type="button" class="lg-btn primary sm" data-copy-target="#promptText" data-copied-post="/prompts/<%= p.id %>/copied">복사하기</button>
+          <% } %>
+        </div>
+        <pre id="promptText" class="<%= canCopy ? '' : 'faded' %>"><%= shown %><% if (!canCopy) { %>…<% } %></pre>
+        <% if (!canCopy) { %>
+          <div class="lg-pbox-lock">
+            <p><b>전체 프롬프트는 회원에게 보여요</b><br>카카오로 3초면 가입되고, 모든 프롬프트를 복사할 수 있어요.</p>
+            <a href="<%= user ? '/onboard?next=/prompts/' + p.id : '/login?next=/prompts/' + p.id %>" class="lg-btn kakao"><%= user ? '닉네임 정하고 보기' : '카카오로 3초 시작' %></a>
+          </div>
+        <% } %>
+      </div>
+
+      <% if (canCopy && p.negative) { %>
+        <div class="lg-pbox neg">
+          <div class="lg-pbox-h">
+            <b>NEGATIVE</b>
+            <button type="button" class="lg-btn sm" data-copy-target="#negText">복사</button>
+          </div>
+          <pre id="negText"><%= p.negative %></pre>
+        </div>
+      <% } %>
+
+      <div class="lg-pactions">
+        <% if (user && me) { %>
+          <button type="button" class="lg-like <%= liked ? 'on' : '' %>" data-plike="<%= p.id %>">♡ <span data-liketext><%= liked ? '즐겨찾기됨' : '즐겨찾기' %></span></button>
+        <% } %>
+        <button type="button" class="lg-linkbtn" data-copylink>🔗 링크 복사</button>
+        <a href="/prompts/builder" class="lg-linkbtn">🪄 생성기로 변형하기</a>
+        <% if (user && user.role === 'admin') { %><a href="/admin/lounge?tab=prompts&edit=<%= p.id %>" class="lg-linkbtn">✏️ 수정</a><% } %>
+      </div>
+      <p class="lg-hint">복사한 프롬프트는 미드저니, 챗지피티(이미지), 나노바나나, Flux 등에 붙여 넣어 쓰세요. 도구마다 결과가 조금씩 달라요.</p>
+    </div>
+  </div>
+</section>
+
+<% if (more.length) { %>
+<section class="lg-wrap lg-sec">
+  <div class="lg-sec-h"><h2 class="lg-h2">비슷한 프롬프트</h2><a href="/prompts?cat=<%= encodeURIComponent(p.category) %>" class="lg-more">더 보기 →</a></div>
+  <div class="lg-pgrid mini">
+    <% more.forEach(function(m){ %>
+      <a href="/prompts/<%= m.id %>" class="lg-pcard">
+        <div class="lg-pcard-img"><img src="/u/img/<%= m.image_ids[0] %>" alt="<%= m.title %>" loading="lazy"></div>
+        <b><%= m.title %></b>
+      </a>
+    <% }); %>
+  </div>
+</section>
+<% } %>
+<%- include('_bottom') %>

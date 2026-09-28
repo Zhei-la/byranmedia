@@ -7,7 +7,14 @@ const { requireAdmin } = require('../middleware/auth');
 const router = express.Router();
 router.use('/admin/lounge', requireAdmin);
 
-const TABS = ['home', 'board', 'reviews', 'library', 'store', 'challenge', 'members'];
+// async 오류를 오류 화면으로 넘긴다
+const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
+for (const m of ['get', 'post']) {
+  const orig = router[m].bind(router);
+  router[m] = (p, ...h) => orig(p, ...h.map(wrap));
+}
+
+const TABS = ['home', 'prompts', 'library', 'store', 'board', 'reviews', 'challenge', 'members'];
 const go = (res, tab, msg, extra = '') =>
   res.redirect(`/admin/lounge?tab=${tab}${msg ? '&msg=' + encodeURIComponent(msg) : ''}${extra}`);
 const int = (v) => (v === '' || v == null ? null : parseInt(v, 10));
@@ -21,7 +28,7 @@ router.get('/admin/lounge', async (req, res) => {
   const [counts] = await q(
     `SELECT (SELECT count(*) FROM users WHERE nickname IS NOT NULL)::int AS members,
             (SELECT count(*) FROM users WHERE lounge_at > now() - interval '7 days')::int AS new7,
-            (SELECT count(*) FROM lounge_points WHERE reason='attend' AND day=(now() AT TIME ZONE 'Asia/Seoul')::date)::int AS attend,
+            (SELECT count(*) FROM lounge_prompts WHERE is_active)::int AS prompts,
             (SELECT count(*) FROM lounge_posts WHERE is_hidden=false)::int AS posts,
             (SELECT count(*) FROM lounge_reviews WHERE status='pending')::int AS pending_reviews,
             (SELECT count(*) FROM lounge_reports WHERE resolved=false)::int AS reports,
@@ -66,7 +73,7 @@ router.get('/admin/lounge', async (req, res) => {
   if (tab === 'library') {
     data.resources = await q(
       `SELECT r.*, (SELECT count(*) FROM lounge_unlocks x WHERE x.resource_id=r.id)::int AS opened
-         FROM lounge_resources r ORDER BY r.is_active DESC, r.is_welcome DESC, r.sort_order, r.id`
+         FROM lounge_resources r ORDER BY r.is_active DESC, r.sort_order, r.id`
     );
     data.edit = req.query.edit ? data.resources.find((x) => x.id === Number(req.query.edit)) || null : null;
   }
@@ -102,21 +109,28 @@ router.get('/admin/lounge', async (req, res) => {
       );
     }
   }
+  if (tab === 'prompts') {
+    data.prompts = await q(
+      `SELECT id, title, category, image_ids, is_active, views, copies, created_at FROM lounge_prompts
+        ORDER BY created_at DESC LIMIT 200`
+    );
+    data.edit = req.query.edit ? (await q(`SELECT * FROM lounge_prompts WHERE id=$1`, [req.query.edit]))[0] || null : null;
+  }
   if (tab === 'members') {
     const s = txt(req.query.s, 40);
     data.s = s;
     data.members = await q(
       `SELECT u.id, u.name, u.nickname, u.interest, u.status, u.lounge_at,
-              COALESCE((SELECT sum(amount) FROM lounge_points p WHERE p.user_id=u.id),0)::int AS balance,
-              COALESCE((SELECT sum(amount) FILTER (WHERE amount>0) FROM lounge_points p WHERE p.user_id=u.id),0)::int AS earned,
-              (SELECT count(*) FROM lounge_points p WHERE p.user_id=u.id AND p.reason='attend')::int AS attends
+              (SELECT count(*) FROM lounge_posts p WHERE p.user_id=u.id AND p.is_hidden=false)::int AS posts,
+              (SELECT count(*) FROM lounge_unlocks x WHERE x.user_id=u.id)::int AS opened
          FROM users u
         WHERE u.nickname IS NOT NULL ${s ? `AND (u.nickname ILIKE $1 OR u.name ILIKE $1)` : ''}
         ORDER BY u.lounge_at DESC NULLS LAST LIMIT 200`,
       s ? [`%${s}%`] : []
     );
   }
-  res.render('lounge/admin', { title: '라운지 관리', ...data });
+  const nk = req.user.nickname || req.user.name;
+  res.render('lounge/admin', { title: '라운지 관리', active: '', flash: null, me: { nick: nk }, nick: nk, ...data });
 });
 
 /* ---------------- 설정 ---------------- */
@@ -158,12 +172,7 @@ router.post('/admin/lounge/reviews/:id/status', async (req, res) => {
       WHERE id=$2 RETURNING user_id`,
     [status, req.params.id]
   );
-  let msg = '바꿨어요.';
-  if (status === 'approved' && rows[0] && rows[0].user_id) {
-    const got = await L.award(rows[0].user_id, 'review', { refId: Number(req.params.id) });
-    if (got) msg = `승인했어요. 작성자에게 ${got}P를 드렸어요.`;
-  }
-  go(res, 'reviews', msg);
+  go(res, 'reviews', rows[0] ? (status === 'approved' ? '승인했어요. 후기 페이지에 올라갔어요.' : '바꿨어요.') : '후기를 찾지 못했어요.');
 });
 router.post('/admin/lounge/reviews/new', async (req, res) => {
   const body = txt(req.body.body, 3000);
@@ -188,24 +197,25 @@ router.post('/admin/lounge/resources/save', async (req, res) => {
     title: txt(req.body.title, 120),
     description: txt(req.body.description, 300) || null,
     kind: ['pdf', 'video', 'link', 'text'].includes(req.body.kind) ? req.body.kind : 'link',
-    url: L.safeUrl(req.body.url) || null,
+    url: L.safeLink(req.body.url) || null,
     body: txt(req.body.body, 20000) || null,
-    cost: Math.max(0, int(req.body.cost) || 0),
-    is_welcome: req.body.is_welcome === '1',
+    section: txt(req.body.section_custom, 30) || txt(req.body.section, 30) || '무료 자료',
+    access: req.body.access === 'code' ? 'code' : 'member',
+    lock_note: txt(req.body.lock_note, 120) || null,
     sort_order: int(req.body.sort_order) || 100,
     is_active: req.body.is_active !== '0',
   };
   if (!f.title) return go(res, 'library', '제목을 넣어 주세요.');
   if (!f.url && !f.body) return go(res, 'library', '링크나 본문 중 하나는 넣어 주세요.');
-  const vals = [f.title, f.description, f.kind, f.url, f.body, f.cost, f.is_welcome, f.sort_order, f.is_active];
+  const vals = [f.title, f.description, f.kind, f.url, f.body, f.section, f.access, f.lock_note, f.sort_order, f.is_active];
   if (id) {
     await db.query(
-      `UPDATE lounge_resources SET title=$1, description=$2, kind=$3, url=$4, body=$5, cost=$6, is_welcome=$7, sort_order=$8, is_active=$9 WHERE id=$10`,
+      `UPDATE lounge_resources SET title=$1, description=$2, kind=$3, url=$4, body=$5, section=$6, access=$7, lock_note=$8, sort_order=$9, is_active=$10 WHERE id=$11`,
       [...vals, id]
     );
   } else {
     await db.query(
-      `INSERT INTO lounge_resources (title, description, kind, url, body, cost, is_welcome, sort_order, is_active) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+      `INSERT INTO lounge_resources (title, description, kind, url, body, section, access, lock_note, sort_order, is_active) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
       vals
     );
   }
@@ -327,16 +337,45 @@ router.post('/admin/lounge/cohorts/:id/template', async (req, res) => {
   go(res, 'challenge', `기본 미션 ${list.length}개를 넣었어요. (이미 있는 날은 건드리지 않았어요)`, `&c=${cid}`);
 });
 
-/* ---------------- 포인트 조정 ---------------- */
-router.post('/admin/lounge/points', async (req, res) => {
-  const uid = int(req.body.user_id);
-  const amount = int(req.body.amount);
-  if (!uid || !amount) return go(res, 'members', '회원과 포인트를 확인해 주세요.');
+/* ---------------- 프롬프트 갤러리 ---------------- */
+router.post('/admin/lounge/prompts/save', async (req, res) => {
+  const id = int(req.body.id);
+  const title = txt(req.body.title, 120);
+  const prompt = txt(req.body.prompt, 12000);
+  if (!title || !prompt) return go(res, 'prompts', '제목과 프롬프트를 넣어 주세요.', id ? `&edit=${id}` : '');
+  // 기존 사진 중 남길 것 + 새로 올린 사진
+  let keep = [].concat(req.body.keep || []).map((x) => parseInt(x, 10)).filter(Boolean);
+  const uploads = [].concat(req.body.images || []).filter(Boolean).slice(0, 8);
+  for (const d of uploads) {
+    const imgId = await L.saveImage(req.user.id, d);
+    if (imgId) keep.push(imgId);
+  }
+  keep = keep.slice(0, 8);
+  const f = [
+    title, L.PROMPT_CATS.includes(req.body.category) ? req.body.category : '기타', prompt,
+    txt(req.body.negative, 4000) || null, txt(req.body.model, 40) || null, txt(req.body.note, 300) || null,
+    keep, req.body.is_active !== '0',
+  ];
+  if (id) {
+    await db.query(
+      `UPDATE lounge_prompts SET title=$1, category=$2, prompt=$3, negative=$4, model=$5, note=$6, image_ids=$7, is_active=$8 WHERE id=$9`,
+      [...f, id]
+    );
+    return go(res, 'prompts', '프롬프트를 고쳤어요.');
+  }
   await db.query(
-    `INSERT INTO lounge_points (user_id, amount, reason, memo) VALUES ($1,$2,'admin',$3)`,
-    [uid, amount, txt(req.body.memo, 120) || (amount > 0 ? '운영자 지급' : '운영자 회수')]
+    `INSERT INTO lounge_prompts (title, category, prompt, negative, model, note, image_ids, is_active) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+    f
   );
-  go(res, 'members', `${amount > 0 ? '+' : ''}${amount}P 반영했어요.`, req.body.s ? `&s=${encodeURIComponent(req.body.s)}` : '');
+  go(res, 'prompts', '프롬프트를 올렸어요.');
+});
+router.post('/admin/lounge/prompts/:id/toggle', async (req, res) => {
+  await db.query(`UPDATE lounge_prompts SET is_active = NOT is_active WHERE id=$1`, [req.params.id]);
+  go(res, 'prompts', '바꿨어요.');
+});
+router.post('/admin/lounge/prompts/:id/delete', async (req, res) => {
+  await db.query(`DELETE FROM lounge_prompts WHERE id=$1`, [req.params.id]);
+  go(res, 'prompts', '지웠어요.');
 });
 
 /* ---------------- 기본 미션 (AI 블로그 14일) ---------------- */

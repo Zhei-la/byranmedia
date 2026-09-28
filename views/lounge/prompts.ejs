@@ -1,0 +1,84 @@
+<%- include('_top') %>
+<%
+  const qs = (o) => {
+    const base = { cat: cat, q: q, sort: sort === 'new' ? '' : sort, fav: fav ? '1' : '', page: '' };
+    const m = Object.assign(base, o);
+    const s = Object.entries(m).filter(e => e[1]).map(e => e[0] + '=' + encodeURIComponent(e[1])).join('&');
+    return '/prompts' + (s ? '?' + s : '');
+  };
+%>
+<section class="lg-wrap lg-pagehead lg-phead">
+  <p class="lg-kicker">AI Prompts · <%= all %> works</p>
+  <h1 class="lg-display sm">이미지 누르고,<br><em>프롬프트는 그대로 복사</em></h1>
+  <p class="lg-muted">AI로 만든 인물·화보·캐릭터 이미지와 그 프롬프트를 모았어요. 마음에 드는 이미지를 눌러 보세요.</p>
+</section>
+
+<section class="lg-wrap">
+  <a href="/prompts/builder" class="lg-builderbar">
+    <span>🪄</span>
+    <div><b>프롬프트 생성기로 나만의 프롬프트 만들기</b><small>패턴을 고르고 칸만 채우면 미드저니·챗지피티·Flux용 문장이 완성돼요</small></div>
+    <em>생성기 열기 →</em>
+  </a>
+
+  <form class="lg-pfilter" method="get" action="/prompts" role="search">
+    <div class="lg-pfilter-tabs">
+      <a href="<%= qs({ fav: '' }) %>" class="<%= !fav ? 'on' : '' %>">전체 <small><%= all %></small></a>
+      <% if (user) { %><a href="<%= qs({ fav: '1', page: '' }) %>" class="<%= fav ? 'on' : '' %>">♡ 즐겨찾기</a><% } %>
+    </div>
+    <div class="lg-pfilter-row">
+      <input type="search" name="q" value="<%= q %>" placeholder="프롬프트나 제목으로 검색" class="lg-in" aria-label="검색">
+      <% if (cat) { %><input type="hidden" name="cat" value="<%= cat %>"><% } %>
+      <select name="sort" class="lg-in" aria-label="정렬" onchange="this.form.submit()">
+        <option value="new" <%= sort === 'new' ? 'selected' : '' %>>최신순</option>
+        <option value="popular" <%= sort === 'popular' ? 'selected' : '' %>>많이 복사한 순</option>
+      </select>
+      <button class="lg-btn primary">검색</button>
+    </div>
+    <nav class="lg-chipnav" aria-label="카테고리">
+      <a href="<%= qs({ cat: '', page: '' }) %>" class="<%= !cat ? 'on' : '' %>">모든 카테고리</a>
+      <% L.PROMPT_CATS.forEach(function(c){ if (!catCount[c]) return; %>
+        <a href="<%= qs({ cat: c, page: '' }) %>" class="<%= cat === c ? 'on' : '' %>"><%= c %> <small><%= catCount[c] %></small></a>
+      <% }); %>
+    </nav>
+  </form>
+</section>
+
+<section class="lg-wrap lg-sec">
+  <% if (items.length) { %>
+    <div class="lg-pgrid">
+      <% items.forEach(function(p){ %>
+        <a href="/prompts/<%= p.id %>" class="lg-pcard">
+          <div class="lg-pcard-img">
+            <% if (p.image_ids.length) { %>
+              <img src="/u/img/<%= p.image_ids[0] %>" alt="<%= p.title %>" loading="lazy">
+              <% if (p.image_ids.length > 1) { %><span class="n">▣ <%= p.image_ids.length %></span><% } %>
+            <% } else { %>
+              <div class="lg-pcard-noimg">텍스트 프롬프트</div>
+            <% } %>
+          </div>
+          <div class="lg-pcard-meta"><span>NO. <%= String(p.id).padStart(3, '0') %></span><span><%= p.category %></span></div>
+          <b><%= p.title %></b>
+          <p class="lg-pcard-pre"><%= p.preview %>…</p>
+        </a>
+      <% }); %>
+    </div>
+    <% if (pages > 1) { %>
+      <nav class="lg-pager" aria-label="페이지">
+        <% for (let i = 1; i <= pages; i++) { if (pages > 9 && Math.abs(i - page) > 3 && i !== 1 && i !== pages) continue; %>
+          <a href="<%= qs({ page: i > 1 ? String(i) : '' }) %>" class="<%= i === page ? 'on' : '' %>"><%= i %></a>
+        <% } %>
+      </nav>
+    <% } %>
+  <% } else { %>
+    <div class="lg-card lg-empty">
+      <% if (fav) { %>
+        <b>아직 즐겨찾기한 프롬프트가 없어요</b><p>마음에 드는 프롬프트에서 ♡를 눌러 보세요.</p>
+      <% } else if (q || cat) { %>
+        <b>찾는 프롬프트가 없어요</b><p>다른 단어로 검색해 보세요.</p>
+      <% } else { %>
+        <b>프롬프트를 채우고 있어요</b><p>곧 올라와요. 그동안 <a href="/prompts/builder">프롬프트 생성기</a>로 직접 만들어 보세요!</p>
+      <% } %>
+    </div>
+  <% } %>
+</section>
+<%- include('_bottom') %>
