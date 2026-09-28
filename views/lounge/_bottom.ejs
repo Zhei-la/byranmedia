@@ -1,0 +1,59 @@
+</main>
+
+<footer class="lg-foot">
+  <div class="lg-foot-in">
+    <img src="/img/logo.png" alt="바이란미디어" height="18" class="lg-foot-logo">
+    <p>AI로 시작하는 1인 창업 · 바이란 라운지</p>
+    <p class="lg-foot-links">
+      <a href="/about">바이란미디어 소개</a>
+      <a href="/consult">1:1 상담</a>
+      <% if (user) { %>
+        <form method="post" action="/logout" class="inline"><button type="submit" class="lg-linkbtn">로그아웃</button></form>
+      <% } else { %>
+        <a href="/login">로그인</a>
+      <% } %>
+    </p>
+  </div>
+</footer>
+
+<nav class="lg-tabbar" aria-label="바로가기">
+  <a href="/" class="<%= active === 'home' ? 'on' : '' %>"><span class="i">⌂</span>홈</a>
+  <a href="/community" class="<%= active === 'community' ? 'on' : '' %>"><span class="i">💬</span>커뮤니티</a>
+  <a href="/challenge" class="<%= active === 'challenge' ? 'on' : '' %>"><span class="i">🔥</span>챌린지</a>
+  <a href="/library" class="<%= active === 'library' ? 'on' : '' %>"><span class="i">📚</span>자료실</a>
+  <a href="<%= user ? '/my' : '/login?next=/my' %>" class="<%= active === 'my' ? 'on' : '' %>"><span class="i">🙂</span>마이</a>
+</nav>
+
+<% if (user && me) { %>
+<!-- 성과 올리기 -->
+<dialog class="lg-modal" id="resultModal">
+  <form method="post" action="/results" class="lg-modal-in" data-image-form>
+    <div class="lg-modal-h">
+      <h3>성과 인증샷 올리기</h3>
+      <button type="button" class="lg-x" data-close aria-label="닫기">✕</button>
+    </div>
+    <p class="lg-modal-sub">수익·문의·팔로워 캡처를 올려 주세요. 하루 한 번 <b>+20P</b></p>
+    <label class="lg-drop" data-drop>
+      <input type="file" accept="image/*" data-file hidden>
+      <img alt="" data-preview hidden>
+      <span data-droptext>📷 사진 고르기</span>
+    </label>
+    <input type="hidden" name="image" data-image>
+    <div class="lg-chips" role="radiogroup" aria-label="어떤 성과인가요">
+      <% Object.keys(L.RESULT_KINDS).forEach(function(k, i){ %>
+        <label class="lg-chip"><input type="radio" name="kind" value="<%= k %>" <%= i === 0 ? 'checked' : '' %>><span><%= L.RESULT_KINDS[k].icon %> <%= L.RESULT_KINDS[k].label %></span></label>
+      <% }); %>
+    </div>
+    <label class="lg-lb" for="rh">한 줄로 적어 주세요</label>
+    <input id="rh" name="headline" maxlength="24" required placeholder="예: 첫 협찬 문의 / 월 30만 원" class="lg-in">
+    <label class="lg-lb" for="rc">무엇으로 냈나요 (선택)</label>
+    <input id="rc" name="channel" maxlength="20" placeholder="예: 블로그, 스레드" class="lg-in">
+    <p class="lg-hint">금액·연락처 등 가리고 싶은 정보는 올리기 전에 가려 주세요.</p>
+    <button type="submit" class="lg-btn primary block">올리기</button>
+  </form>
+</dialog>
+<% } %>
+
+<script src="/js/lounge.js?v=<%= assetVer %>" defer></script>
+</body>
+</html>

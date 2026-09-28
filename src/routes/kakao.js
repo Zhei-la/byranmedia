@@ -43,6 +43,10 @@ router.get(['/auth/kakao'], (req, res) => {
   const ref = String(req.query.ref || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
   req.session.refCode = ref ? ref.slice(0, 12) : null;
 
+  // 로그인 뒤에 돌아갈 화면
+  const nx = String(req.query.next || '');
+  req.session.returnTo = nx.startsWith('/') && !nx.startsWith('//') ? nx : null;
+
   const url = new URL('https://kauth.kakao.com/oauth/authorize');
   url.searchParams.set('client_id', KEY);
   url.searchParams.set('redirect_uri', redirectUri(req));
@@ -182,14 +186,24 @@ router.get('/auth/kakao/callback', async (req, res) => {
 
     await ensureCode(user.id);
 
+    const returnTo = req.session.returnTo || null;
+    delete req.session.returnTo;
+    let hasNick = false;
+    try {
+      const n = await db.query(`SELECT nickname FROM users WHERE id=$1`, [user.id]);
+      hasNick = !!(n.rows[0] && n.rows[0].nickname);
+    } catch (e) {}
+
     req.session.regenerate((err) => {
       if (err) return fail('로그인 처리 중 문제가 생겼습니다.');
       req.session.userId = user.id;
       db.query(`UPDATE users SET last_login_at = now() WHERE id = $1`, [user.id]).catch(() => {});
-      // 승인 전이고 추천인이 아직 없으면 물어본다. 링크로 이미 연결됐으면 건너뛴다.
-      if (user.status === 'active') return res.redirect('/hub');
-      if (!linkedByRef) return res.redirect('/welcome');
-      res.redirect('/pending');
+      // 라운지는 누구나 쓸 수 있다. 처음 온 사람은 닉네임부터 정한다.
+      // (도구 허브는 예전처럼 추천인 코드 → 승인 순서. 마이페이지에서 신청)
+      if (!hasNick) {
+        return res.redirect('/onboard' + (returnTo ? `?next=${encodeURIComponent(returnTo)}` : ''));
+      }
+      res.redirect(returnTo || '/');
     });
   } catch (e) {
     console.error('[카카오 콜백]', e);

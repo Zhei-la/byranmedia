@@ -1,0 +1,78 @@
+<%- include('_top') %>
+<% const KIND = { pdf: 'PDF', video: '강의', link: '링크', text: '읽을거리' }; %>
+<section class="lg-wrap lg-pagehead">
+  <p class="lg-kicker">Library</p>
+  <h1 class="lg-h1">포인트로 하나씩 여는 자료실</h1>
+  <p class="lg-muted">출석하고 인증하며 모은 포인트로 자료를 열어요. 연 자료는 보관함에 계속 남아요.</p>
+</section>
+
+<section class="lg-wrap lg-cols">
+  <div class="lg-col-main">
+    <% if (!user) { %>
+      <div class="lg-lockcard">
+        <span>🔒</span>
+        <div><b>자료실은 회원만 열 수 있어요</b><p>가입하면 가입 선물 자료가 바로 보관함에 들어가요.</p></div>
+        <a href="/login?next=/library" class="lg-btn kakao sm">시작하기</a>
+      </div>
+    <% } %>
+
+    <% if (items.length) { %>
+      <div class="lg-lib">
+        <% items.forEach(function(r){ %>
+          <div class="lg-libitem <%= r.owned ? 'owned' : '' %>">
+            <span class="lg-gift-k"><%= KIND[r.kind] || '자료' %></span>
+            <h3><%= r.title %></h3>
+            <% if (r.description) { %><p><%= r.description %></p><% } %>
+            <div class="lg-libitem-f">
+              <% if (r.owned) { %>
+                <span class="lg-tag ok"><%= r.is_welcome ? '🎁 가입 선물' : '열림' %></span>
+                <a href="/library/<%= r.id %>" class="lg-btn primary sm">열어보기</a>
+              <% } else if (!user) { %>
+                <span class="lg-cost"><%= r.is_welcome ? '🎁 가입 선물' : (r.cost ? r.cost.toLocaleString() + 'P' : '무료') %></span>
+                <a href="/login?next=/library" class="lg-btn sm">가입하고 받기</a>
+              <% } else { %>
+                <span class="lg-cost"><%= r.cost ? '🔒 ' + r.cost.toLocaleString() + 'P' : '무료' %></span>
+                <form method="post" action="/library/<%= r.id %>/unlock" class="inline" <% if (r.cost) { %>data-confirm="<%= r.cost %>P를 써서 열까요?"<% } %>>
+                  <button class="lg-btn sm <%= me && me.balance >= r.cost ? 'primary' : '' %>" <%= me && me.balance < r.cost ? 'disabled' : '' %>>
+                    <%= me && me.balance < r.cost ? (r.cost - me.balance).toLocaleString() + 'P 더 필요' : (r.cost ? '포인트로 열기' : '받기') %>
+                  </button>
+                </form>
+              <% } %>
+            </div>
+          </div>
+        <% }); %>
+      </div>
+    <% } else { %>
+      <div class="lg-card lg-empty">
+        <b>자료를 준비하고 있어요</b>
+        <p>곧 강의·PDF·체크리스트가 올라와요. 그동안 출석으로 포인트를 모아 두세요!</p>
+      </div>
+    <% } %>
+  </div>
+
+  <aside class="lg-col-side">
+    <% if (user && me) { %>
+      <div class="lg-card lg-pointcard">
+        <p class="lg-muted">내 포인트</p>
+        <p class="lg-bignum"><%= me.balance.toLocaleString() %><small>P</small></p>
+        <p class="lg-muted"><%= me.tier.icon %> <%= me.tier.name %> · 지금까지 <%= me.earned.toLocaleString() %>P 모음</p>
+        <ul class="lg-ledger">
+          <% history.forEach(function(h){ %>
+            <li><span><%= L.REASON_LABEL[h.reason] || h.reason %><% if (h.memo) { %> <small>· <%= h.memo %></small><% } %></span><b class="<%= h.amount < 0 ? 'minus' : '' %>"><%= h.amount > 0 ? '+' : '' %><%= h.amount %></b></li>
+          <% }); %>
+          <% if (!history.length) { %><li class="lg-muted">아직 기록이 없어요</li><% } %>
+        </ul>
+      </div>
+    <% } %>
+    <div class="lg-card">
+      <h3 class="lg-h3">포인트 모으는 법</h3>
+      <ul class="lg-rulelist">
+        <% ['attend','proof','hello','result','mission','review','comment'].forEach(function(k){ var r = L.RULES[k]; %>
+          <li><span><%= r.label %></span><b>+<%= r.amount %>P</b></li>
+        <% }); %>
+      </ul>
+      <p class="lg-hint">출석·인증·성과는 하루 한 번, 댓글은 하루 5번까지 쌓여요.</p>
+    </div>
+  </aside>
+</section>
+<%- include('_bottom') %>

@@ -1,0 +1,133 @@
+<%- include('_top') %>
+<%
+  const CATS = L.CATEGORIES;
+  const qs = (o) => '?' + Object.entries(Object.assign({ cat: cat === 'all' ? '' : cat, page: '' }, o)).filter(e => e[1]).map(e => e[0] + '=' + encodeURIComponent(e[1])).join('&');
+  const isAdmin = user && user.role === 'admin';
+%>
+<section class="lg-wrap lg-pagehead">
+  <p class="lg-kicker">Community</p>
+  <h1 class="lg-h1">커뮤니티</h1>
+  <p class="lg-muted">가입 인사, 오늘의 인증, 질문까지. 편하게 남겨 주세요.</p>
+  <% if (S.live_room_url) { %>
+    <a href="<%= S.live_room_url %>" target="_blank" rel="noopener" class="lg-liveroom">
+      💬 전체 카톡방 들어가기<% if (S.live_room_code) { %> · 참여코드 <b><%= S.live_room_code %></b><% } %> →
+    </a>
+  <% } %>
+</section>
+
+<section class="lg-wrap lg-cols">
+  <div class="lg-col-main">
+    <% if (!user) { %>
+      <div class="lg-lockcard">
+        <span>🔒</span>
+        <div><b>가입하면 글쓰기·댓글·채팅을 할 수 있어요</b><p>카카오로 3초면 끝나요.</p></div>
+        <a href="/login?next=/community" class="lg-btn kakao sm">시작하기</a>
+      </div>
+    <% } else if (me) { %>
+      <details class="lg-card lg-write" <%= write ? 'open' : '' %> id="write">
+        <summary>
+          <span class="lg-ava"><%= nick.slice(0,1) %></span>
+          <span class="lg-write-ph">오늘 한 일을 남겨 보세요…</span>
+          <span class="lg-btn primary sm">글쓰기</span>
+        </summary>
+        <form method="post" action="/community" data-image-form class="lg-write-form">
+          <div class="lg-chips" role="radiogroup" aria-label="분류">
+            <% Object.keys(CATS).forEach(function(k){ if (k === 'notice' && !isAdmin) return; %>
+              <label class="lg-chip"><input type="radio" name="category" value="<%= k %>" <%= writeCat === k ? 'checked' : '' %>><span><%= CATS[k].label %><% if (k === 'proof') { %> <em>+20P</em><% } else if (k === 'hello') { %> <em>+30P</em><% } %></span></label>
+            <% }); %>
+          </div>
+          <input name="title" class="lg-in" maxlength="120" required placeholder="제목">
+          <textarea name="body" class="lg-in" rows="6" maxlength="5000" required placeholder="오늘의 인증 예시)&#10;- 블로그 글 1개 발행 (링크)&#10;- 제목을 3번 고쳐 봤어요&#10;- 내일은 키워드 찾기!"></textarea>
+          <div class="lg-write-foot">
+            <label class="lg-btn sm ghost lg-filebtn">📷 사진<input type="file" accept="image/*" data-file hidden></label>
+            <img alt="" data-preview hidden class="lg-thumb">
+            <input type="hidden" name="image" data-image>
+            <% if (isAdmin) { %><label class="lg-check"><input type="checkbox" name="pinned" value="1"> 공지 고정</label><% } %>
+            <span class="lg-grow"></span>
+            <button type="submit" class="lg-btn primary">올리기</button>
+          </div>
+          <p class="lg-hint">1:1 문의는 운영자만 볼 수 있어요. 인증 포인트는 하루 한 번 들어와요.</p>
+        </form>
+      </details>
+    <% } %>
+
+    <nav class="lg-tabs" aria-label="분류">
+      <a href="/community" class="<%= cat === 'all' ? 'on' : '' %>">전체</a>
+      <% Object.keys(CATS).forEach(function(k){ %>
+        <a href="/community?cat=<%= k %>" class="<%= cat === k ? 'on' : '' %>"><%= CATS[k].label %></a>
+      <% }); %>
+    </nav>
+
+    <div class="lg-card flush">
+      <ul class="lg-board">
+        <% pinned.forEach(function(p){ %>
+          <li class="notice">
+            <a href="/community/<%= p.id %>">
+              <span class="lg-cat c-notice">공지</span>
+              <span class="t"><%= p.title %><% if (p.comments) { %> <em>[<%= p.comments %>]</em><% } %></span>
+              <span class="m"><%= p.nick %> · <%= L.ago(p.created_at) %> · 조회 <%= p.views %></span>
+            </a>
+          </li>
+        <% }); %>
+        <% posts.forEach(function(p){ var c = CATS[p.category] || {label:'자유'}; var mine = user && (user.id === p.user_id || isAdmin); %>
+          <li>
+            <a href="/community/<%= p.id %>">
+              <span class="lg-cat c-<%= p.category %>"><%= c.label %></span>
+              <span class="t">
+                <% if (p.category === 'secret' && !mine) { %>🔒 비밀글입니다<% } else { %><%= p.category === 'secret' ? '🔒 ' : '' %><%= p.title %><% } %>
+                <% if (p.image_id) { %> <span class="lg-muted" title="사진 있음">📷</span><% } %>
+                <% if (p.comments) { %> <em>[<%= p.comments %>]</em><% } %>
+              </span>
+              <span class="m"><%= p.nick %> <%= L.tierOf(p.earned).icon %> · <%= L.ago(p.created_at) %> · ♥ <%= p.likes %></span>
+            </a>
+          </li>
+        <% }); %>
+        <% if (!pinned.length && !posts.length) { %>
+          <li class="lg-empty-row">아직 글이 없어요. 첫 글을 남겨 주세요!</li>
+        <% } %>
+      </ul>
+    </div>
+
+    <% if (pages > 1) { %>
+      <nav class="lg-pager" aria-label="페이지">
+        <% for (let i = 1; i <= pages; i++) { if (pages > 9 && Math.abs(i - page) > 3 && i !== 1 && i !== pages) continue; %>
+          <a href="/community<%= qs({ page: i > 1 ? String(i) : '' }) %>" class="<%= i === page ? 'on' : '' %>"><%= i %></a>
+        <% } %>
+      </nav>
+    <% } %>
+  </div>
+
+  <aside class="lg-col-side">
+    <div class="lg-card lg-chat tall" data-chat data-after="<%= chat.length ? chat[chat.length-1].id : 0 %>" data-login="<%= user && me ? '1' : '' %>">
+      <div class="lg-card-h">
+        <h3># 실시간 수다방</h3>
+        <span class="lg-live"><i></i> <span data-online>지금</span></span>
+      </div>
+      <ul class="lg-chat-list" data-list>
+        <% chat.forEach(function(m){ %>
+          <li><b class="<%= m.role === 'admin' ? 'admin' : '' %>"><%= m.nick %></b><span><%= m.body %></span></li>
+        <% }); %>
+        <% if (!chat.length) { %><li class="lg-muted" data-emptyrow>아직 조용해요. 첫 인사를 남겨 주세요!</li><% } %>
+      </ul>
+      <% if (user && me) { %>
+        <form class="lg-chat-form" data-chatform>
+          <input name="body" maxlength="300" placeholder="메시지 보내기" autocomplete="off" aria-label="채팅 메시지">
+          <button class="lg-btn primary sm">전송</button>
+        </form>
+      <% } else { %>
+        <a href="/login?next=/community" class="lg-chat-lock">🔒 가입하면 같이 이야기할 수 있어요</a>
+      <% } %>
+    </div>
+    <% if (user && me) { %>
+      <div class="lg-card lg-mini-me">
+        <p><%= me.tier.icon %> <b><%= nick %></b> · <%= me.balance.toLocaleString() %>P</p>
+        <% if (!me.attended_today) { %>
+          <form method="post" action="/attend"><button class="lg-btn primary block sm">오늘 출석하기 +10P</button></form>
+        <% } else { %>
+          <p class="lg-muted">오늘 출석 완료 · 연속 <%= me.streak %>일</p>
+        <% } %>
+      </div>
+    <% } %>
+  </aside>
+</section>
+<%- include('_bottom') %>

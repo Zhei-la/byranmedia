@@ -1,0 +1,360 @@
+/* 바이란 라운지: 운영자 화면 */
+const express = require('express');
+const db = require('../db');
+const L = require('./core');
+const { requireAdmin } = require('../middleware/auth');
+
+const router = express.Router();
+router.use('/admin/lounge', requireAdmin);
+
+const TABS = ['home', 'board', 'reviews', 'library', 'store', 'challenge', 'members'];
+const go = (res, tab, msg, extra = '') =>
+  res.redirect(`/admin/lounge?tab=${tab}${msg ? '&msg=' + encodeURIComponent(msg) : ''}${extra}`);
+const int = (v) => (v === '' || v == null ? null : parseInt(v, 10));
+const txt = (v, n = 500) => String(v == null ? '' : v).trim().slice(0, n);
+
+router.get('/admin/lounge', async (req, res) => {
+  const tab = TABS.includes(req.query.tab) ? req.query.tab : 'home';
+  const q = (sql, p) => db.query(sql, p).then((r) => r.rows);
+  const data = { tab, msg: req.query.msg || null, L, S: await L.settings() };
+
+  const [counts] = await q(
+    `SELECT (SELECT count(*) FROM users WHERE nickname IS NOT NULL)::int AS members,
+            (SELECT count(*) FROM users WHERE lounge_at > now() - interval '7 days')::int AS new7,
+            (SELECT count(*) FROM lounge_points WHERE reason='attend' AND day=(now() AT TIME ZONE 'Asia/Seoul')::date)::int AS attend,
+            (SELECT count(*) FROM lounge_posts WHERE is_hidden=false)::int AS posts,
+            (SELECT count(*) FROM lounge_reviews WHERE status='pending')::int AS pending_reviews,
+            (SELECT count(*) FROM lounge_reports WHERE resolved=false)::int AS reports,
+            (SELECT count(*) FROM lounge_cohort_members WHERE status='pending')::int AS pending_members`
+  );
+  data.counts = counts;
+
+  if (tab === 'board') {
+    data.reports = await q(
+      `SELECT r.*, COALESCE(u.nickname,u.name) AS reporter,
+              CASE r.target_type
+                WHEN 'post' THEN (SELECT title FROM lounge_posts WHERE id=r.target_id)
+                WHEN 'comment' THEN (SELECT left(body,80) FROM lounge_comments WHERE id=r.target_id)
+                WHEN 'chat' THEN (SELECT left(body,80) FROM lounge_chat WHERE id=r.target_id)
+                WHEN 'result' THEN (SELECT headline FROM lounge_results WHERE id=r.target_id)
+              END AS preview,
+              CASE r.target_type WHEN 'comment' THEN (SELECT post_id FROM lounge_comments WHERE id=r.target_id) END AS post_id
+         FROM lounge_reports r LEFT JOIN users u ON u.id=r.user_id
+        WHERE r.resolved=false ORDER BY r.created_at DESC LIMIT 100`
+    );
+    data.posts = await q(
+      `SELECT p.id, p.category, p.title, p.is_pinned, p.is_hidden, p.created_at, COALESCE(u.nickname,u.name) AS nick
+         FROM lounge_posts p LEFT JOIN users u ON u.id=p.user_id ORDER BY p.created_at DESC LIMIT 60`
+    );
+    data.chat = await q(
+      `SELECT c.id, c.body, c.is_hidden, c.created_at, COALESCE(u.nickname,u.name) AS nick
+         FROM lounge_chat c JOIN users u ON u.id=c.user_id ORDER BY c.id DESC LIMIT 40`
+    );
+    data.results = await q(
+      `SELECT r.id, r.headline, r.kind, r.image_id, r.is_hidden, COALESCE(u.nickname,u.name) AS nick
+         FROM lounge_results r JOIN users u ON u.id=r.user_id ORDER BY r.id DESC LIMIT 30`
+    );
+  }
+  if (tab === 'reviews') {
+    data.reviews = await q(
+      `SELECT r.*, COALESCE(r.author_name, u.nickname, u.name) AS nick, p.title AS product
+         FROM lounge_reviews r LEFT JOIN users u ON u.id=r.user_id LEFT JOIN lounge_products p ON p.id=r.product_id
+        ORDER BY (r.status='pending') DESC, r.created_at DESC LIMIT 150`
+    );
+    data.products = await q(`SELECT id, title FROM lounge_products ORDER BY sort_order, id`);
+  }
+  if (tab === 'library') {
+    data.resources = await q(
+      `SELECT r.*, (SELECT count(*) FROM lounge_unlocks x WHERE x.resource_id=r.id)::int AS opened
+         FROM lounge_resources r ORDER BY r.is_active DESC, r.is_welcome DESC, r.sort_order, r.id`
+    );
+    data.edit = req.query.edit ? data.resources.find((x) => x.id === Number(req.query.edit)) || null : null;
+  }
+  if (tab === 'store') {
+    data.products = await q(`SELECT * FROM lounge_products ORDER BY is_active DESC, sort_order, id`);
+    data.resources = await q(`SELECT id, title FROM lounge_resources ORDER BY title`);
+    data.edit = req.query.edit ? data.products.find((x) => x.id === Number(req.query.edit)) || null : null;
+  }
+  if (tab === 'challenge') {
+    data.cohorts = await q(
+      `SELECT c.*, (SELECT count(*) FROM lounge_cohort_members m WHERE m.cohort_id=c.id AND m.status='approved')::int AS approved,
+              (SELECT count(*) FROM lounge_cohort_members m WHERE m.cohort_id=c.id AND m.status='pending')::int AS pending,
+              (SELECT count(*) FROM lounge_missions m WHERE m.cohort_id=c.id)::int AS missions
+         FROM lounge_cohorts c ORDER BY c.start_date DESC, c.id DESC`
+    );
+    const cid = Number(req.query.c) || (data.cohorts[0] && data.cohorts[0].id) || 0;
+    data.cur = data.cohorts.find((c) => c.id === cid) || null;
+    data.editCohort = req.query.editc ? data.cohorts.find((c) => c.id === Number(req.query.editc)) || null : null;
+    if (data.cur) {
+      data.members = await q(
+        `SELECT m.*, COALESCE(u.nickname,u.name) AS nick, u.name AS realname,
+                (SELECT count(*) FROM lounge_submissions s WHERE s.cohort_id=m.cohort_id AND s.user_id=m.user_id)::int AS done
+           FROM lounge_cohort_members m JOIN users u ON u.id=m.user_id
+          WHERE m.cohort_id=$1 ORDER BY (m.status='pending') DESC, m.created_at`,
+        [data.cur.id]
+      );
+      data.missions = await q(`SELECT * FROM lounge_missions WHERE cohort_id=$1 ORDER BY day`, [data.cur.id]);
+      data.subs = await q(
+        `SELECT s.*, m.day, COALESCE(u.nickname,u.name) AS nick FROM lounge_submissions s
+           JOIN lounge_missions m ON m.id=s.mission_id JOIN users u ON u.id=s.user_id
+          WHERE s.cohort_id=$1 ORDER BY s.created_at DESC LIMIT 60`,
+        [data.cur.id]
+      );
+    }
+  }
+  if (tab === 'members') {
+    const s = txt(req.query.s, 40);
+    data.s = s;
+    data.members = await q(
+      `SELECT u.id, u.name, u.nickname, u.interest, u.status, u.lounge_at,
+              COALESCE((SELECT sum(amount) FROM lounge_points p WHERE p.user_id=u.id),0)::int AS balance,
+              COALESCE((SELECT sum(amount) FILTER (WHERE amount>0) FROM lounge_points p WHERE p.user_id=u.id),0)::int AS earned,
+              (SELECT count(*) FROM lounge_points p WHERE p.user_id=u.id AND p.reason='attend')::int AS attends
+         FROM users u
+        WHERE u.nickname IS NOT NULL ${s ? `AND (u.nickname ILIKE $1 OR u.name ILIKE $1)` : ''}
+        ORDER BY u.lounge_at DESC NULLS LAST LIMIT 200`,
+      s ? [`%${s}%`] : []
+    );
+  }
+  res.render('lounge/admin', { title: '라운지 관리', ...data });
+});
+
+/* ---------------- 설정 ---------------- */
+router.post('/admin/lounge/settings', async (req, res) => {
+  await L.saveSettings(req.body);
+  go(res, 'home', '설정을 저장했어요.');
+});
+
+/* ---------------- 게시판 · 신고 ---------------- */
+router.post('/admin/lounge/posts/:id/toggle', async (req, res) => {
+  const f = req.body.field === 'pin' ? 'is_pinned' : 'is_hidden';
+  await db.query(`UPDATE lounge_posts SET ${f} = NOT ${f} WHERE id=$1`, [req.params.id]);
+  go(res, 'board', '바꿨어요.');
+});
+router.post('/admin/lounge/chat/:id/toggle', async (req, res) => {
+  await db.query(`UPDATE lounge_chat SET is_hidden = NOT is_hidden WHERE id=$1`, [req.params.id]);
+  go(res, 'board', '바꿨어요.');
+});
+router.post('/admin/lounge/results/:id/toggle', async (req, res) => {
+  await db.query(`UPDATE lounge_results SET is_hidden = NOT is_hidden WHERE id=$1`, [req.params.id]);
+  go(res, 'board', '바꿨어요.');
+});
+router.post('/admin/lounge/reports/:id', async (req, res) => {
+  const { rows } = await db.query(`SELECT * FROM lounge_reports WHERE id=$1`, [req.params.id]);
+  const r = rows[0];
+  if (r && req.body.action === 'hide') {
+    const table = { post: 'lounge_posts', comment: 'lounge_comments', chat: 'lounge_chat', result: 'lounge_results' }[r.target_type];
+    if (table) await db.query(`UPDATE ${table} SET is_hidden=true WHERE id=$1`, [r.target_id]);
+  }
+  if (r) await db.query(`UPDATE lounge_reports SET resolved=true WHERE target_type=$1 AND target_id=$2`, [r.target_type, r.target_id]);
+  go(res, 'board', req.body.action === 'hide' ? '숨기고 처리했어요.' : '그대로 두고 처리했어요.');
+});
+
+/* ---------------- 후기 ---------------- */
+router.post('/admin/lounge/reviews/:id/status', async (req, res) => {
+  const status = ['approved', 'rejected', 'pending'].includes(req.body.status) ? req.body.status : 'pending';
+  const { rows } = await db.query(
+    `UPDATE lounge_reviews SET status=$1, approved_at = CASE WHEN $1='approved' THEN COALESCE(approved_at, now()) ELSE approved_at END
+      WHERE id=$2 RETURNING user_id`,
+    [status, req.params.id]
+  );
+  let msg = '바꿨어요.';
+  if (status === 'approved' && rows[0] && rows[0].user_id) {
+    const got = await L.award(rows[0].user_id, 'review', { refId: Number(req.params.id) });
+    if (got) msg = `승인했어요. 작성자에게 ${got}P를 드렸어요.`;
+  }
+  go(res, 'reviews', msg);
+});
+router.post('/admin/lounge/reviews/new', async (req, res) => {
+  const body = txt(req.body.body, 3000);
+  const author = txt(req.body.author_name, 40);
+  if (!body || !author) return go(res, 'reviews', '이름과 내용을 모두 넣어 주세요.');
+  await db.query(
+    `INSERT INTO lounge_reviews (author_name, product_id, rating, industry, body, status, approved_at)
+     VALUES ($1,$2,$3,$4,$5,'approved', now())`,
+    [author, int(req.body.product_id), Math.min(5, Math.max(1, int(req.body.rating) || 5)), txt(req.body.industry, 40) || null, body]
+  );
+  go(res, 'reviews', '후기를 올렸어요.');
+});
+router.post('/admin/lounge/reviews/:id/delete', async (req, res) => {
+  await db.query(`DELETE FROM lounge_reviews WHERE id=$1`, [req.params.id]);
+  go(res, 'reviews', '지웠어요.');
+});
+
+/* ---------------- 자료실 ---------------- */
+router.post('/admin/lounge/resources/save', async (req, res) => {
+  const id = int(req.body.id);
+  const f = {
+    title: txt(req.body.title, 120),
+    description: txt(req.body.description, 300) || null,
+    kind: ['pdf', 'video', 'link', 'text'].includes(req.body.kind) ? req.body.kind : 'link',
+    url: L.safeUrl(req.body.url) || null,
+    body: txt(req.body.body, 20000) || null,
+    cost: Math.max(0, int(req.body.cost) || 0),
+    is_welcome: req.body.is_welcome === '1',
+    sort_order: int(req.body.sort_order) || 100,
+    is_active: req.body.is_active !== '0',
+  };
+  if (!f.title) return go(res, 'library', '제목을 넣어 주세요.');
+  if (!f.url && !f.body) return go(res, 'library', '링크나 본문 중 하나는 넣어 주세요.');
+  const vals = [f.title, f.description, f.kind, f.url, f.body, f.cost, f.is_welcome, f.sort_order, f.is_active];
+  if (id) {
+    await db.query(
+      `UPDATE lounge_resources SET title=$1, description=$2, kind=$3, url=$4, body=$5, cost=$6, is_welcome=$7, sort_order=$8, is_active=$9 WHERE id=$10`,
+      [...vals, id]
+    );
+  } else {
+    await db.query(
+      `INSERT INTO lounge_resources (title, description, kind, url, body, cost, is_welcome, sort_order, is_active) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+      vals
+    );
+  }
+  go(res, 'library', '자료를 저장했어요.');
+});
+router.post('/admin/lounge/resources/:id/delete', async (req, res) => {
+  await db.query(`DELETE FROM lounge_resources WHERE id=$1`, [req.params.id]);
+  go(res, 'library', '지웠어요.');
+});
+
+/* ---------------- 스토어 ---------------- */
+router.post('/admin/lounge/products/save', async (req, res) => {
+  const id = int(req.body.id);
+  const f = [
+    txt(req.body.title, 120), txt(req.body.subtitle, 200) || null, txt(req.body.kind, 40) || null,
+    txt(req.body.badge, 12) || null, txt(req.body.price_text, 40) || null,
+    int(req.body.point_price) || null, int(req.body.resource_id) || null,
+    L.safeUrl(req.body.buy_url) || null, txt(req.body.cta_label, 20) || null,
+    req.body.is_challenge === '1', int(req.body.sort_order) || 100, req.body.is_active !== '0',
+  ];
+  if (!f[0]) return go(res, 'store', '상품 이름을 넣어 주세요.');
+  if (id) {
+    await db.query(
+      `UPDATE lounge_products SET title=$1, subtitle=$2, kind=$3, badge=$4, price_text=$5, point_price=$6, resource_id=$7,
+              buy_url=$8, cta_label=$9, is_challenge=$10, sort_order=$11, is_active=$12 WHERE id=$13`,
+      [...f, id]
+    );
+  } else {
+    await db.query(
+      `INSERT INTO lounge_products (title, subtitle, kind, badge, price_text, point_price, resource_id, buy_url, cta_label, is_challenge, sort_order, is_active)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
+      f
+    );
+  }
+  go(res, 'store', '상품을 저장했어요.');
+});
+router.post('/admin/lounge/products/:id/delete', async (req, res) => {
+  await db.query(`DELETE FROM lounge_products WHERE id=$1`, [req.params.id]);
+  go(res, 'store', '지웠어요.');
+});
+
+/* ---------------- 챌린지 ---------------- */
+router.post('/admin/lounge/cohorts/save', async (req, res) => {
+  const id = int(req.body.id);
+  const f = [
+    txt(req.body.name, 20), txt(req.body.title, 120), txt(req.body.intro, 3000) || null,
+    txt(req.body.start_date, 10), Math.min(60, Math.max(1, int(req.body.days) || 14)),
+    L.safeUrl(req.body.kakao_url) || null,
+    ['recruiting', 'running', 'ended'].includes(req.body.status) ? req.body.status : 'recruiting',
+  ];
+  if (!f[0] || !f[1] || !/^\d{4}-\d{2}-\d{2}$/.test(f[3])) return go(res, 'challenge', '기수 이름, 제목, 시작일을 넣어 주세요.');
+  let cid = id;
+  if (id) {
+    await db.query(
+      `UPDATE lounge_cohorts SET name=$1, title=$2, intro=$3, start_date=$4, days=$5, kakao_url=$6, status=$7 WHERE id=$8`,
+      [...f, id]
+    );
+  } else {
+    const { rows } = await db.query(
+      `INSERT INTO lounge_cohorts (name, title, intro, start_date, days, kakao_url, status) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id`,
+      f
+    );
+    cid = rows[0].id;
+  }
+  go(res, 'challenge', '기수를 저장했어요.', `&c=${cid}`);
+});
+router.post('/admin/lounge/cohorts/:id/delete', async (req, res) => {
+  await db.query(`DELETE FROM lounge_cohorts WHERE id=$1`, [req.params.id]);
+  go(res, 'challenge', '기수를 지웠어요.');
+});
+router.post('/admin/lounge/cohorts/:id/members/:uid', async (req, res) => {
+  const act = req.body.action;
+  if (act === 'remove') {
+    await db.query(`DELETE FROM lounge_cohort_members WHERE cohort_id=$1 AND user_id=$2`, [req.params.id, req.params.uid]);
+  } else {
+    const st = act === 'approve' ? 'approved' : 'rejected';
+    await db.query(`UPDATE lounge_cohort_members SET status=$1 WHERE cohort_id=$2 AND user_id=$3`, [st, req.params.id, req.params.uid]);
+  }
+  go(res, 'challenge', '처리했어요.', `&c=${req.params.id}`);
+});
+router.post('/admin/lounge/cohorts/:id/add', async (req, res) => {
+  // 닉네임으로 직접 참가자 추가 (카톡으로 결제 확인한 경우 등)
+  const { rows } = await db.query(`SELECT id FROM users WHERE lower(nickname)=lower($1)`, [txt(req.body.nickname, 20)]);
+  if (!rows[0]) return go(res, 'challenge', '그 닉네임의 회원을 찾지 못했어요.', `&c=${req.params.id}`);
+  await db.query(
+    `INSERT INTO lounge_cohort_members (cohort_id, user_id, status, order_no) VALUES ($1,$2,'approved','운영자 추가')
+     ON CONFLICT (cohort_id, user_id) DO UPDATE SET status='approved'`,
+    [req.params.id, rows[0].id]
+  );
+  go(res, 'challenge', '참가자로 넣었어요.', `&c=${req.params.id}`);
+});
+router.post('/admin/lounge/missions/save', async (req, res) => {
+  const cid = int(req.body.cohort_id);
+  const day = int(req.body.day);
+  const title = txt(req.body.title, 120);
+  if (!cid || !day || !title) return go(res, 'challenge', '날짜와 미션 제목을 넣어 주세요.', `&c=${cid}`);
+  await db.query(
+    `INSERT INTO lounge_missions (cohort_id, day, title, body) VALUES ($1,$2,$3,$4)
+     ON CONFLICT (cohort_id, day) DO UPDATE SET title=EXCLUDED.title, body=EXCLUDED.body`,
+    [cid, day, title, txt(req.body.body, 5000) || null]
+  );
+  go(res, 'challenge', `Day ${day} 미션을 저장했어요.`, `&c=${cid}`);
+});
+router.post('/admin/lounge/missions/:id/delete', async (req, res) => {
+  const { rows } = await db.query(`DELETE FROM lounge_missions WHERE id=$1 RETURNING cohort_id`, [req.params.id]);
+  go(res, 'challenge', '미션을 지웠어요.', rows[0] ? `&c=${rows[0].cohort_id}` : '');
+});
+router.post('/admin/lounge/cohorts/:id/template', async (req, res) => {
+  const cid = int(req.params.id);
+  const { rows } = await db.query(`SELECT days FROM lounge_cohorts WHERE id=$1`, [cid]);
+  if (!rows[0]) return go(res, 'challenge', '기수를 찾지 못했어요.');
+  const list = MISSION_TEMPLATE.slice(0, rows[0].days);
+  for (let i = 0; i < list.length; i++) {
+    await db.query(
+      `INSERT INTO lounge_missions (cohort_id, day, title, body) VALUES ($1,$2,$3,$4) ON CONFLICT (cohort_id, day) DO NOTHING`,
+      [cid, i + 1, list[i][0], list[i][1]]
+    );
+  }
+  go(res, 'challenge', `기본 미션 ${list.length}개를 넣었어요. (이미 있는 날은 건드리지 않았어요)`, `&c=${cid}`);
+});
+
+/* ---------------- 포인트 조정 ---------------- */
+router.post('/admin/lounge/points', async (req, res) => {
+  const uid = int(req.body.user_id);
+  const amount = int(req.body.amount);
+  if (!uid || !amount) return go(res, 'members', '회원과 포인트를 확인해 주세요.');
+  await db.query(
+    `INSERT INTO lounge_points (user_id, amount, reason, memo) VALUES ($1,$2,'admin',$3)`,
+    [uid, amount, txt(req.body.memo, 120) || (amount > 0 ? '운영자 지급' : '운영자 회수')]
+  );
+  go(res, 'members', `${amount > 0 ? '+' : ''}${amount}P 반영했어요.`, req.body.s ? `&s=${encodeURIComponent(req.body.s)}` : '');
+});
+
+/* ---------------- 기본 미션 (AI 블로그 14일) ---------------- */
+const MISSION_TEMPLATE = [
+  ['내 블로그 방향 한 줄로 정하기', '누구에게, 어떤 글을, 왜 쓰는지 한 줄로 적어 주세요.\n예) "울산 사는 30대 직장인에게, 퇴근 후 할 수 있는 부업 이야기를"'],
+  ['프로필·블로그 이름 다듬기', '블로그 이름, 소개글, 프로필 사진을 방향에 맞게 바꾸고 캡처나 링크를 올려 주세요.'],
+  ['글감 10개 뽑기', 'AI에게 내 방향을 알려주고 글감 20개를 받은 뒤, 내가 진짜 쓸 수 있는 10개만 골라 적어 주세요.'],
+  ['첫 글 쓰기', '글감 하나로 첫 글을 올리고 링크를 제출해 주세요. 완벽하지 않아도 됩니다.'],
+  ['제목 3가지로 바꿔보기', '어제 글의 제목을 3가지 버전으로 다시 써 보고, 가장 마음에 드는 걸 골라 이유를 적어 주세요.'],
+  ['AI 초안 → 내 말투로 고치기', 'AI 초안을 받은 뒤 내 경험 한 줄, 내 말투로 고친 문장 세 군데를 표시해서 올려 주세요.'],
+  ['두 번째 글 올리기', '첫 주 마무리! 두 번째 글 링크를 올려 주세요.'],
+  ['한 주 돌아보기', '이번 주에 막힌 점 하나, 잘된 점 하나를 적어 주세요. 다른 분들 글에 댓글도 3개 남겨 보세요.'],
+  ['사진·이미지 넣는 법 익히기', '직접 찍은 사진이나 만든 이미지를 넣어 글 하나를 올려 주세요.'],
+  ['검색되는 키워드 찾기', '내 주제로 사람들이 실제 검색하는 말을 5개 찾아 적어 주세요.'],
+  ['키워드 넣어 글쓰기', '어제 찾은 키워드 하나로 글을 올려 주세요.'],
+  ['금지 표현 점검하기', '올린 글에서 과장·단정 표현(최고, 무조건, 100% 등)을 찾아 고쳐 보세요. 고친 전후를 적어 주세요.'],
+  ['세 번째 글 올리기', '지금까지 배운 걸 다 넣어 세 번째 글을 올려 주세요.'],
+  ['2주 회고 + 다음 목표', '2주 동안 바뀐 점, 앞으로 한 달 목표를 적어 주세요. 완주 축하해요!'],
+];
+
+module.exports = router;

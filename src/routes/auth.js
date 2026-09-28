@@ -10,7 +10,9 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const { findByCode } = require('../referral');
 
 router.get(['/login', '/join'], async (req, res) => {
-  if (req.user) return res.redirect('/hub');
+  const nx = String(req.query.next || '');
+  const safeNext = nx.startsWith('/') && !nx.startsWith('//') ? nx : '';
+  if (req.user) return res.redirect(safeNext || '/');
 
   // 추천 링크로 들어오면 코드를 고정해서 보여준다
   const raw = String(req.query.ref || '').trim().toUpperCase();
@@ -20,14 +22,14 @@ router.get(['/login', '/join'], async (req, res) => {
     if (owner) ref = { code: raw, name: owner.name };
   }
   res.render('login', {
-    title: '회원가입', error: req.query.e || null, ref,
+    title: '회원가입', error: req.query.e || null, ref, next: safeNext,
     ogT: '바이란미디어 수강생 등록',
     ogD: '카카오톡으로 바로 시작할 수 있습니다. 승인 후 도구를 쓰실 수 있습니다.',
   });
 });
 
 router.get('/login/email', (req, res) => {
-  if (req.user) return res.redirect('/hub');
+  if (req.user) return res.redirect('/');
   res.render('login-email', {
     title: '이메일 로그인',
     error: null,
@@ -92,7 +94,7 @@ router.post('/login', async (req, res) => {
 
 /* ---------------- 회원가입 ---------------- */
 router.get('/signup', (req, res) => {
-  if (req.user) return res.redirect('/hub');
+  if (req.user) return res.redirect('/');
   // 등록은 카카오 로그인 한 번으로 끝난다
   res.redirect('/login');
 });
@@ -218,7 +220,7 @@ router.get('/pending', async (req, res) => {
 router.post('/logout', (req, res) => {
   req.session.destroy(() => {
     res.clearCookie('zhlab.sid');
-    res.redirect('/login');
+    res.redirect('/');
   });
 });
 

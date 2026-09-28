@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title><%= title ? title + ' · ' : '' %>바이란 라운지</title>
+<%
+  const ogTitle = typeof ogT !== 'undefined' && ogT ? ogT : '바이란 라운지 · AI로 시작하는 1인 창업 커뮤니티';
+  const ogDesc = typeof ogD !== 'undefined' && ogD ? ogD : '출석하고, 인증하고, 같이 성장해요. 가입하면 무료 자료를 바로 드려요.';
+%>
+<meta name="description" content="<%= ogDesc %>">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="바이란 라운지">
+<meta property="og:title" content="<%= ogTitle %>">
+<meta property="og:description" content="<%= ogDesc %>">
+<meta property="og:image" content="<%= baseUrl %>/img/og.png?v=<%= assetVer %>">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#2F6F5E">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="바이란 라운지">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" type="image/png" href="/img/favicon.png">
+<link rel="apple-touch-icon" href="/img/favicon.png">
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@600;800&display=swap">
+<link rel="stylesheet" href="/css/lounge.css?v=<%= assetVer %>">
+</head>
+<body class="lg">
+<%
+  const TABS = [
+    ['home', '/', '홈'], ['community', '/community', '커뮤니티'], ['challenge', '/challenge', '챌린지'],
+    ['library', '/library', '자료실'], ['reviews', '/reviews', '후기'], ['store', '/store', '스토어'],
+  ];
+  const loginHref = '/login?next=' + encodeURIComponent(typeof reqPath !== 'undefined' ? reqPath : path);
+%>
+<header class="lg-head">
+  <div class="lg-head-in">
+    <a href="/" class="lg-brand" aria-label="바이란 라운지 홈">
+      <img src="/img/logo.png" alt="바이란미디어" height="22">
+      <span class="lg-brand-tag">라운지</span>
+    </a>
+    <nav class="lg-nav" aria-label="주 메뉴">
+      <% TABS.forEach(function(t){ %>
+        <a href="<%= t[1] %>" class="<%= active === t[0] ? 'on' : '' %>"><%= t[2] %></a>
+      <% }); %>
+      <% if (user && user.status === 'active') { %><a href="/hub" class="lg-nav-tool">도구</a><% } %>
+      <% if (user && user.role === 'admin') { %><a href="/admin/lounge" class="lg-nav-admin">관리</a><% } %>
+    </nav>
+    <div class="lg-head-r">
+      <a href="/consult" class="lg-consult">1:1 상담</a>
+      <% if (user && me) { %>
+        <a href="/my" class="lg-mepill" title="마이페이지">
+          <span class="lg-mepill-tier"><%= me.tier.icon %></span>
+          <span class="lg-mepill-p"><%= me.balance.toLocaleString() %>P</span>
+        </a>
+      <% } else if (user) { %>
+        <a href="/onboard" class="lg-btn sm">프로필 설정</a>
+      <% } else { %>
+        <a href="<%= loginHref %>" class="lg-btn sm kakao">
+          <svg width="14" height="13" viewBox="0 0 18 17" aria-hidden="true"><path d="M9 0C4.03 0 0 3.13 0 6.99c0 2.5 1.68 4.69 4.2 5.92l-1.06 3.9c-.09.34.29.61.59.42l4.66-3.07c.2.02.4.02.61.02 4.97 0 9-3.13 9-6.99C18 3.13 13.97 0 9 0z" fill="currentColor"/></svg>
+          시작하기
+        </a>
+      <% } %>
+    </div>
+  </div>
+  <nav class="lg-subnav" aria-label="메뉴">
+    <% TABS.forEach(function(t){ %>
+      <a href="<%= t[1] %>" class="<%= active === t[0] ? 'on' : '' %>"><%= t[2] %></a>
+    <% }); %>
+    <a href="/consult" class="<%= active === 'consult' ? 'on' : '' %>">1:1 상담</a>
+    <% if (user && user.status === 'active') { %><a href="/hub">도구</a><% } %>
+    <% if (user && user.role === 'admin') { %><a href="/admin/lounge">관리</a><% } %>
+  </nav>
+</header>
+
+<% if (flash) { %>
+  <div class="lg-toast" role="status" data-toast><%= flash %></div>
+<% } %>
+
+<main class="lg-main">

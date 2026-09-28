@@ -1,0 +1,95 @@
+<%- include('_top') %>
+<section class="lg-wrap lg-pagehead">
+  <p class="lg-kicker">Reviews</p>
+  <h1 class="lg-h1">말 대신 결과로 보여 드릴게요</h1>
+  <p class="lg-muted">회원이 직접 쓰고, 운영자가 확인한 후기만 올라가요.</p>
+  <div class="lg-pagehead-actions">
+    <% if (st.n) { %><span class="lg-rating">★ <b><%= st.avg %></b> · 후기 <%= st.n %>개</span><% } %>
+    <% if (S.review_link) { %><a href="<%= S.review_link %>" target="_blank" rel="noopener" class="lg-btn sm ghost">후기 원문 모음 보기 →</a><% } %>
+    <% if (user && me) { %>
+      <a href="/reviews?write=1#write" class="lg-btn sm primary">후기 남기기 <span class="lg-plus light">+50P</span></a>
+    <% } else { %>
+      <a href="/login?next=/reviews" class="lg-btn sm">후기 남기기</a>
+    <% } %>
+  </div>
+</section>
+
+<% if (user && me) { %>
+<section class="lg-wrap">
+  <details class="lg-card lg-write" id="write" <%= write ? 'open' : '' %>>
+    <summary><span class="lg-write-ph">✍️ 이용해 보신 후기를 남겨 주세요</span><span class="lg-btn sm">쓰기</span></summary>
+    <form method="post" action="/reviews" data-image-form class="lg-write-form">
+      <label class="lg-lb" for="rp">어떤 후기인가요?</label>
+      <select id="rp" name="product_id" class="lg-in">
+        <option value="">라운지 전체 (무료 자료·커뮤니티)</option>
+        <% all.forEach(function(p){ %><option value="<%= p.id %>"><%= p.title %></option><% }); %>
+      </select>
+      <label class="lg-lb">별점</label>
+      <div class="lg-stars-in" role="radiogroup" aria-label="별점">
+        <% for (let i = 5; i >= 1; i--) { %>
+          <input type="radio" id="st<%= i %>" name="rating" value="<%= i %>" <%= i === 5 ? 'checked' : '' %>><label for="st<%= i %>" title="<%= i %>점">★</label>
+        <% } %>
+      </div>
+      <label class="lg-lb" for="ri">하시는 일 (선택)</label>
+      <input id="ri" name="industry" class="lg-in" maxlength="40" placeholder="예: 직장인 부업, 필라테스 원장">
+      <label class="lg-lb" for="rb">내용</label>
+      <textarea id="rb" name="body" class="lg-in" rows="5" maxlength="3000" required placeholder="무엇이 좋았는지, 어떻게 달라졌는지 편하게 적어 주세요."></textarea>
+      <div class="lg-write-foot">
+        <label class="lg-btn sm ghost lg-filebtn">📷 사진 (선택)<input type="file" accept="image/*" data-file hidden></label>
+        <img alt="" data-preview hidden class="lg-thumb">
+        <input type="hidden" name="image" data-image>
+        <span class="lg-grow"></span>
+        <button class="lg-btn primary">승인 요청 보내기</button>
+      </div>
+      <p class="lg-hint">운영자 확인 후 올라가고, 그때 50P가 들어가요.</p>
+    </form>
+  </details>
+</section>
+<% } %>
+
+<% if (results.length) { %>
+<section class="lg-wrap lg-sec">
+  <div class="lg-sec-h">
+    <h2 class="lg-h2">성과 인증샷</h2>
+    <% if (user && me) { %><button type="button" class="lg-btn sm" data-open="resultModal">＋ 성과 올리기</button><% } %>
+  </div>
+  <div class="lg-wall grid">
+    <% results.forEach(function(r){ var k = L.RESULT_KINDS[r.kind] || L.RESULT_KINDS.income; %>
+      <figure class="lg-shot">
+        <% if (r.image_id) { %><a href="/u/img/<%= r.image_id %>" target="_blank" rel="noopener"><img src="/u/img/<%= r.image_id %>" alt="<%= r.headline %> 인증 사진" loading="lazy"></a><% } %>
+        <figcaption><span class="k"><%= k.icon %> <%= k.label %></span><b><%= r.headline %></b><small><%= r.nick %><%= r.channel ? ' · ' + r.channel : '' %></small></figcaption>
+        <% if (user && (user.id === r.user_id || user.role === 'admin')) { %>
+          <form method="post" action="/results/<%= r.id %>/delete" data-confirm="이 인증샷을 내릴까요?" class="lg-shot-del"><button class="lg-linkbtn sm danger">내리기</button></form>
+        <% } %>
+      </figure>
+    <% }); %>
+  </div>
+</section>
+<% } %>
+
+<section class="lg-wrap lg-sec">
+  <% if (products.length) { %>
+    <nav class="lg-tabs">
+      <a href="/reviews" class="<%= !pid ? 'on' : '' %>">전체</a>
+      <% products.forEach(function(p){ %><a href="/reviews?p=<%= p.id %>" class="<%= pid === p.id ? 'on' : '' %>"><%= p.title %> <small><%= p.n %></small></a><% }); %>
+    </nav>
+  <% } %>
+  <% if (reviews.length) { %>
+    <div class="lg-reviews masonry">
+      <% reviews.forEach(function(r){ %>
+        <blockquote class="lg-review">
+          <div class="stars" aria-label="별점 <%= r.rating %>점"><%= '★'.repeat(r.rating) %><span><%= '★'.repeat(5 - r.rating) %></span></div>
+          <p><%= r.body %></p>
+          <% if (r.image_id) { %><img src="/u/img/<%= r.image_id %>" alt="후기 사진" loading="lazy"><% } %>
+          <footer><b><%= r.nick %></b><%= r.industry ? ' · ' + r.industry : '' %><% if (r.product) { %><span class="lg-tag"><%= r.product %></span><% } %></footer>
+        </blockquote>
+      <% }); %>
+    </div>
+  <% } else { %>
+    <div class="lg-card lg-empty">
+      <b>첫 후기를 기다리고 있어요</b>
+      <p>라운지나 강의를 이용해 보셨다면 솔직한 이야기를 남겨 주세요. 승인되면 50P!</p>
+    </div>
+  <% } %>
+</section>
+<%- include('_bottom') %>

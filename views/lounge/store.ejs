@@ -1,0 +1,58 @@
+<%- include('_top') %>
+<section class="lg-wrap lg-pagehead">
+  <p class="lg-kicker">Store</p>
+  <h1 class="lg-h1">필요한 만큼, 나에게 맞는 방식으로</h1>
+  <p class="lg-muted">혼자 공부 · 같이 실행 · 1:1로 진단. 포인트로 받을 수 있는 자료도 있어요.</p>
+</section>
+
+<section class="lg-wrap lg-sec">
+  <% if (products.length) { %>
+    <div class="lg-store">
+      <% products.forEach(function(p){ %>
+        <article class="lg-prod">
+          <div class="lg-prod-cover">
+            <% if (p.badge) { %><span class="lg-badge"><%= p.badge %></span><% } %>
+            <span class="lg-prod-title"><%= p.title %></span>
+            <span class="lg-prod-by">BY 바이란미디어</span>
+          </div>
+          <div class="lg-prod-body">
+            <% if (p.kind) { %><p class="lg-prod-kind"><%= p.kind %></p><% } %>
+            <h3><%= p.title %></h3>
+            <% if (p.subtitle) { %><p class="lg-muted"><%= p.subtitle %></p><% } %>
+            <p class="lg-price">
+              <%= p.price_text || '' %>
+              <% if (p.point_price && p.resource_id) { %><small><%= p.price_text ? '또는 ' : '' %><%= p.point_price.toLocaleString() %>P</small><% } %>
+            </p>
+            <% if (p.reviews) { %><a href="/reviews?p=<%= p.id %>" class="lg-more">후기 <%= p.reviews %>개 보기 →</a><% } %>
+            <div class="lg-prod-cta">
+              <% if (p.is_challenge) { %>
+                <% if (p.buy_url) { %><a href="<%= p.buy_url %>" target="_blank" rel="noopener" class="lg-btn primary"><%= p.cta_label || '결제하기' %></a><% } %>
+                <a href="/challenge" class="lg-btn">참가 신청</a>
+              <% } else if (p.buy_url) { %>
+                <a href="<%= p.buy_url %>" target="_blank" rel="noopener" class="lg-btn primary"><%= p.cta_label || '구매하기' %></a>
+              <% } else { %>
+                <a href="/consult" class="lg-btn primary"><%= p.cta_label || '상담 신청' %></a>
+              <% } %>
+              <% if (p.point_price && p.resource_id) { %>
+                <% if (user && me) { %>
+                  <form method="post" action="/store/<%= p.id %>/points" class="inline" data-confirm="<%= p.point_price %>P를 써서 받을까요?">
+                    <button class="lg-btn" <%= me.balance < p.point_price ? 'disabled' : '' %>><%= p.point_price.toLocaleString() %>P로 받기</button>
+                  </form>
+                <% } else { %>
+                  <a href="/login?next=/store" class="lg-btn">포인트로 받기</a>
+                <% } %>
+              <% } %>
+            </div>
+          </div>
+        </article>
+      <% }); %>
+    </div>
+    <p class="lg-hint center">결제 버튼을 누르면 외부 결제 페이지로 이동해요. 결제 뒤 안내가 없으면 <a href="/consult">1:1 상담</a>으로 알려 주세요.</p>
+  <% } else { %>
+    <div class="lg-card lg-empty">
+      <b>상품을 준비하고 있어요</b>
+      <p>강의·전자책·컨설팅이 곧 올라와요. 궁금한 건 <a href="/consult">1:1 상담</a>으로 먼저 물어봐 주세요.</p>
+    </div>
+  <% } %>
+</section>
+<%- include('_bottom') %>

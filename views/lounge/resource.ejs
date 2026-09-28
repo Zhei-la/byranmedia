@@ -1,0 +1,25 @@
+<%- include('_top') %>
+<section class="lg-wrap narrow lg-sec">
+  <a href="/library" class="lg-back">← 자료실</a>
+  <article class="lg-card lg-post">
+    <header>
+      <span class="lg-gift-k"><%= { pdf: 'PDF', video: '강의', link: '링크', text: '읽을거리' }[r.kind] || '자료' %></span>
+      <h1 class="lg-h1"><%= r.title %></h1>
+      <% if (r.description) { %><p class="lg-muted"><%= r.description %></p><% } %>
+    </header>
+    <% if (url) { %>
+      <% const yt = /(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]{11})/.exec(url); %>
+      <% if (r.kind === 'video' && yt) { %>
+        <div class="lg-video"><iframe src="https://www.youtube-nocookie.com/embed/<%= yt[1] %>" title="<%= r.title %>" allowfullscreen loading="lazy"></iframe></div>
+      <% } %>
+      <a href="<%= url %>" target="_blank" rel="noopener" class="lg-btn primary lg block">
+        <%= r.kind === 'pdf' ? '📄 PDF 열기' : r.kind === 'video' ? '▶ 강의 보기' : '🔗 자료 열기' %>
+      </a>
+      <p class="lg-hint">새 창에서 열려요. 링크는 회원 전용이니 밖으로 공유하지 말아 주세요.</p>
+    <% } %>
+    <% if (r.body) { %>
+      <div class="lg-post-body"><%- L.linkify(r.body) %></div>
+    <% } %>
+  </article>
+</section>
+<%- include('_bottom') %>

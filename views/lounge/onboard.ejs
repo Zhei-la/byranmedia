@@ -1,0 +1,30 @@
+<%- include('_top', { active: '' }) %>
+<section class="lg-wrap narrow lg-sec">
+  <div class="lg-card lg-onboard">
+    <p class="lg-kicker">👋 환영해요</p>
+    <h1 class="lg-h1"><%= user.nickname ? '프로필 바꾸기' : '라운지에서 쓸 이름을 정해 주세요' %></h1>
+    <p class="lg-muted">닉네임은 게시판·채팅·랭킹에 보여요. 실명이 아니어도 괜찮아요.</p>
+
+    <% if (error) { %><div class="lg-alert err"><%= error %></div><% } %>
+
+    <form method="post" action="/onboard">
+      <input type="hidden" name="next" value="<%= next %>">
+      <label class="lg-lb" for="nick">닉네임</label>
+      <input id="nick" name="nickname" class="lg-in" maxlength="10" required value="<%= form.nickname %>" placeholder="2~10자" autocomplete="off" autofocus>
+      <ul class="lg-rules">
+        <li>2~10자, 한글·영문·숫자만 (띄어쓰기 가능)</li>
+        <li>욕설이나 운영자처럼 보이는 이름은 쓸 수 없어요</li>
+      </ul>
+
+      <label class="lg-lb">요즘 관심 있는 것</label>
+      <div class="lg-chips">
+        <% L.INTERESTS.forEach(function(x){ %>
+          <label class="lg-chip"><input type="radio" name="interest" value="<%= x %>" <%= form.interest === x ? 'checked' : '' %>><span><%= x %></span></label>
+        <% }); %>
+      </div>
+
+      <button type="submit" class="lg-btn primary block lg"><%= user.nickname ? '저장하기' : '시작하기' %></button>
+    </form>
+  </div>
+</section>
+<%- include('_bottom') %>

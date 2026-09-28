@@ -4,11 +4,10 @@ const db = require('../db');
 const router = express.Router();
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
-/* ---------------- 공개 첫 화면 ----------------
-   '/' 는 로그인한 사람을 도구로 보내고,
-   '/home' 은 로그인 여부와 상관없이 소개 페이지를 보여준다. */
-router.get(['/', '/home'], async (req, res) => {
-  if (req.user && req.path === '/') return res.redirect('/hub');
+/* ---------------- 소개 페이지 ----------------
+   '/' 는 이제 바이란 라운지(커뮤니티) 홈이다.
+   예전 소개 페이지는 '/about' 과 '/home' 에서 그대로 볼 수 있다. */
+router.get(['/about', '/home'], async (req, res) => {
 
   let notices = [];
   try {
@@ -40,7 +39,7 @@ router.get(['/', '/home'], async (req, res) => {
 router.post('/inquiry', async (req, res) => {
   // 사람에게는 보이지 않는 칸. 채워져 있으면 자동 프로그램으로 본다.
   if (String(req.body.website || '').trim()) {
-    return res.redirect('/?sent=1#contact');
+    return res.redirect('/about?sent=1#contact');
   }
 
   const form = {
@@ -92,7 +91,7 @@ router.post('/inquiry', async (req, res) => {
       [form.name, form.phone || null, form.email || null, form.business || null,
        form.plan || null, form.message || null, req.ip]
     );
-    res.redirect('/?sent=1#contact');
+    res.redirect('/about?sent=1#contact');
   } catch (e) {
     console.error('[inquiry]', e.message);
     back('접수 중 문제가 생겼습니다. 잠시 후 다시 시도해 주세요.');

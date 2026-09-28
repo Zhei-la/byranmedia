@@ -30,7 +30,9 @@ app.use(
     crossOriginEmbedderPolicy: false,
   })
 );
-app.use(express.urlencoded({ extended: false, limit: '1mb' }));
+// 사진은 브라우저에서 줄여서 글자(data URL)로 보내므로 넉넉하게 받는다
+app.use(express.urlencoded({ extended: false, limit: '4mb' }));
+app.use(express.json({ limit: '100kb' }));
 app.use(express.static(path.join(__dirname, '..', 'public'), { maxAge: PROD ? '7d' : 0 }));
 
 app.use(
@@ -63,6 +65,8 @@ app.use((req, res, next) => {
 /* 라우트 */
 const kakao = require('./routes/kakao');
 app.use(kakao);
+app.use(require('./lounge/routes'));   // 바이란 라운지 (커뮤니티)
+app.use(require('./lounge/admin'));
 app.use(require('./routes/public'));
 app.use(require('./routes/auth'));
 app.use(require('./routes/hub'));
@@ -89,6 +93,14 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`바이란미디어 허브가 ${PORT} 포트에서 실행 중입니다.`);
-});
+
+// 라운지 테이블은 켜질 때마다 자동으로 맞춘다 (npm run setup 을 따로 안 해도 된다)
+require('./lounge/core')
+  .migrate()
+  .then(() => console.log('[라운지] 테이블 준비 완료'))
+  .catch((e) => console.error('[라운지] 테이블 준비 실패:', e.message))
+  .finally(() => {
+    app.listen(PORT, () => {
+      console.log(`바이란미디어 허브가 ${PORT} 포트에서 실행 중입니다.`);
+    });
+  });

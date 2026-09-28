@@ -1,0 +1,84 @@
+<%- include('_top') %>
+<% const isAdmin = user && user.role === 'admin'; const c = L.CATEGORIES[p.category] || {label:'자유'}; %>
+<section class="lg-wrap narrow lg-sec">
+  <a href="/community<%= p.category !== 'notice' ? '?cat=' + p.category : '' %>" class="lg-back">← <%= c.label %> 목록</a>
+
+  <% if (locked) { %>
+    <div class="lg-card lg-empty">
+      <b>🔒 비밀글입니다</b>
+      <p>1:1 문의는 쓴 사람과 운영자만 볼 수 있어요.</p>
+    </div>
+  <% } else { %>
+  <article class="lg-card lg-post">
+    <header>
+      <span class="lg-cat c-<%= p.category %>"><%= c.label %></span>
+      <% if (p.is_hidden) { %><span class="lg-tag warn">숨김 처리됨</span><% } %>
+      <h1 class="lg-h1"><%= p.title %></h1>
+      <div class="lg-post-meta">
+        <span class="lg-ava"><%= (p.nick || '?').slice(0,1) %></span>
+        <b><%= p.nick %></b> <%= p.role === 'admin' ? '👑' : L.tierOf(p.earned).icon %>
+        <span class="lg-muted">· <%= L.ago(p.created_at) %> · 조회 <%= p.views + 1 %></span>
+      </div>
+    </header>
+    <div class="lg-post-body"><%- L.linkify(p.body || '') %></div>
+    <% if (p.image_id) { %>
+      <a href="/u/img/<%= p.image_id %>" target="_blank" rel="noopener"><img src="/u/img/<%= p.image_id %>" alt="첨부 사진" class="lg-post-img" loading="lazy"></a>
+    <% } %>
+    <footer class="lg-post-foot">
+      <% if (user && me) { %>
+        <button type="button" class="lg-like <%= liked ? 'on' : '' %>" data-like="<%= p.id %>">♥ <span data-likes><%= p.likes %></span></button>
+      <% } else { %>
+        <span class="lg-like">♥ <%= p.likes %></span>
+      <% } %>
+      <button type="button" class="lg-linkbtn" data-copylink>🔗 링크 복사</button>
+      <span class="lg-grow"></span>
+      <% if (user && me && user.id !== p.user_id) { %>
+        <form method="post" action="/report" class="inline" data-confirm="이 글을 신고할까요?">
+          <input type="hidden" name="type" value="post"><input type="hidden" name="id" value="<%= p.id %>">
+          <button class="lg-linkbtn">신고</button>
+        </form>
+      <% } %>
+      <% if (isAdmin && p.category === 'notice') { %>
+        <form method="post" action="/community/<%= p.id %>/pin" class="inline"><button class="lg-linkbtn"><%= p.is_pinned ? '고정 해제' : '상단 고정' %></button></form>
+      <% } %>
+      <% if (user && (user.id === p.user_id || isAdmin)) { %>
+        <form method="post" action="/community/<%= p.id %>/delete" class="inline" data-confirm="이 글을 지울까요?"><button class="lg-linkbtn danger">삭제</button></form>
+      <% } %>
+    </footer>
+  </article>
+
+  <section class="lg-card lg-comments">
+    <h2 class="lg-h3">댓글 <%= comments.length %></h2>
+    <ul>
+      <% comments.forEach(function(cm){ %>
+        <li id="c<%= cm.id %>">
+          <div class="lg-cm-h">
+            <b><%= cm.nick %></b> <%= cm.role === 'admin' ? '👑' : L.tierOf(cm.earned).icon %>
+            <small class="lg-muted"><%= L.ago(cm.created_at) %></small>
+            <span class="lg-grow"></span>
+            <% if (user && (user.id === cm.user_id || isAdmin)) { %>
+              <form method="post" action="/comments/<%= cm.id %>/delete" class="inline" data-confirm="댓글을 지울까요?"><button class="lg-linkbtn danger sm">삭제</button></form>
+            <% } else if (user && me) { %>
+              <form method="post" action="/report" class="inline" data-confirm="이 댓글을 신고할까요?">
+                <input type="hidden" name="type" value="comment"><input type="hidden" name="id" value="<%= cm.id %>">
+                <button class="lg-linkbtn sm">신고</button>
+              </form>
+            <% } %>
+          </div>
+          <p><%- L.linkify(cm.body) %></p>
+        </li>
+      <% }); %>
+      <% if (!comments.length) { %><li class="lg-muted">첫 댓글로 응원해 주세요!</li><% } %>
+    </ul>
+    <% if (user && me) { %>
+      <form method="post" action="/community/<%= p.id %>/comment" class="lg-cm-form">
+        <textarea name="body" class="lg-in" rows="2" maxlength="1000" required placeholder="따뜻한 한마디 (댓글 +2P, 하루 5번까지)"></textarea>
+        <button class="lg-btn primary">등록</button>
+      </form>
+    <% } else { %>
+      <a href="/login?next=/community/<%= p.id %>" class="lg-chat-lock">🔒 가입하면 댓글을 달 수 있어요</a>
+    <% } %>
+  </section>
+  <% } %>
+</section>
+<%- include('_bottom') %>
