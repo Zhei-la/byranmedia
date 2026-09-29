@@ -188,7 +188,7 @@ CREATE TABLE IF NOT EXISTS lounge_submissions (
 
 -- 자료실 칸 나누기 + 라이브 코드로 여는 자료
 ALTER TABLE lounge_resources ADD COLUMN IF NOT EXISTS section VARCHAR(30) NOT NULL DEFAULT '무료 자료';
-ALTER TABLE lounge_resources ADD COLUMN IF NOT EXISTS access  VARCHAR(10) NOT NULL DEFAULT 'member'; -- member | code
+ALTER TABLE lounge_resources ADD COLUMN IF NOT EXISTS access  VARCHAR(10) NOT NULL DEFAULT 'member'; -- member | code | points (cost 포인트로 열기)
 ALTER TABLE lounge_resources ADD COLUMN IF NOT EXISTS lock_note VARCHAR(120);
 
 -- 프롬프트 갤러리
@@ -219,3 +219,18 @@ CREATE TABLE IF NOT EXISTS lounge_prompt_likes (
 ALTER TABLE lounge_products ADD COLUMN IF NOT EXISTS list_price VARCHAR(40);   -- 정가 (줄 그어 보여줌)
 ALTER TABLE lounge_products ADD COLUMN IF NOT EXISTS price_note VARCHAR(120);  -- 예: 해당 월 5명 한정
 ALTER TABLE lounge_products ADD COLUMN IF NOT EXISTS perks TEXT;               -- 포함 내용 (한 줄에 하나)
+
+-- 포인트: 글·후기로 모으고, 자료집을 열 때 쓴다 (쌓인 기록의 합이 잔액)
+CREATE TABLE IF NOT EXISTS lounge_point_log (
+  id         SERIAL PRIMARY KEY,
+  user_id    INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  amount     INT NOT NULL,                 -- 적립은 +, 사용·회수는 -
+  reason     VARCHAR(20) NOT NULL,         -- post | post_back | review | review_back | buy | admin
+  ref_id     INT,                          -- 글·후기·자료 번호
+  note       VARCHAR(120),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_point_user ON lounge_point_log (user_id, created_at DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_point_ref ON lounge_point_log (reason, ref_id)
+  WHERE ref_id IS NOT NULL AND reason IN ('post', 'post_back', 'review', 'review_back');
+CREATE UNIQUE INDEX IF NOT EXISTS uq_point_buy ON lounge_point_log (user_id, ref_id) WHERE reason = 'buy';

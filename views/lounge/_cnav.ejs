@@ -1,0 +1,9 @@
+<%# 커뮤니티 분류 탭 (글 + 후기를 한곳에) %>
+<% const CN = L.CATEGORIES; const cur = typeof cat !== 'undefined' ? cat : 'review'; %>
+<nav class="lg-tabs" aria-label="분류">
+  <a href="/community" class="<%= cur === 'all' ? 'on' : '' %>">전체</a>
+  <% Object.keys(CN).forEach(function(k){ %>
+    <a href="/community?cat=<%= k %>" class="<%= cur === k ? 'on' : '' %>"><%= CN[k].label %></a>
+  <% }); %>
+  <a href="/reviews" class="<%= cur === 'review' ? 'on' : '' %>">⭐ 후기</a>
+</nav>

@@ -1,8 +1,8 @@
 <%- include('_top') %>
 <section class="lg-wrap lg-pagehead">
-  <p class="lg-kicker">Reviews</p>
-  <h1 class="lg-h1">말 대신 결과로 보여 드릴게요</h1>
-  <p class="lg-muted">회원이 직접 쓰고, 운영자가 확인한 후기만 올라가요.</p>
+  <p class="lg-kicker">Community · Reviews</p>
+  <h1 class="lg-h1">후기</h1>
+  <p class="lg-muted">회원이 직접 쓰고, 운영자가 확인한 후기만 올라가요. 후기를 남기면 +<%= S.pt_review %>P가 쌓여요.</p>
   <div class="lg-pagehead-actions">
     <% if (st.n) { %><span class="lg-rating">★ <b><%= st.avg %></b> · 후기 <%= st.n %>개</span><% } %>
     <% if (S.review_link) { %><a href="<%= S.review_link %>" target="_blank" rel="noopener" class="lg-btn sm ghost">후기 원문 모음 보기 →</a><% } %>
@@ -12,6 +12,11 @@
       <a href="/login?next=/reviews" class="lg-btn sm">후기 남기기</a>
     <% } %>
   </div>
+</section>
+
+<section class="lg-wrap">
+  <%- include('_ptbar') %>
+  <%- include('_cnav', { cat: 'review' }) %>
 </section>
 
 <% if (user && me) { %>
@@ -41,7 +46,7 @@
         <span class="lg-grow"></span>
         <button class="lg-btn primary">승인 요청 보내기</button>
       </div>
-      <p class="lg-hint">운영자가 확인한 뒤 올라가요.</p>
+      <p class="lg-hint">보내는 즉시 +<%= S.pt_review %>P (하루 <%= S.pt_review_daily %>개까지). 운영자가 확인한 뒤 올라가고, 반려되면 받은 포인트가 빠져요.</p>
     </form>
   </details>
 </section>

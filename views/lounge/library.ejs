@@ -6,7 +6,7 @@
 <section class="lg-wrap lg-pagehead">
   <p class="lg-kicker">Library</p>
   <h1 class="lg-h1">무료 자료실</h1>
-  <p class="lg-muted">가입하면 바로 볼 수 있어요. 🔒 표시가 있는 자료는 무료 라이브에서 알려드리는 코드로 열려요.</p>
+  <p class="lg-muted">쿠팡파트너스 자료집은 가입만 하면 바로 볼 수 있어요.<% if (hasPoints) { %> 💎 표시가 있는 자료집은 커뮤니티에 글·후기를 남겨 모은 포인트로 열어요. 포인트는 쓰고 나서 다시 모으면 돼요.<% } %><% if (hasCode) { %> 🎟 표시는 무료 라이브에서 알려드리는 코드로 열려요.<% } %></p>
   <% if (groups.length > 1) { %>
     <nav class="lg-tabs" aria-label="자료 칸">
       <% groups.forEach(function(g){ %>
@@ -31,6 +31,8 @@
     </div>
   <% } %>
 
+  <% if (hasPoints && me) { %><%- include('_ptbar') %><% } %>
+
   <% if (hasCode && user && me && !codeOk && user.role !== 'admin') { %>
     <form method="post" action="/library/code" class="lg-codebox">
       <div>
@@ -48,8 +50,8 @@
         <h2 class="lg-h2"><span><%= SEC_ICON[g.name] || '📁' %></span> <%= g.name %></h2>
         <div class="lg-lib">
           <% g.items.forEach(function(r){ %>
-            <div class="lg-libitem <%= r.open ? 'owned' : '' %>">
-              <span class="lg-gift-k"><%= KIND[r.kind] || '자료' %><% if (r.access === 'code') { %> · 라이브 전용<% } %></span>
+            <div class="lg-libitem <%= r.open ? 'owned' : '' %>" id="r<%= r.id %>">
+              <span class="lg-gift-k"><%= KIND[r.kind] || '자료' %><% if (r.access === 'code') { %> · 라이브 전용<% } else if (r.access === 'points') { %> · 💎 <%= P.fmt(r.cost) %>P<% } else if (g.name !== '수강 안내') { %> · 가입하면 무료<% } %></span>
               <h3><%= r.title %></h3>
               <% if (r.description) { %><p><%= r.description %></p><% } %>
               <div class="lg-libitem-f">
@@ -57,8 +59,19 @@
                   <span class="lg-tag ok">열림</span>
                   <a href="/library/<%= r.id %>" class="lg-btn primary sm">열어보기</a>
                 <% } else if (!user) { %>
-                  <span class="lg-cost"><%= r.access === 'code' ? '🔒 라이브 전용' : '회원 무료' %></span>
+                  <span class="lg-cost"><%= r.access === 'code' ? '🔒 라이브 전용' : r.access === 'points' ? '💎 ' + P.fmt(r.cost) + 'P' : '회원 무료' %></span>
                   <a href="/login?next=/library" class="lg-btn sm">가입하고 보기</a>
+                <% } else if (!me) { %>
+                  <a href="/onboard?next=/library" class="lg-btn sm">닉네임 정하고 보기</a>
+                <% } else if (r.access === 'points') { var bal = pt ? pt.balance : 0; %>
+                  <span class="lg-cost">💎 <b><%= P.fmt(r.cost) %>P</b></span>
+                  <% if (bal >= r.cost) { %>
+                    <form method="post" action="/library/<%= r.id %>/buy" class="inline" data-confirm="<%= P.fmt(r.cost) %>P를 써서 「<%= r.title %>」을 열까요? (남는 포인트 <%= P.fmt(bal - r.cost) %>P)">
+                      <button class="lg-btn primary sm">포인트로 열기</button>
+                    </form>
+                  <% } else { %>
+                    <a href="/community?write=1#write" class="lg-btn sm" title="글·후기를 남기면 포인트가 쌓여요"><%= P.fmt(r.cost - bal) %>P 더 모으기 →</a>
+                  <% } %>
                 <% } else if (r.access === 'code') { %>
                   <span class="lg-cost">🔒 <%= r.lock_note || '무료 라이브에서 받아가세요' %></span>
                 <% } else { %>

@@ -32,7 +32,7 @@
 <%
   const TABS = [
     ['home', '/', '홈'], ['library', '/library', '자료실'], ['prompts', '/prompts', 'AI 프롬프트'],
-    ['community', '/community', '커뮤니티'], ['reviews', '/reviews', '후기'], ['course', '/course', '수강 신청'],
+    ['community', '/community', '커뮤니티'], ['course', '/course', '수강 신청'],
   ];
   const loginHref = '/login?next=' + encodeURIComponent(typeof reqPath !== 'undefined' ? reqPath : path);
 %>
@@ -52,6 +52,7 @@
     <div class="lg-head-r">
       <a href="/consult" class="lg-consult">1:1 상담</a>
       <% if (user && me) { %>
+        <% if (typeof pts !== 'undefined' && pts !== null) { %><a href="/my#points" class="lg-ptpill" title="내 포인트">💎 <%= P.fmt(pts) %>P</a><% } %>
         <a href="/my" class="lg-mepill" title="마이페이지">
           <span class="lg-ava sm"><%= me.nick.slice(0,1) %></span>
           <span class="lg-mepill-p"><%= me.nick %></span>

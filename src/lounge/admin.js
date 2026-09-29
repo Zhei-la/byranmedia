@@ -2,6 +2,7 @@
 const express = require('express');
 const db = require('../db');
 const L = require('./core');
+const P = require('./points');
 const { requireAdmin } = require('../middleware/auth');
 
 const router = express.Router();
@@ -122,7 +123,8 @@ router.get('/admin/lounge', async (req, res) => {
     data.members = await q(
       `SELECT u.id, u.name, u.nickname, u.interest, u.status, u.lounge_at,
               (SELECT count(*) FROM lounge_posts p WHERE p.user_id=u.id AND p.is_hidden=false)::int AS posts,
-              (SELECT count(*) FROM lounge_unlocks x WHERE x.user_id=u.id)::int AS opened
+              (SELECT count(*) FROM lounge_unlocks x WHERE x.user_id=u.id)::int AS opened,
+              (SELECT COALESCE(sum(amount),0) FROM lounge_point_log g WHERE g.user_id=u.id)::int AS points
          FROM users u
         WHERE u.nickname IS NOT NULL ${s ? `AND (u.nickname ILIKE $1 OR u.name ILIKE $1)` : ''}
         ORDER BY u.lounge_at DESC NULLS LAST LIMIT 200`,
@@ -130,7 +132,16 @@ router.get('/admin/lounge', async (req, res) => {
     );
   }
   const nk = req.user.nickname || req.user.name;
-  res.render('lounge/admin', { title: '라운지 관리', active: '', flash: null, me: { nick: nk }, nick: nk, ...data });
+  res.render('lounge/admin', { title: '라운지 관리', active: '', flash: null, me: { nick: nk }, nick: nk, P, pts: null, ...data });
+});
+
+/* ---------------- 포인트 직접 조정 ---------------- */
+router.post('/admin/lounge/members/:id/points', async (req, res) => {
+  const amount = parseInt(req.body.amount, 10);
+  const uid = parseInt(req.params.id, 10);
+  if (!uid || !amount || Math.abs(amount) > 1000000) return go(res, 'members', '더하거나 뺄 포인트를 숫자로 넣어 주세요. (빼려면 -100 처럼)');
+  await P.adjust(uid, amount, txt(req.body.note, 100) || '운영자 조정');
+  go(res, 'members', `${amount > 0 ? '+' : ''}${amount}P 반영했어요.`, req.body.s ? '&s=' + encodeURIComponent(txt(req.body.s, 40)) : '');
 });
 
 /* ---------------- 설정 ---------------- */
@@ -142,8 +153,12 @@ router.post('/admin/lounge/settings', async (req, res) => {
 /* ---------------- 게시판 · 신고 ---------------- */
 router.post('/admin/lounge/posts/:id/toggle', async (req, res) => {
   const f = req.body.field === 'pin' ? 'is_pinned' : 'is_hidden';
-  await db.query(`UPDATE lounge_posts SET ${f} = NOT ${f} WHERE id=$1`, [req.params.id]);
-  go(res, 'board', '바꿨어요.');
+  const { rows } = await db.query(`UPDATE lounge_posts SET ${f} = NOT ${f} WHERE id=$1 RETURNING is_hidden`, [req.params.id]);
+  if (rows[0] && f === 'is_hidden') {
+    if (rows[0].is_hidden) await P.revoke('post', Number(req.params.id));
+    else await P.restore('post', Number(req.params.id));
+  }
+  go(res, 'board', f === 'is_hidden' && rows[0] ? (rows[0].is_hidden ? '숨겼어요. 이 글로 받은 포인트도 회수했어요.' : '다시 보이게 했어요. 포인트도 돌려줬어요.') : '바꿨어요.');
 });
 router.post('/admin/lounge/chat/:id/toggle', async (req, res) => {
   await db.query(`UPDATE lounge_chat SET is_hidden = NOT is_hidden WHERE id=$1`, [req.params.id]);
@@ -159,6 +174,7 @@ router.post('/admin/lounge/reports/:id', async (req, res) => {
   if (r && req.body.action === 'hide') {
     const table = { post: 'lounge_posts', comment: 'lounge_comments', chat: 'lounge_chat', result: 'lounge_results' }[r.target_type];
     if (table) await db.query(`UPDATE ${table} SET is_hidden=true WHERE id=$1`, [r.target_id]);
+    if (r.target_type === 'post') await P.revoke('post', r.target_id);
   }
   if (r) await db.query(`UPDATE lounge_reports SET resolved=true WHERE target_type=$1 AND target_id=$2`, [r.target_type, r.target_id]);
   go(res, 'board', req.body.action === 'hide' ? '숨기고 처리했어요.' : '그대로 두고 처리했어요.');
@@ -168,10 +184,14 @@ router.post('/admin/lounge/reports/:id', async (req, res) => {
 router.post('/admin/lounge/reviews/:id/status', async (req, res) => {
   const status = ['approved', 'rejected', 'pending'].includes(req.body.status) ? req.body.status : 'pending';
   const { rows } = await db.query(
-    `UPDATE lounge_reviews SET status=$1, approved_at = CASE WHEN $1='approved' THEN COALESCE(approved_at, now()) ELSE approved_at END
+    `UPDATE lounge_reviews SET status=$1::varchar, approved_at = CASE WHEN $1::varchar='approved' THEN COALESCE(approved_at, now()) ELSE approved_at END
       WHERE id=$2 RETURNING user_id`,
     [status, req.params.id]
   );
+  if (rows[0]) {
+    if (status === 'rejected') await P.revoke('review', Number(req.params.id));
+    else await P.restore('review', Number(req.params.id));
+  }
   go(res, 'reviews', rows[0] ? (status === 'approved' ? '승인했어요. 후기 페이지에 올라갔어요.' : '바꿨어요.') : '후기를 찾지 못했어요.');
 });
 router.post('/admin/lounge/reviews/new', async (req, res) => {
@@ -187,6 +207,7 @@ router.post('/admin/lounge/reviews/new', async (req, res) => {
 });
 router.post('/admin/lounge/reviews/:id/delete', async (req, res) => {
   await db.query(`DELETE FROM lounge_reviews WHERE id=$1`, [req.params.id]);
+  await P.revoke('review', Number(req.params.id));
   go(res, 'reviews', '지웠어요.');
 });
 
@@ -200,22 +221,24 @@ router.post('/admin/lounge/resources/save', async (req, res) => {
     url: L.safeLink(req.body.url) || null,
     body: txt(req.body.body, 20000) || null,
     section: txt(req.body.section_custom, 30) || txt(req.body.section, 30) || '무료 자료',
-    access: req.body.access === 'code' ? 'code' : 'member',
+    access: ['code', 'points'].includes(req.body.access) ? req.body.access : 'member',
+    cost: Math.max(0, int(req.body.cost) || 0),
     lock_note: txt(req.body.lock_note, 120) || null,
     sort_order: int(req.body.sort_order) || 100,
     is_active: req.body.is_active !== '0',
   };
   if (!f.title) return go(res, 'library', '제목을 넣어 주세요.');
   if (!f.url && !f.body) return go(res, 'library', '링크나 본문 중 하나는 넣어 주세요.');
-  const vals = [f.title, f.description, f.kind, f.url, f.body, f.section, f.access, f.lock_note, f.sort_order, f.is_active];
+  if (f.access === 'points' && !f.cost) return go(res, 'library', '포인트로 여는 자료는 필요한 포인트를 넣어 주세요.');
+  const vals = [f.title, f.description, f.kind, f.url, f.body, f.section, f.access, f.lock_note, f.sort_order, f.is_active, f.cost];
   if (id) {
     await db.query(
-      `UPDATE lounge_resources SET title=$1, description=$2, kind=$3, url=$4, body=$5, section=$6, access=$7, lock_note=$8, sort_order=$9, is_active=$10 WHERE id=$11`,
+      `UPDATE lounge_resources SET title=$1, description=$2, kind=$3, url=$4, body=$5, section=$6, access=$7, lock_note=$8, sort_order=$9, is_active=$10, cost=$11 WHERE id=$12`,
       [...vals, id]
     );
   } else {
     await db.query(
-      `INSERT INTO lounge_resources (title, description, kind, url, body, section, access, lock_note, sort_order, is_active) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+      `INSERT INTO lounge_resources (title, description, kind, url, body, section, access, lock_note, sort_order, is_active, cost) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
       vals
     );
   }

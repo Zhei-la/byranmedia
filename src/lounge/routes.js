@@ -3,6 +3,7 @@ const express = require('express');
 const db = require('../db');
 const L = require('./core');
 const T = require('./translate');
+const P = require('./points');
 
 const router = express.Router();
 
@@ -24,6 +25,8 @@ async function locals(req, res, next) {
     if (req.session && req.session.flash) delete req.session.flash;
     res.locals.me = req.user && req.user.nickname ? { nick: req.user.nickname } : null;
     res.locals.nick = req.user ? req.user.nickname || req.user.name : '';
+    res.locals.P = P;
+    res.locals.pts = req.user && req.user.nickname ? await P.balance(req.user.id) : null;
   } catch (e) {
     console.error('[라운지 공통]', e.message);
   }
@@ -85,7 +88,7 @@ get('/', async (req, res) => {
     q(`SELECT c.id, c.body, c.created_at, COALESCE(u.nickname,u.name) AS nick, u.role
          FROM lounge_chat c JOIN users u ON u.id=c.user_id
         WHERE c.is_hidden=false ORDER BY c.id DESC LIMIT 6`),
-    q(`SELECT section, count(*)::int AS n, bool_or(access='code') AS has_code, min(sort_order) AS so
+    q(`SELECT section, count(*)::int AS n, bool_or(access='code') AS has_code, bool_or(access='points') AS has_points, min(sort_order) AS so
          FROM lounge_resources WHERE is_active=true GROUP BY section ORDER BY so, section`),
     q(`SELECT r.id, r.rating, r.body, r.industry, COALESCE(r.author_name, u.nickname, u.name) AS nick, p.title AS product
          FROM lounge_reviews r LEFT JOIN users u ON u.id=r.user_id LEFT JOIN lounge_products p ON p.id=r.product_id
@@ -180,8 +183,9 @@ get('/community', async (req, res) => {
        FROM lounge_chat c JOIN users u ON u.id=c.user_id
       WHERE c.is_hidden=false ORDER BY c.id DESC LIMIT 30`
   );
+  const pt = req.user && req.user.nickname ? await P.summary(req.user.id) : null;
   res.render('lounge/community', {
-    title: '커뮤니티', active: 'community', cat, page,
+    title: '커뮤니티', active: 'community', cat, page, pt,
     pages: Math.max(1, Math.ceil(cnt[0].n / PAGE)), total: cnt[0].n,
     pinned, posts, chat: chat.reverse(), write: req.query.write === '1',
     writeCat: L.CATEGORIES[req.query.wc] ? req.query.wc : (cat !== 'all' && cat !== 'notice' ? cat : 'hello'),
@@ -213,7 +217,14 @@ post('/community', member, async (req, res) => {
      VALUES ($1,$2,$3,$4,$5,$6) RETURNING id`,
     [req.user.id, category, title, body, imageId, pinned]
   );
-  flash(req, '글을 올렸어요.');
+  let got = 0;
+  const r = await P.rules();
+  const earnable = category !== 'notice' && category !== 'secret';
+  if (earnable && body.length >= r.postMin) got = await P.earn(req.user.id, 'post', rows[0].id);
+  if (got) flash(req, `글을 올렸어요. +${got}P 적립! 💎`);
+  else if (earnable && body.length < r.postMin) flash(req, `글을 올렸어요. (내용이 ${r.postMin}자 이상이면 포인트가 쌓여요)`);
+  else if (earnable) flash(req, `글을 올렸어요. 오늘 글 포인트는 다 받았어요 (하루 ${r.postDaily}개까지).`);
+  else flash(req, '글을 올렸어요.');
   res.redirect(`/community/${rows[0].id}`);
 });
 
@@ -276,7 +287,8 @@ post('/community/:id(\\d+)/delete', member, async (req, res) => {
   const p = await loadPost(req.params.id);
   if (p && (p.user_id === req.user.id || isAdmin(req))) {
     await db.query(`UPDATE lounge_posts SET is_hidden=true WHERE id=$1`, [p.id]);
-    flash(req, '글을 지웠어요.');
+    const lost = await P.revoke('post', p.id);
+    flash(req, lost ? `글을 지웠어요. 이 글로 받은 ${lost}P도 빠졌어요.` : '글을 지웠어요.');
   }
   res.redirect('/community');
 });
@@ -382,22 +394,29 @@ get('/u/img/:id(\\d+)', async (req, res) => {
 // 라이브 코드로 연 자료는 세션에 기억한다 (다시 넣지 않아도 되게)
 const codeOpen = (req) => !!(req.session && req.session.liveOk);
 
-function canOpen(req, r) {
+function canOpen(req, r, owned) {
   if (!req.user || !req.user.nickname) return false;
   if (isAdmin(req)) return true;
-  if (r.access === 'code') return codeOpen(req);
+  if (r.access === 'code') return codeOpen(req) || owned.has(r.id);
+  if (r.access === 'points') return owned.has(r.id);
   return true;
+}
+async function ownedSet(req) {
+  if (!req.user) return new Set();
+  const { rows } = await db.query(`SELECT resource_id FROM lounge_unlocks WHERE user_id=$1`, [req.user.id]);
+  return new Set(rows.map((x) => x.resource_id));
 }
 
 get('/library', async (req, res) => {
   const { rows } = await db.query(
-    `SELECT id, title, description, kind, section, access, lock_note, sort_order FROM lounge_resources
+    `SELECT id, title, description, kind, section, access, lock_note, sort_order, cost FROM lounge_resources
       WHERE is_active=true ORDER BY sort_order, id`
   );
+  const owned = await ownedSet(req);
   const groups = [];
   const idx = {};
   for (const r of rows) {
-    r.open = canOpen(req, r);
+    r.open = canOpen(req, r, owned);
     if (!(r.section in idx)) {
       idx[r.section] = groups.length;
       groups.push({ name: r.section, items: [] });
@@ -405,8 +424,10 @@ get('/library', async (req, res) => {
     groups[idx[r.section]].items.push(r);
   }
   const hasCode = rows.some((r) => r.access === 'code');
+  const hasPoints = rows.some((r) => r.access === 'points');
+  const pt = req.user && req.user.nickname ? await P.summary(req.user.id) : null;
   res.render('lounge/library', {
-    title: '자료실', active: 'library', groups, hasCode, codeOk: codeOpen(req),
+    title: '자료실', active: 'library', groups, hasCode, hasPoints, pt, codeOk: codeOpen(req),
     sec: String(req.query.s || ''),
   });
 });
@@ -427,15 +448,29 @@ get('/library/:id(\\d+)', member, async (req, res) => {
   const { rows } = await db.query(`SELECT * FROM lounge_resources WHERE id=$1 AND is_active=true`, [req.params.id]);
   const r = rows[0];
   if (!r) return res.status(404).render('error', { title: '없는 자료', message: '자료를 찾지 못했어요.' });
-  if (!canOpen(req, r)) {
-    flash(req, '라이브 코드를 넣어야 열리는 자료예요.');
-    return res.redirect('/library');
+  if (!canOpen(req, r, await ownedSet(req))) {
+    flash(req, r.access === 'points'
+      ? `포인트 ${P.fmt(r.cost)}P로 여는 자료예요. 자료실에서 [포인트로 열기]를 눌러 주세요.`
+      : '라이브 코드를 넣어야 열리는 자료예요.');
+    return res.redirect(`/library#r${r.id}`);
   }
   db.query(`INSERT INTO lounge_unlocks (user_id, resource_id) VALUES ($1,$2) ON CONFLICT DO NOTHING`, [req.user.id, r.id]).catch(() => {});
   const url = L.safeLink(r.url);
   // 사이트 안 주소나 노션 자료집은 바로 그 페이지로 보낸다
   if (url && !r.body && r.kind === 'link') return res.redirect(url);
   res.render('lounge/resource', { title: r.title, active: 'library', r, url });
+});
+
+post('/library/:id(\\d+)/buy', member, async (req, res) => {
+  const { rows } = await db.query(`SELECT id, title, cost, access FROM lounge_resources WHERE id=$1 AND is_active=true`, [req.params.id]);
+  const r = rows[0];
+  if (!r || r.access !== 'points') return res.redirect('/library');
+  if (isAdmin(req)) return res.redirect(`/library/${r.id}`);
+  const out = await P.buy(req.user.id, r);
+  if (out.ok) flash(req, `${P.fmt(r.cost)}P를 써서 「${r.title}」을 열었어요 🎉 남은 포인트 ${P.fmt(out.left)}P`);
+  else if (out.why === 'owned') flash(req, '이미 열어 둔 자료예요.');
+  else flash(req, `포인트가 ${P.fmt(out.need)}P 모자라요. 커뮤니티에 글·후기를 남기고 모아 보세요!`);
+  res.redirect(`/library#r${r.id}`);
 });
 
 /* ---------------- 프롬프트 갤러리 ---------------- */
@@ -565,8 +600,9 @@ get('/reviews', async (req, res) => {
   const { rows: st } = await db.query(
     `SELECT count(*)::int AS n, COALESCE(round(avg(rating)::numeric,1),0)::float AS avg FROM lounge_reviews WHERE status='approved'`
   );
+  const pt = req.user && req.user.nickname ? await P.summary(req.user.id) : null;
   res.render('lounge/reviews', {
-    title: '후기', active: 'reviews', products, reviews, results, all, pid, st: st[0],
+    title: '후기', active: 'community', products, reviews, results, all, pid, st: st[0], pt,
     write: req.query.write === '1',
   });
 });
@@ -581,11 +617,14 @@ post('/reviews', member, async (req, res) => {
   const productId = parseInt(req.body.product_id, 10) || null;
   const industry = String(req.body.industry || '').trim().slice(0, 40) || null;
   const imageId = req.body.image ? await L.saveImage(req.user.id, req.body.image) : null;
-  await db.query(
-    `INSERT INTO lounge_reviews (user_id, product_id, rating, industry, body, image_id) VALUES ($1,$2,$3,$4,$5,$6)`,
+  const { rows } = await db.query(
+    `INSERT INTO lounge_reviews (user_id, product_id, rating, industry, body, image_id) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id`,
     [req.user.id, productId, rating, industry, body, imageId]
   );
-  flash(req, '후기를 보냈어요. 운영자가 확인한 뒤 올라가요. 고마워요!');
+  const got = await P.earn(req.user.id, 'review', rows[0].id);
+  flash(req, got
+    ? `후기를 보냈어요. +${got}P 적립! 💎 운영자가 확인한 뒤 올라가요.`
+    : '후기를 보냈어요. 운영자가 확인한 뒤 올라가요. (오늘 후기 포인트는 이미 받았어요)');
   res.redirect('/reviews');
 });
 
@@ -728,6 +767,7 @@ post('/challenge/submit', member, async (req, res) => {
 /* ---------------- 마이페이지 ---------------- */
 get('/my', member, async (req, res) => {
   const uid = req.user.id;
+  const [pt, hist] = await Promise.all([P.summary(uid), P.history(uid, 15)]);
   const [myReviews, posts, u, favs, resOpened] = await Promise.all([
     db.query(
       `SELECT r.id, r.status, r.rating, r.body, r.created_at, p.title AS product
@@ -744,7 +784,7 @@ get('/my', member, async (req, res) => {
   ]);
   res.render('lounge/my', {
     title: '마이페이지', active: 'my',
-    myReviews: myReviews.rows, posts: posts.rows, acct: u.rows[0], favs: favs.rows, opened: resOpened.rows,
+    myReviews: myReviews.rows, posts: posts.rows, acct: u.rows[0], favs: favs.rows, opened: resOpened.rows, pt, hist,
   });
 });
 

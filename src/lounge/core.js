@@ -9,6 +9,25 @@ async function migrate() {
   await db.query(sql);
   await seedOnce();
   await seedCourses();
+  await seedPoints();
+}
+
+/* 포인트 도입: 쿠팡파트너스는 가입만 하면, 사주·타로·스레드 자료집은 1,000P 로 연다 (한 번만) */
+async function seedPoints() {
+  const { rows } = await db.query(`SELECT 1 FROM lounge_settings WHERE key='seeded_points_v1'`);
+  if (rows.length) return;
+  await db.query(
+    `UPDATE lounge_resources SET access='points', cost=1000, lock_note=NULL
+      WHERE title IN ('온라인 사주 무료 자료집', '온라인 타로 무료 자료집', '스레드 글쓰기 무료 자료집')`
+  );
+  await db.query(`UPDATE lounge_resources SET access='member', cost=0 WHERE title='쿠팡파트너스 무료 자료집'`);
+  await db.query(
+    `UPDATE lounge_settings SET value=$1 WHERE key='welcome_note' AND value=$2`,
+    [SETTING_DEFAULTS.welcome_note, '가입하면 무료 자료집을 바로 볼 수 있어요']
+  );
+  await db.query(`INSERT INTO lounge_settings (key, value) VALUES ('seeded_points_v1', '1') ON CONFLICT (key) DO NOTHING`);
+  settingsCache = null;
+  console.log('[라운지] 자료집 포인트 가격을 넣었습니다.');
 }
 
 /* 수강 과정 3종과 금액 (운영자가 이미 금액을 넣었으면 건드리지 않는다) */
@@ -95,12 +114,16 @@ const SETTING_DEFAULTS = {
   hero_title: '혼자 하면 멈추고,\n같이 하면 쌓입니다',
   hero_sub: 'AI로 블로그·스레드·부업을 시작한 사람들이\n같이 묻고, 같이 크는 곳',
   review_link: '',                              // 외부 후기 모음 (카페 등)
-  welcome_note: '가입하면 무료 자료집을 바로 볼 수 있어요',
+  welcome_note: '가입하면 쿠팡파트너스 자료집은 바로, 다른 자료집은 포인트로 열려요',
   live_code: '',                                // 무료 라이브에서 알려주는 자료 코드
   live_note: '무료 라이브에 참여하시면 코드를 알려드려요',
   prompt_public: '0',                           // 1이면 로그인 없이도 프롬프트 복사 가능
   course_note: '',                              // 수강 신청 페이지 위쪽 안내
   cash_note: '현금(계좌이체)으로 결제하시면 10만원을 더 할인해 드려요',
+  pt_post: '10',                                // 글 1개 포인트
+  pt_post_daily: '5',                           // 글 포인트 하루 최대 개수
+  pt_review: '50',                              // 후기 1개 포인트
+  pt_review_daily: '1',                         // 후기 포인트 하루 최대 개수
 };
 
 let settingsCache = null;

@@ -10,6 +10,26 @@
 </section>
 
 <section class="lg-wrap lg-sec lg-mygrid">
+  <div class="lg-card lg-mypoints" id="points">
+    <h2 class="lg-h3">💎 내 포인트</h2>
+    <p class="lg-mypoints-bal"><b><%= P.fmt(pt.balance) %></b>P</p>
+    <p class="lg-muted">오늘 글 <%= Math.min(pt.today.posts, pt.rules.postDaily) %>/<%= pt.rules.postDaily %> (+<%= pt.rules.post %>P씩) · 후기 <%= Math.min(pt.today.reviews, pt.rules.reviewDaily) %>/<%= pt.rules.reviewDaily %> (+<%= pt.rules.review %>P)</p>
+    <div class="lg-bbtns">
+      <a href="/community?write=1#write" class="lg-btn sm">글 쓰고 모으기</a>
+      <a href="/reviews?write=1#write" class="lg-btn sm">후기 쓰고 모으기</a>
+      <a href="/library" class="lg-btn sm primary">자료집 열기</a>
+    </div>
+    <% if (hist.length) { %>
+      <ul class="lg-pthist">
+        <% hist.forEach(function(h){ %>
+          <li><span><%= h.label %></span><small><%= L.ago(h.created_at) %></small><b class="<%= h.amount < 0 ? 'minus' : 'plus' %>"><%= h.amount > 0 ? '+' : '' %><%= P.fmt(h.amount) %>P</b></li>
+        <% }); %>
+      </ul>
+    <% } else { %>
+      <p class="lg-muted">아직 기록이 없어요. 가입 인사부터 남겨 보세요!</p>
+    <% } %>
+  </div>
+
   <div class="lg-card">
     <h2 class="lg-h3">🛠 수강생 도구</h2>
     <% if (acct.status === 'active') { %>

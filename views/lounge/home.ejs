@@ -26,9 +26,9 @@
       <div class="lg-hero-card" aria-label="라운지에서 받을 수 있는 것">
         <div class="lg-byline"><span>BY</span> 바이란 라운지</div>
         <ol class="lg-howto">
-          <li><b>무료 자료집</b><span>사주·타로, 쿠팡파트너스, 스레드 글쓰기</span></li>
+          <li><b>무료 자료집</b><span>쿠팡파트너스는 가입 즉시, 사주·타로·스레드는 포인트로</span></li>
           <li><b>AI 프롬프트</b><span>이미지 누르고 바로 복사, 생성기까지</span></li>
-          <li><b>같이 크는 곳</b><span>질문하고, 인증하고, 피드백 받기</span></li>
+          <li><b>같이 크는 곳</b><span>글 +<%= S.pt_post %>P, 후기 +<%= S.pt_review %>P — 모아서 자료집 열기</span></li>
         </ol>
       </div>
     </div>
@@ -63,7 +63,7 @@
       <a href="/library?s=<%= encodeURIComponent(s.section) %>#sec" class="lg-seccard">
         <span class="i"><%= SEC_ICON[s.section] || '📁' %></span>
         <b><%= s.section %></b>
-        <small><%= s.n %>개 자료<%= s.has_code ? ' · 🔒 라이브 전용 포함' : '' %></small>
+        <small><%= s.n %>개 자료<%= s.has_points ? ' · 💎 포인트로 열기' : '' %><%= s.has_code ? ' · 🔒 라이브 전용 포함' : '' %></small>
       </a>
     <% }); %>
   </div>
@@ -225,7 +225,7 @@
 <% if (!user) { %>
   <section class="lg-wrap lg-sec">
     <div class="lg-final">
-      <h2 class="lg-display sm">가입하면<br>무료 자료집부터 챙겨 드려요</h2>
+      <h2 class="lg-display sm">가입하면<br>쿠팡파트너스 자료집부터 바로</h2>
       <a href="<%= kakaoStart %>" class="lg-btn kakao lg">카카오로 3초 시작</a>
     </div>
   </section>
