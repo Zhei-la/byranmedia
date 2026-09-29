@@ -19,10 +19,15 @@ function kakaoReady() {
 }
 
 /** 콜백 주소. 카카오 개발자 화면에 등록한 값과 글자 하나까지 같아야 한다. */
+// 로그인한 그 주소로 돌아오게 한다 (byranmedia.com 과 레일웨이 주소 둘 다 쓰는 동안 로그인이 풀리지 않게)
+const OWN_HOSTS = /^(byranmedia\.com|www\.byranmedia\.com|[a-z0-9-]+\.up\.railway\.app|localhost(:\d+)?)$/i;
 function redirectUri(req) {
   const fixed = clean(process.env.KAKAO_REDIRECT_URI);
   if (fixed) return fixed;
-  const base = clean(process.env.BASE_URL) || `${req.protocol}://${req.get('host')}`;
+  const host = String(req.get('host') || '');
+  const base = OWN_HOSTS.test(host)
+    ? `${req.protocol}://${host}`
+    : clean(process.env.BASE_URL) || `${req.protocol}://${host}`;
   return `${base.replace(/\/+$/, '')}/auth/kakao/callback`;
 }
 

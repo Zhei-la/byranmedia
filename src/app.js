@@ -31,6 +31,14 @@ app.use(
   })
 );
 // 사진은 브라우저에서 줄여서 글자(data URL)로 보내므로 넉넉하게 받는다
+// 대표 주소로 모으기: www → byranmedia.com, (CANONICAL_HOST 를 켜면) 레일웨이 주소 → 대표 주소
+app.use((req, res, next) => {
+  const host = String(req.get('host') || '').toLowerCase();
+  const canon = String(process.env.CANONICAL_HOST || '').toLowerCase().trim();
+  if (host === 'www.byranmedia.com') return res.redirect(301, `https://byranmedia.com${req.originalUrl}`);
+  if (canon && host.endsWith('.up.railway.app') && req.method === 'GET') return res.redirect(301, `https://${canon}${req.originalUrl}`);
+  next();
+});
 app.use(express.urlencoded({ extended: false, limit: '12mb' }));
 app.use(express.json({ limit: '100kb' }));
 app.use(express.static(path.join(__dirname, '..', 'public'), { maxAge: PROD ? '7d' : 0 }));
