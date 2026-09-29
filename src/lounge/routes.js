@@ -127,7 +127,7 @@ post('/onboard', async (req, res) => {
   const form = { nickname: String(req.body.nickname || ''), interest: String(req.body.interest || '') };
   const fail = (msg) => res.status(400).render('lounge/onboard', { title: '프로필 설정', error: msg, form, next: nextUrl });
 
-  const chk = L.checkNick(form.nickname);
+  const chk = L.checkNick(form.nickname, { admin: isAdmin(req) });
   if (!chk.ok) return fail(chk.msg);
   const interest = L.INTERESTS.includes(form.interest) ? form.interest : null;
   const first = !req.user.nickname;

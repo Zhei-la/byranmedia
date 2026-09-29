@@ -332,11 +332,12 @@ async function saveImage(userId, dataUrl) {
 /* ---------------- 닉네임 ---------------- */
 const NICK_RE = /^[가-힣a-zA-Z0-9_ ]{2,10}$/;
 const NICK_BAN = ['관리자', '운영자', '바이란', 'admin', '어드민', '제일라', '이안', '씨발', '시발', '병신', '섹스'];
-function checkNick(n) {
+// 운영자(관리자)는 막아 둔 이름(이안·바이란 등)도 쓸 수 있다 — 남이 운영자 행세하는 것만 막는 장치
+function checkNick(n, opts = {}) {
   const s = String(n || '').trim().replace(/\s+/g, ' ');
   if (!NICK_RE.test(s)) return { ok: false, msg: '닉네임은 2~10자, 한글·영문·숫자만 쓸 수 있어요.' };
   const low = s.toLowerCase().replace(/\s/g, '');
-  if (NICK_BAN.some((w) => low.includes(w))) return { ok: false, msg: '쓸 수 없는 단어가 들어 있어요.' };
+  if (!opts.admin && NICK_BAN.some((w) => low.includes(w))) return { ok: false, msg: '쓸 수 없는 단어가 들어 있어요.' };
   return { ok: true, value: s };
 }
 
