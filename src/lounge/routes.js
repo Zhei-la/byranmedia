@@ -396,16 +396,23 @@ get('/u/img/:id(\\d+)', async (req, res) => {
 // 라이브 코드로 연 자료는 세션에 기억한다 (다시 넣지 않아도 되게)
 const codeOpen = (req) => !!(req.session && req.session.liveOk);
 
-// sp: 수강 중인 과정 번호들
+// sp: { all: 수강·구매 중인 상품 번호, course: 그중 강의 과정 번호 }
 function canOpen(req, r, owned, sp) {
   if (!req.user || !req.user.nickname) return false;
   if (isAdmin(req)) return true;
-  if (r.access === 'course') return sp.length > 0 && (!r.product_ids || !r.product_ids.length || r.product_ids.some((id) => sp.includes(id)));
-  if (r.access === 'code') return codeOpen(req) || owned.has(r.id) || sp.length > 0;
-  if (r.access === 'points') return owned.has(r.id) || sp.length > 0; // 수강생은 포인트 없이 열람
+  if (r.access === 'course') {
+    // 고른 과정이 있으면 그 과정(전자책 포함) 구매자만, 안 골랐으면 강의 수강생 누구나
+    return r.product_ids && r.product_ids.length ? r.product_ids.some((id) => sp.all.includes(id)) : sp.course.length > 0;
+  }
+  if (r.access === 'code') return codeOpen(req) || owned.has(r.id) || sp.all.length > 0;
+  if (r.access === 'points') return owned.has(r.id) || sp.all.length > 0; // 수강생·전자책 구매자는 포인트 없이 열람
   return true;
 }
-const studentIds = (req) => (req.user ? E.activeProductIds(req.user.id) : Promise.resolve([]));
+async function studentIds(req) {
+  if (!req.user) return { all: [], course: [] };
+  const [all, course] = await Promise.all([E.activeProductIds(req.user.id), E.activeCourseIds(req.user.id)]);
+  return { all, course };
+}
 async function ownedSet(req) {
   if (!req.user) return new Set();
   const { rows } = await db.query(`SELECT resource_id FROM lounge_unlocks WHERE user_id=$1`, [req.user.id]);
@@ -433,7 +440,7 @@ get('/library', async (req, res) => {
   const hasPoints = rows.some((r) => r.access === 'points');
   const pt = req.user && req.user.nickname ? await P.summary(req.user.id) : null;
   res.render('lounge/library', {
-    title: '자료실', active: 'library', groups, hasCode, hasPoints, pt, codeOk: codeOpen(req), isStu: sp.length > 0,
+    title: '자료실', active: 'library', groups, hasCode, hasPoints, pt, codeOk: codeOpen(req), isStu: sp.all.length > 0,
     sec: String(req.query.s || ''),
   });
 });
@@ -474,7 +481,7 @@ post('/library/:id(\\d+)/buy', member, async (req, res) => {
   const { rows } = await db.query(`SELECT id, title, cost, access FROM lounge_resources WHERE id=$1 AND is_active=true`, [req.params.id]);
   const r = rows[0];
   if (!r || r.access !== 'points') return res.redirect('/library');
-  if (isAdmin(req) || (await E.isStudent(req.user.id))) return res.redirect(`/library/${r.id}`);
+  if (isAdmin(req) || (await E.activeProductIds(req.user.id)).length) return res.redirect(`/library/${r.id}`);
   const out = await P.buy(req.user.id, r);
   if (out.ok) flash(req, `${P.fmt(r.cost)}P를 써서 「${r.title}」을 열었어요 🎉 남은 포인트 ${P.fmt(out.left)}P`);
   else if (out.why === 'owned') flash(req, '이미 열어 둔 자료예요.');
@@ -778,10 +785,12 @@ post('/challenge/submit', member, async (req, res) => {
 get('/my', member, async (req, res) => {
   const uid = req.user.id;
   const [pt, hist, enrolls] = await Promise.all([P.summary(uid), P.history(uid, 15), E.list(uid)]);
-  const sp = enrolls.filter((e) => e.is_active).map((e) => e.product_id).filter(Boolean);
+  const liveE = enrolls.filter((e) => e.is_active && e.product_id);
+  const sp = liveE.map((e) => e.product_id);
+  const hasCourse = liveE.some((e) => e.ptype === 'course');
   const { rows: stuRes } = sp.length ? await db.query(
     `SELECT id, title, section FROM lounge_resources
-      WHERE is_active AND access='course' AND (cardinality(product_ids)=0 OR product_ids && $1::int[]) ORDER BY sort_order, id`, [sp]
+      WHERE is_active AND access='course' AND ((cardinality(product_ids)=0 AND $2) OR product_ids && $1::int[]) ORDER BY sort_order, id`, [sp, hasCourse]
   ) : { rows: [] };
   const [myReviews, posts, u, favs, resOpened] = await Promise.all([
     db.query(

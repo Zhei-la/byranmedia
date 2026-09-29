@@ -333,19 +333,20 @@ router.post('/admin/lounge/products/save', async (req, res) => {
     req.body.is_challenge === '1', int(req.body.sort_order) || 100, req.body.is_active !== '0',
     txt(req.body.list_price, 40) || null, txt(req.body.price_note, 120) || null, txt(req.body.perks, 3000) || null,
     int(req.body.months) || null, txt(req.body.student_links, 2000) || null, txt(req.body.student_note, 500) || null,
+    req.body.ptype === 'ebook' ? 'ebook' : 'course',
   ];
   if (!f[0]) return go(res, 'store', '상품 이름을 넣어 주세요.');
   if (id) {
     await db.query(
       `UPDATE lounge_products SET title=$1, subtitle=$2, kind=$3, badge=$4, price_text=$5, point_price=$6, resource_id=$7,
               buy_url=$8, cta_label=$9, is_challenge=$10, sort_order=$11, is_active=$12,
-              list_price=$13, price_note=$14, perks=$15, months=$16, student_links=$17, student_note=$18 WHERE id=$19`,
+              list_price=$13, price_note=$14, perks=$15, months=$16, student_links=$17, student_note=$18, ptype=$19 WHERE id=$20`,
       [...f, id]
     );
   } else {
     await db.query(
-      `INSERT INTO lounge_products (title, subtitle, kind, badge, price_text, point_price, resource_id, buy_url, cta_label, is_challenge, sort_order, is_active, list_price, price_note, perks, months, student_links, student_note)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)`,
+      `INSERT INTO lounge_products (title, subtitle, kind, badge, price_text, point_price, resource_id, buy_url, cta_label, is_challenge, sort_order, is_active, list_price, price_note, perks, months, student_links, student_note, ptype)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)`,
       f
     );
   }

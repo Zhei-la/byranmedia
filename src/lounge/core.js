@@ -11,6 +11,37 @@ async function migrate() {
   await seedCourses();
   await seedPoints();
   await seedStudent();
+  await seedEbook();
+}
+
+/* 사주·타로 전자책 (15만원) — 무료 자료집과 강의 사이 단계 (한 번만) */
+async function seedEbook() {
+  const { rows } = await db.query(`SELECT 1 FROM lounge_settings WHERE key='seeded_ebook_v1'`);
+  if (rows.length) return;
+  const ex = await db.query(`SELECT 1 FROM lounge_products WHERE title='사주·타로 전자책'`);
+  if (!ex.rows.length) {
+    await db.query(
+      `INSERT INTO lounge_products (title, subtitle, kind, badge, price_text, perks, sort_order, ptype, student_note)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,'ebook',$8)`,
+      [
+        '사주·타로 전자책',
+        '멘토 없이 혼자 할 수 있게, 사주·타로 하는 방법을 루트 하나하나 정리한 전자책',
+        '전자책 · 혼자 하기', '혼자 하기', '150,000원',
+        ['사주 · 타로 하는 방법을 처음부터 순서대로', '어디서 · 무엇으로 · 어떻게, 루트 하나하나 자세히', '바로 복사해 쓰는 프롬프트 모음', '멘토 없이 혼자 따라 할 수 있게 정리', '한 번 사면 계속 다시 보기'].join('\n'),
+        40,
+        '전자책은 계속 다시 볼 수 있어요. 버튼이 안 보이면 1:1 상담으로 말씀해 주세요.',
+      ]
+    );
+  }
+  const r = await db.query(`SELECT 1 FROM lounge_resources WHERE url='/course#ebook'`);
+  if (!r.rows.length) {
+    await db.query(
+      `INSERT INTO lounge_resources (section, title, description, kind, url, access, sort_order)
+       VALUES ('수강 안내', '사주·타로 전자책 안내', '무료 자료집보다 한 단계 자세하게 — 루트 하나하나와 프롬프트까지 (15만원)', 'link', '/course#ebook', 'member', 6)`
+    );
+  }
+  await db.query(`INSERT INTO lounge_settings (key, value) VALUES ('seeded_ebook_v1', '1') ON CONFLICT (key) DO NOTHING`);
+  console.log('[라운지] 사주·타로 전자책을 넣었습니다.');
 }
 
 /* 수강생 화면: 지금 과정(사주·타로)은 루월당으로 연결, 과정별 기간 (한 번만) */

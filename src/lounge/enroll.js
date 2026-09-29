@@ -24,7 +24,7 @@ function parseLinks(text) {
 async function list(uid) {
   const { rows } = await db.query(
     `SELECT e.*, e.starts_on::text AS starts_s, e.ends_on::text AS ends_s, (${ACTIVE}) AS is_active, (e.ends_on - ${TODAY})::int AS days_left,
-            p.student_links, p.student_note, p.kind
+            p.student_links, p.student_note, p.kind, COALESCE(p.ptype, 'course') AS ptype
        FROM lounge_enrollments e LEFT JOIN lounge_products p ON p.id=e.product_id
       WHERE e.user_id=$1 ORDER BY (${ACTIVE}) DESC, e.created_at DESC`,
     [uid]
@@ -38,9 +38,17 @@ async function activeProductIds(uid) {
   return rows.map((r) => r.product_id).filter(Boolean);
 }
 
+/** 수강 중인 강의 과정 번호들 (전자책 제외) */
+async function activeCourseIds(uid) {
+  const { rows } = await db.query(
+    `SELECT DISTINCT e.product_id FROM lounge_enrollments e JOIN lounge_products p ON p.id=e.product_id
+      WHERE e.user_id=$1 AND ${ACTIVE} AND p.ptype='course'`, [uid]);
+  return rows.map((r) => r.product_id);
+}
+
+/** 강의 수강생인가 (전자책만 산 사람은 아님) */
 async function isStudent(uid) {
-  const { rows } = await db.query(`SELECT 1 FROM lounge_enrollments e WHERE e.user_id=$1 AND ${ACTIVE} LIMIT 1`, [uid]);
-  return rows.length > 0;
+  return (await activeCourseIds(uid)).length > 0;
 }
 
 /**
@@ -101,4 +109,4 @@ async function remove(id) {
   await db.query(`DELETE FROM lounge_enrollments WHERE id=$1`, [id]);
 }
 
-module.exports = { ACTIVE, TODAY, SOURCES, STATUSES, parseLinks, list, activeProductIds, isStudent, grant, paid, update, remove };
+module.exports = { ACTIVE, TODAY, SOURCES, STATUSES, parseLinks, list, activeProductIds, activeCourseIds, isStudent, grant, paid, update, remove };

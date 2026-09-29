@@ -1,19 +1,68 @@
 <%- include('_top') %>
 <%
   const perksOf = (p) => String(p.perks || '').split('\n').map(s => s.trim()).filter(Boolean);
+  const ebooks = products.filter(function(p){ return p.ptype === 'ebook'; });
+  const courses = products.filter(function(p){ return p.ptype !== 'ebook'; });
+  const eb = ebooks[0] || null;
 %>
 <!-- 1. 첫 화면 -->
 <section class="lg-hero lg-cohero">
   <div class="lg-wrap">
-    <p class="lg-kicker">바이란 수강 안내 · 사주 / 사주 + 타로</p>
+    <p class="lg-kicker">바이란 수강 안내 · 사주 / 사주 + 타로<%= eb ? ' · 전자책' : '' %></p>
     <h1 class="lg-display">사주도 타로도 몰라도,<br><em>혼자 설 때까지</em> 같이 갑니다</h1>
     <p class="lg-hero-sub"><%= S.course_note || '배우고 끝나는 강의가 아니라, 오늘부터 손님을 받는 구조를 같이 세팅하는 과정이에요.' %></p>
     <div class="lg-hero-cta">
       <a href="#plans" class="lg-btn primary lg">과정·금액 보기</a>
+      <% if (eb) { %><a href="#ebook" class="lg-btn lg">혼자 해볼래요 · 전자책</a><% } %>
       <a href="<%= S.consult_url %>" target="_blank" rel="noopener" class="lg-btn kakao lg">카톡으로 먼저 물어보기</a>
     </div>
     <div class="lg-cohero-chips">
       <span>🔮 전용 만세력 엔진</span><span>📄 리포트 PDF 자동 제작</span><span>🃏 타로 운영법</span><span>🧵 스레드로 손님 모으기</span><span>🙋 1:1 피드백</span>
+    </div>
+  </div>
+</section>
+
+<!-- 1-2. 단계 고르기: 무료 자료집 → 전자책 → 강의 -->
+<section class="lg-wrap lg-sec" id="steps">
+  <div class="lg-sec-h"><div><p class="lg-kicker">Choose your step</p><h2 class="lg-h2">나에게 맞는 단계 고르기</h2><p class="lg-muted">같은 사주·타로 부업이라도, 얼마나 자세히 알려드리는지가 달라요.</p></div></div>
+  <div class="lg-ladder">
+    <div class="lg-rung">
+      <span class="lg-rung-n">1단계</span>
+      <h3>무료 자료집</h3>
+      <p class="lg-rung-price">0원 <small>가입하면</small></p>
+      <p class="lg-rung-lead"><b>큰 길</b>만 보여 드려요</p>
+      <ul class="lg-check-list sm">
+        <li>이런 부업이 있다</li>
+        <li>어디서 하는지 · 무엇으로 하는지</li>
+        <li>어떻게 하는지 큰 흐름</li>
+      </ul>
+      <a href="/library" class="lg-btn block">자료실에서 보기</a>
+    </div>
+    <% if (eb) { %>
+    <div class="lg-rung mid">
+      <span class="lg-rung-n">2단계</span>
+      <h3>사주·타로 전자책</h3>
+      <p class="lg-rung-price"><%= eb.price_text || '금액 문의' %></p>
+      <p class="lg-rung-lead"><b>루트 하나하나</b> 알려 드려요</p>
+      <ul class="lg-check-list sm">
+        <li>사주·타로 하는 방법을 순서대로 자세히</li>
+        <li>바로 복사해 쓰는 프롬프트</li>
+        <li>멘토 없이 혼자 따라 할 수 있게</li>
+      </ul>
+      <a href="#ebook" class="lg-btn block">전자책 보기</a>
+    </div>
+    <% } %>
+    <div class="lg-rung top">
+      <span class="lg-rung-n"><%= eb ? '3단계' : '2단계' %></span>
+      <h3>강의 · 1:1 과정</h3>
+      <p class="lg-rung-price"><%= courses[0] && courses[0].price_text ? courses[0].price_text + '부터' : '금액 문의' %></p>
+      <p class="lg-rung-lead"><b>진짜 세세하게</b> 같이 가요</p>
+      <ul class="lg-check-list sm">
+        <li>사람을 어떻게 끌어들이는지 하나하나</li>
+        <li>전용 프로그램 · 계정 세팅까지 같이</li>
+        <li>막힐 때마다 1:1 피드백</li>
+      </ul>
+      <a href="#plans" class="lg-btn primary block">과정 보기</a>
     </div>
   </div>
 </section>
@@ -90,9 +139,9 @@
 <!-- 5. 과정·금액 -->
 <section class="lg-wrap lg-sec" id="plans">
   <div class="lg-sec-h"><div><p class="lg-kicker">Plans</p><h2 class="lg-h2">과정과 금액</h2></div></div>
-  <% if (products.length) { %>
+  <% if (courses.length) { %>
     <div class="lg-plans">
-      <% products.forEach(function(p){ var perks = perksOf(p); %>
+      <% courses.forEach(function(p){ var perks = perksOf(p); %>
         <article class="lg-plan <%= p.badge === '추천' ? 'hot' : '' %>" id="c<%= p.id %>">
           <% if (p.badge) { %><span class="lg-badge"><%= p.badge %></span><% } %>
           <% if (p.kind) { %><p class="lg-prod-kind"><%= p.kind %></p><% } %>
@@ -123,6 +172,41 @@
     <div class="lg-card lg-empty"><b>다음 기수를 준비하고 있어요</b><p>아래 신청서로 연락처를 남겨 주시면 열리자마자 알려드릴게요.</p></div>
   <% } %>
 </section>
+
+<% if (ebooks.length) { %>
+<!-- 5-2. 전자책 -->
+<section class="lg-wrap lg-sec" id="ebook">
+  <% ebooks.forEach(function(p){ var perks = perksOf(p); %>
+    <div class="lg-card lg-ebook">
+      <div class="lg-ebook-l">
+        <p class="lg-kicker">E-book · 혼자 하기</p>
+        <h2 class="lg-h2"><%= p.title %></h2>
+        <% if (p.subtitle) { %><p class="lg-muted"><%= p.subtitle %></p><% } %>
+        <div class="lg-plan-price">
+          <% if (p.list_price) { %><s><%= p.list_price %></s><% } %>
+          <b><%= p.price_text || '금액 문의' %></b>
+          <% if (p.price_note) { %><small><%= p.price_note %></small><% } %>
+        </div>
+        <div class="lg-prod-cta">
+          <% if (mine.includes(p.id)) { %>
+            <a href="/my" class="lg-btn primary">📖 구매함 · 전자책 보러 가기</a>
+          <% } else { %>
+            <a href="/course?pick=<%= p.id %>#apply" class="lg-btn primary">전자책 신청하기</a>
+          <% } %>
+          <% if (p.buy_url) { %><a href="<%= p.buy_url %>" target="_blank" rel="noopener" class="lg-btn"><%= p.cta_label || '자세히 보기' %></a><% } %>
+        </div>
+      </div>
+      <div class="lg-ebook-r">
+        <% if (perks.length) { %><ul class="lg-check-list"><% perks.forEach(function(k){ %><li><%= k %></li><% }); %></ul><% } %>
+        <div class="lg-ebook-vs">
+          <p><b>전자책</b>은 <em>하는 방법</em>을 알려 드려요. 무엇을, 어디서, 어떤 순서로 하는지 혼자서도 따라 할 수 있게요.</p>
+          <p><b>강의</b>는 여기에 더해 <em>사람을 어떻게 끌어들이는지</em>까지 하나하나 같이 잡고, 막힐 때마다 1:1로 봐 드려요.</p>
+        </div>
+      </div>
+    </div>
+  <% }); %>
+</section>
+<% } %>
 
 <!-- 6. 비교 -->
 <section class="lg-wrap lg-sec">
@@ -156,6 +240,8 @@
   <div class="lg-sec-h"><div><p class="lg-kicker">FAQ</p><h2 class="lg-h2">자주 묻는 질문</h2></div></div>
   <div class="lg-faq">
     <details><summary>사주나 타로를 하나도 몰라도 되나요?</summary><p>네. 사주는 전용 엔진이 계산과 해석을 맡고, 타로는 기초 몇 가지와 쓰리카드 배치만으로 시작해요. 나이보다 끝까지 해보시려는 마음이 더 중요해요.</p></details>
+    <details><summary>무료 자료집, 전자책, 강의는 뭐가 다른가요?</summary><p>무료 자료집은 이런 부업이 있고 어디서, 무엇으로, 어떻게 하는지 큰 길만 보여 드려요. 전자책은 그 길을 하나하나 순서대로 풀고 바로 쓰는 프롬프트까지 담아서, 멘토 없이 혼자 따라 할 수 있게 정리했어요. 강의는 여기에 더해 사람을 어떻게 끌어들이는지까지 세세하게 같이 잡고, 1:1 피드백으로 혼자 설 때까지 봐 드려요.</p></details>
+    <details><summary>전자책은 어떻게 받나요?</summary><p>신청서를 남기시면 결제 방법을 안내드려요. 결제가 확인되면 마이페이지에 전자책 보기 버튼이 열리고, 계속 다시 보실 수 있어요.</p></details>
     <details><summary>6개월 과정과 평생 과정은 뭐가 다른가요?</summary><p>배우는 내용은 같아요. 6개월 과정은 혼자 설 수 있을 때까지 넉넉하게 6개월 동안 1:1 피드백을 드리고, 평생 과정은 기간 제한 없이 계속 피드백을 드려요. 평생 과정은 바이란의 다른 부업 과정도 먼저, 더 저렴하게 시작할 수 있어요.</p></details>
     <details><summary>"해당 월 5명 할인"은 무슨 뜻인가요?</summary><p>매달 먼저 신청하신 5분까지만 할인가로 받아요. 5명이 차면 그 달은 정가로 안내드려요.</p></details>
     <details><summary>피드백은 어떻게 받나요?</summary><p>카카오톡으로 막히는 지점마다 물어보시면 돼요. 올린 글, 상담 문구, 세팅 화면을 보내 주시면 같이 보고 고쳐 드려요. 다만 직접 해보지 않고 대신 다 해주길 바라시는 분은 받지 않아요.</p></details>
@@ -168,7 +254,7 @@
 <!-- 9. 신청서 -->
 <section class="lg-wrap narrow lg-sec" id="apply">
   <div class="lg-card">
-    <h2 class="lg-h2">수강 신청서</h2>
+    <h2 class="lg-h2">수강 · 전자책 신청서</h2>
     <% if (sent) { %>
       <div class="lg-alert ok">신청을 받았어요! 확인하고 바로 연락드릴게요.</div>
       <a href="<%= S.consult_url %>" target="_blank" rel="noopener" class="lg-btn kakao block">카카오톡으로 먼저 말 걸기</a>
@@ -176,7 +262,7 @@
       <p class="lg-muted">남겨 주시면 확인 후 카톡이나 문자로 결제 방법과 시작일을 안내드려요.</p>
       <form method="post" action="/course/apply">
         <input type="text" name="website" class="lg-hp" tabindex="-1" autocomplete="off" aria-hidden="true">
-        <label class="lg-lb" for="cp">어떤 과정인가요</label>
+        <label class="lg-lb" for="cp">무엇을 신청하시나요</label>
         <select id="cp" name="product_id" class="lg-in" required>
           <% products.forEach(function(p){ %><option value="<%= p.id %>" <%= pick === p.id ? 'selected' : '' %>><%= p.title %><%= p.price_text ? ' · ' + p.price_text : '' %></option><% }); %>
           <% if (!products.length) { %><option value="">다음 기수 알림 받기</option><% } %>

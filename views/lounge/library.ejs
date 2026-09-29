@@ -32,7 +32,7 @@
   <% } %>
 
   <% if (isStu) { %>
-    <div class="lg-ptbar"><div class="lg-ptbar-bal"><b>🎓 수강생이에요</b></div><div class="lg-ptbar-rules"><span>포인트 자료집도 포인트 없이 바로 열려요.</span></div><a href="/my" class="lg-btn sm primary">내 수강 화면 →</a></div>
+    <div class="lg-ptbar"><div class="lg-ptbar-bal"><b>🎓 수강·구매 중이에요</b></div><div class="lg-ptbar-rules"><span>포인트 자료집도 포인트 없이 바로 열려요.</span></div><a href="/my" class="lg-btn sm primary">내 수강 화면 →</a></div>
   <% } else if (hasPoints && me) { %><%- include('_ptbar') %><% } %>
 
   <% if (hasCode && user && me && !codeOk && user.role !== 'admin') { %>

@@ -695,3 +695,24 @@ textarea.lg-in{resize:vertical;line-height:1.6}
 .lg-adfield legend{font-size:12.5px;color:var(--ink-3);padding:0 4px}
 
 .lg-mepill:has(.lg-stu-mini){max-width:220px}
+
+/* ---------- 단계 고르기 · 전자책 ---------- */
+.lg-ladder{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;align-items:stretch}
+.lg-rung{position:relative;display:flex;flex-direction:column;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:22px 20px;box-shadow:var(--shadow)}
+.lg-rung h3{font-family:var(--serif);font-size:19px;font-weight:800;letter-spacing:-.01em}
+.lg-rung-n{align-self:flex-start;font-size:11.5px;font-weight:750;letter-spacing:.06em;color:var(--ink-3);background:var(--paper-2);padding:3px 9px;border-radius:999px}
+.lg-rung-price{font-size:20px;font-weight:800;letter-spacing:-.01em}
+.lg-rung-price small{font-size:12.5px;color:var(--ink-3);font-weight:600;margin-left:4px}
+.lg-rung-lead{font-size:14.5px;color:var(--ink-2)}
+.lg-rung-lead b{color:var(--green);box-shadow:inset 0 -.35em 0 var(--green-soft)}
+.lg-rung .lg-check-list{flex:1;margin:4px 0 8px}
+.lg-rung.mid{border-color:#E7CC9C;background:linear-gradient(180deg,var(--gold-soft),var(--card) 55%)}
+.lg-rung.mid .lg-rung-n{background:var(--gold);color:#fff}
+.lg-rung.top{border-color:#BFD8CD;background:linear-gradient(180deg,var(--green-soft),var(--card) 55%)}
+.lg-rung.top .lg-rung-n{background:var(--green);color:#fff}
+.lg-ebook{display:grid;grid-template-columns:1fr 1.1fr;gap:26px;border:1px solid #E7CC9C;background:linear-gradient(135deg,var(--gold-soft),var(--card) 60%);padding:28px}
+.lg-ebook-l{display:flex;flex-direction:column;gap:10px}
+.lg-ebook-l .lg-prod-cta{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.lg-ebook-vs{margin-top:16px;padding:14px 16px;border-radius:var(--r-sm);background:var(--card);border:1px dashed var(--line);font-size:14px;color:var(--ink-2);display:grid;gap:8px}
+.lg-ebook-vs em{font-style:normal;font-weight:700;color:var(--ink)}
+@media (max-width:760px){ .lg-ebook{grid-template-columns:1fr;padding:20px} }

@@ -260,3 +260,6 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_enroll_order ON lounge_enrollments (order_i
 
 -- 수강생 전용 자료: access='course' 이고, product_ids 에 든 과정 수강생만 (비우면 수강생 누구나)
 ALTER TABLE lounge_resources ADD COLUMN IF NOT EXISTS product_ids INT[] NOT NULL DEFAULT '{}';
+
+-- 상품 종류: course(강의·1:1 과정) | ebook(전자책)
+ALTER TABLE lounge_products ADD COLUMN IF NOT EXISTS ptype VARCHAR(10) NOT NULL DEFAULT 'course';

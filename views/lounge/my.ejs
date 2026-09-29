@@ -20,16 +20,16 @@
       <% act.forEach(function(e){ %>
         <div class="lg-card lg-stu-card">
           <div class="lg-stu-h">
-            <span class="lg-stu-badge">🎓 수강 중</span>
+            <span class="lg-stu-badge"><%= e.ptype === 'ebook' ? '📖 내 전자책' : '🎓 수강 중' %></span>
             <h2 class="lg-h3"><%= e.product_title %></h2>
-            <p class="lg-muted"><%= fd(e.starts_s) %> ~ <%= e.ends_s ? fd(e.ends_s) + ' · ' + (e.days_left === 0 ? '오늘 마지막 날' : e.days_left + '일 남음') : '평생' %><%= e.kind ? ' · ' + e.kind : '' %></p>
+            <p class="lg-muted"><%= fd(e.starts_s) %> ~ <%= e.ends_s ? fd(e.ends_s) + ' · ' + (e.days_left === 0 ? '오늘 마지막 날' : e.days_left + '일 남음') : (e.ptype === 'ebook' ? '계속 다시 보기' : '평생') %><%= e.kind ? ' · ' + e.kind : '' %></p>
           </div>
           <% if (e.student_note) { %><p class="lg-stu-note"><%= e.student_note %></p><% } %>
           <div class="lg-stu-links">
             <% e.links.forEach(function(l, i){ %>
               <a href="<%= l.url %>"<%- /^https?:/.test(l.url) ? ' target="_blank" rel="noopener"' : '' %> class="lg-btn <%= i === 0 ? 'primary' : '' %>"><%= l.label %> →</a>
             <% }); %>
-            <a href="/consult?type=course" class="lg-btn ghost">수강 문의</a>
+            <a href="/consult?type=course" class="lg-btn ghost"><%= e.ptype === 'ebook' ? '문의하기' : '수강 문의' %></a>
           </div>
         </div>
       <% }); %>
@@ -41,11 +41,11 @@
           </ul>
         </div>
       <% } %>
-      <p class="lg-hint">수강생은 자료실의 💎 포인트 자료집도 포인트 없이 바로 열 수 있어요.</p>
+      <p class="lg-hint">수강생과 전자책 구매자는 자료실의 💎 포인트 자료집도 포인트 없이 바로 열 수 있어요.</p>
     </div>
   <% } else { %>
     <div class="lg-card lg-stu-none">
-      <div><b>🎓 수강 중인 과정이 없어요</b><p class="lg-muted">결제하시면 여기에 "수강 중"으로 뜨고, 수강 자료와 도구로 바로 들어갈 수 있어요. 현금으로 결제하셨다면 확인 후 열어 드려요.</p></div>
+      <div><b>🎓 수강 중인 과정이 없어요</b><p class="lg-muted">강의나 전자책을 결제하시면 여기에 뜨고, 자료와 도구로 바로 들어갈 수 있어요. 현금으로 결제하셨다면 확인 후 열어 드려요.</p></div>
       <a href="/course" class="lg-btn primary sm">수강 신청 보기</a>
     </div>
   <% } %>

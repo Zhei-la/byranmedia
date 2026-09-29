@@ -153,6 +153,7 @@
     <h2 class="lg-h3"><%= e ? '과정 고치기' : '새 과정 추가' %></h2>
     <% if (e) { %><input type="hidden" name="id" value="<%= e.id %>"><% } %>
     <div class="lg-adgrid">
+      <label>종류<select name="ptype" class="lg-in"><option value="course" <%= !e || e.ptype !== 'ebook' ? 'selected' : '' %>>🎓 강의 · 1:1 과정</option><option value="ebook" <%= e && e.ptype === 'ebook' ? 'selected' : '' %>>📖 전자책</option></select></label>
       <label>이름<input name="title" class="lg-in" required maxlength="120" value="<%= e ? e.title : '' %>" placeholder="예: 사주 + 타로 과정"></label>
       <label>한 줄 설명<input name="subtitle" class="lg-in" maxlength="200" value="<%= e ? e.subtitle || '' : '' %>"></label>
       <label>분류 표시 (작은 글씨)<input name="kind" class="lg-in" maxlength="40" value="<%= e ? e.kind || '' : '' %>" placeholder="예: 1:1 피드백 · 4주"></label>
@@ -170,7 +171,7 @@
       <label>수강 기간 (개월, 비우면 평생)<input name="months" type="number" min="1" class="lg-in" value="<%= e && e.months ? e.months : '' %>" placeholder="예: 6"></label>
       <label>수강생 안내 문구<input name="student_note" class="lg-in" maxlength="500" value="<%= e ? e.student_note || '' : '' %>" placeholder="예: 수강 자료와 도구는 루월당에서 이용해요"></label>
     </div>
-    <label>수강생에게 보여줄 링크 (한 줄에 하나, "이름 | 주소")<textarea name="student_links" class="lg-in" rows="3" placeholder="루월당 바로가기 | https://www.luwolsaju.com/home&#10;수강생 단톡방 | https://open.kakao.com/..."><%= e ? e.student_links || '' : '' %></textarea></label>
+    <label>수강생에게 보여줄 링크 (한 줄에 하나, "이름 | 주소")<textarea name="student_links" class="lg-in" rows="3" placeholder="루월당 바로가기 | https://www.luwolsaju.com/home&#10;전자책 열기 | https://노션 공개 주소"><%= e ? e.student_links || '' : '' %></textarea></label>
     <p class="lg-hint">수강권이 있는 회원은 마이페이지에 "수강 중"으로 이 링크들이 떠요.</p>
     <label class="lg-check"><input type="checkbox" name="is_challenge" value="1" <%= e && e.is_challenge ? 'checked' : '' %>> 챌린지 과정 (챌린지 페이지로 연결)</label>
     <label class="lg-check"><input type="hidden" name="is_active" value="0"><input type="checkbox" name="is_active" value="1" <%= !e || e.is_active ? 'checked' : '' %>> 공개</label>
@@ -179,7 +180,7 @@
   <div class="lg-admin-list">
     <% products.forEach(function(p){ %>
       <div class="lg-adrow <%= p.is_active ? '' : 'off' %>">
-        <div class="grow"><b><%= p.title %></b><small><%= p.price_text || '금액 미정' %><%= p.list_price ? ' (정가 ' + p.list_price + ')' : '' %> · 기간 <%= p.months ? p.months + '개월' : '평생' %> · 순서 <%= p.sort_order %></small></div>
+        <div class="grow"><b><%= p.ptype === 'ebook' ? '📖 ' : '' %><%= p.title %></b><small><%= p.price_text || '금액 미정' %><%= p.list_price ? ' (정가 ' + p.list_price + ')' : '' %> · 기간 <%= p.months ? p.months + '개월' : '평생' %> · 순서 <%= p.sort_order %></small></div>
         <a href="/admin/lounge?tab=store&edit=<%= p.id %>#sform" class="lg-btn sm">수정</a>
         <form method="post" action="/admin/lounge/products/<%= p.id %>/delete" class="inline" data-confirm="정말 지울까요?"><button class="lg-btn sm ghost danger">삭제</button></form>
       </div>
