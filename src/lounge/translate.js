@@ -76,6 +76,15 @@ const DICT = {
   '화장품': 'cosmetic product', '향수': 'perfume bottle', '립스틱': 'lipstick', '대리석': 'marble surface', '나무 테이블': 'wooden table',
   // 연결어
   '그리고': 'and', '같은': 'like', '느낌': 'feel', '스타일': 'style', '사진': 'photo', '이미지': 'image',
+  // 그림체·스타일 (직접 적기용)
+  '애니메이션': 'anime style', '애니': 'anime style', '만화': 'manga comic style', '순정만화': '90s shoujo manga style', '웹툰': 'Korean webtoon style',
+  '일러스트': 'illustration', '그림': 'illustration', '손그림': 'hand-drawn', '수채화': 'watercolor painting', '유화': 'oil painting',
+  '크레파스': 'crayon drawing', '색연필': 'colored pencil drawing', '연필 스케치': 'pencil sketch', '스케치': 'sketch', '수묵화': 'ink wash painting',
+  '동화책': "children's storybook illustration", '동화': 'fairytale', '귀여운': 'cute', '몽글몽글한': 'soft and fluffy', '따뜻한 느낌': 'warm feeling',
+  '클레이': 'claymation style', '점토': 'clay', '피규어': 'collectible figurine', '레고': 'toy brick', '픽셀': 'pixel art', '도트': 'pixel art',
+  '레트로': 'retro', '팝아트': 'pop art', '사이버펑크': 'cyberpunk', '판타지': 'fantasy', '몽환적인': 'dreamy', '유리공예': 'glass art',
+  '종이접기': 'origami paper craft', '페이퍼 컷': 'layered paper cut art', '자수': 'embroidery', '스티커': 'sticker', '치비': 'chibi',
+  '흑백': 'black and white', '필름 사진': 'analog film photograph', '폴라로이드': 'polaroid photo', '영화 같은': 'cinematic',
 };
 // 두 글자 이상은 문장 속에서도 찾고, 한 글자(비·눈·산 등)는 낱말일 때만 바꾼다
 const KEYS = Object.keys(DICT).filter((k) => k.replace(/\s/g, '').length >= 2).sort((a, b) => b.length - a.length);

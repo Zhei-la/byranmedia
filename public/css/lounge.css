@@ -745,3 +745,5 @@ textarea.lg-in{resize:vertical;line-height:1.6}
 .lg-agency-ic{font-size:28px}
 .lg-agency-card em{font-style:normal;font-weight:700;color:var(--green);margin-top:auto}
 .lg-hint.center{text-align:center}
+.lg-bcustom{margin:4px 0 12px;padding:12px 14px;border:1px dashed var(--green);border-radius:var(--r-sm);background:var(--green-soft)}
+.lg-bcustom .lg-bchips button{background:var(--card)}

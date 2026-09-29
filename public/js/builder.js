@@ -49,15 +49,49 @@
   var CHIP = {};
   FIELDS.forEach(function (f) { f.chips.forEach(function (c) { CHIP[c[0]] = c[1]; }); });
 
-  /* ---------- 사진 느낌 ---------- */
-  var REAL = {
-    photo: 'ultra-realistic photograph that looks like a real unedited photo taken by a person; natural skin texture with visible pores and fine peach fuzz, subtle facial asymmetry, individual hair strands, true-to-life colors, natural light falloff, slight lens imperfections, real-world depth of field',
-    phone: 'casual unedited smartphone photo, natural phone HDR, slight sensor noise, imperfect everyday framing, authentic candid moment, realistic skin with pores and small blemishes',
-    editorial: 'high-end editorial magazine photograph, professional lighting, tack-sharp focus, realistic skin with only light natural retouching, true-to-life fabric texture',
-    illust: 'high-quality illustration, clean line art, consistent character design, detailed shading',
+  /* ---------- 스타일 (사진·그림체) ---------- */
+  // group: photo(실사) | art(그림체) — 맨 위 요청 문장과 부정 프롬프트가 달라진다
+  var STYLES = {
+    photo:     { g: 'photo', ko: '진짜 사진처럼 (실사)', en: 'ultra-realistic photograph that looks like a real unedited photo taken by a person; natural skin texture with visible pores and fine peach fuzz, subtle facial asymmetry, individual hair strands, true-to-life colors, natural light falloff, slight lens imperfections, real-world depth of field' },
+    phone:     { g: 'photo', ko: '폰으로 막 찍은 일상', en: 'casual unedited smartphone photo, natural phone HDR, slight sensor noise, imperfect everyday framing, authentic candid moment, realistic skin with pores and small blemishes' },
+    editorial: { g: 'photo', ko: '잡지 화보', en: 'high-end editorial magazine photograph, professional lighting, tack-sharp focus, realistic skin with only light natural retouching, true-to-life fabric texture' },
+    film:      { g: 'photo', ko: '필름 카메라 감성', en: '35mm analog film photograph, visible film grain, slightly faded warm colors, soft halation around highlights, nostalgic everyday moment, realistic skin texture' },
+    cinematic: { g: 'photo', ko: '영화 스틸컷', en: 'cinematic film still, anamorphic lens look, dramatic yet natural lighting, shallow depth of field, color graded like a movie scene, realistic skin texture' },
+    bw:        { g: 'photo', ko: '흑백 사진', en: 'black and white film photograph, rich tonal range from deep blacks to soft whites, fine grain, timeless documentary feel, realistic skin texture' },
+    polaroid:  { g: 'photo', ko: '폴라로이드', en: 'instant polaroid photo with a white frame border, soft direct flash, slightly washed-out colors, casual vintage snapshot' },
+    profile:   { g: 'photo', ko: '프로필·증명사진', en: 'clean professional profile headshot, plain light background, soft even studio light, natural realistic skin, sharp focus on the eyes' },
+    anime:     { g: 'art', ko: '애니메이션', en: 'Japanese anime style illustration, clean cel shading, expressive eyes, crisp line art, vibrant colors, detailed background', neg: 'photorealistic, photograph, 3D render' },
+    softanime: { g: 'art', ko: '감성 손그림 애니', en: 'hand-drawn anime film look, soft watercolor-painted backgrounds, warm natural sunlight, gentle nostalgic atmosphere, delicate linework', neg: 'photorealistic, photograph, 3D render, harsh neon colors' },
+    webtoon:   { g: 'art', ko: '웹툰', en: 'Korean webtoon style, clean digital line art, soft cell shading, bright polished colors, manhwa character design', neg: 'photorealistic, photograph, 3D render' },
+    pastel:    { g: 'art', ko: '파스텔 일러스트', en: 'soft pastel illustration, gentle pastel color palette, dreamy soft shading, light and airy feel, cute calm mood', neg: 'photorealistic, harsh contrast, dark gloomy colors' },
+    watercolor:{ g: 'art', ko: '수채화', en: 'watercolor painting, soft bleeding edges, visible paper texture, delicate washes of color, loose expressive brushwork', neg: 'photorealistic, 3D render, hard digital edges' },
+    oil:       { g: 'art', ko: '유화', en: 'oil painting on canvas, visible textured brush strokes, rich layered paint, classical lighting, painterly details', neg: 'photorealistic, photograph, flat vector' },
+    crayon:    { g: 'art', ko: '크레파스·색연필', en: 'hand-drawn crayon and colored pencil illustration, waxy textured strokes, warm childlike charm, paper texture', neg: 'photorealistic, 3D render, clean vector' },
+    pencil:    { g: 'art', ko: '연필 스케치', en: 'graphite pencil sketch, fine hatching and soft shading, textured sketchbook paper, monochrome, hand-drawn', neg: 'color, photorealistic, 3D render' },
+    lineart:   { g: 'art', ko: '라인 드로잉', en: 'minimal black line art drawing, clean even-weight lines, plain white background, no shading', neg: 'color fill, shading, photorealistic, 3D render' },
+    storybook: { g: 'art', ko: '동화책 삽화', en: "children's storybook illustration, warm gouache textures, whimsical and gentle, soft storybook colors", neg: 'photorealistic, photograph, dark horror' },
+    inkwash:   { g: 'art', ko: '수묵화 (한국화)', en: 'traditional East Asian ink wash painting, flowing brush strokes, soft ink gradients, generous empty space, rice paper texture', neg: 'photorealistic, 3D render, bright neon colors' },
+    '3d':      { g: 'art', ko: '3D 애니 캐릭터', en: '3D animated movie character style, soft rounded features, big expressive eyes, smooth stylized materials, warm cinematic lighting', neg: 'photograph, photorealistic skin, flat 2D' },
+    clay:      { g: 'art', ko: '클레이·점토', en: 'claymation style, handmade plasticine clay figures, visible fingerprints and texture, soft studio lighting, stop-motion look', neg: 'photorealistic skin, flat 2D, glossy plastic' },
+    figure:    { g: 'art', ko: '피규어·장난감', en: 'collectible toy figurine, glossy vinyl material, tiny detailed accessories, product shot on a clean display base, soft studio lighting', neg: 'real human skin, flat 2D' },
+    chibi:     { g: 'art', ko: '치비·스티커', en: 'cute chibi sticker illustration, big head and small body, thick white sticker outline, simple flat colors, kawaii', neg: 'photorealistic, realistic proportions, 3D render' },
+    flat:      { g: 'art', ko: '플랫 일러스트', en: 'flat vector illustration, simple geometric shapes, bold solid colors, no gradients, modern minimal design', neg: 'photorealistic, 3D render, textures, gradients' },
+    popart:    { g: 'art', ko: '팝아트', en: 'pop art style, bold black outlines, halftone dots, bright saturated primary colors, comic print look', neg: 'photorealistic, muted colors' },
+    pixel:     { g: 'art', ko: '픽셀아트', en: '16-bit pixel art, crisp square pixels, limited color palette, retro video game look', neg: 'smooth gradients, blurry, photorealistic, anti-aliasing' },
+    retro:     { g: 'art', ko: '레트로 포스터', en: 'vintage retro poster illustration, halftone print texture, muted 70s color palette, grainy aged paper', neg: 'photorealistic, glossy 3D render' },
+    cyber:     { g: 'art', ko: '사이버펑크 네온', en: 'cyberpunk neon style, glowing neon lights, rainy night city reflections, magenta and cyan palette, futuristic mood', neg: 'daylight, pastel colors' },
+    fantasy:   { g: 'art', ko: '판타지 일러스트', en: 'epic fantasy digital painting, magical glowing particles, rich detailed environment, dramatic lighting', neg: 'photograph, flat vector' },
+    custom:    { g: 'art', ko: '✏️ 직접 적기', en: '' },
   };
+  var STYLE_GROUPS = [
+    ['📷 사진', ['photo', 'phone', 'editorial', 'film', 'cinematic', 'bw', 'polaroid', 'profile']],
+    ['🎨 애니·만화', ['anime', 'softanime', 'webtoon', 'chibi', '3d']],
+    ['🖌 그림·페인팅', ['pastel', 'watercolor', 'oil', 'crayon', 'pencil', 'lineart', 'storybook', 'inkwash']],
+    ['✨ 특별한 느낌', ['clay', 'figure', 'flat', 'popart', 'pixel', 'retro', 'cyber', 'fantasy']],
+    ['✏️ 내가 정하기', ['custom']],
+  ];
   var NEG_PHOTO = 'CGI, 3D render, illustration, cartoon, anime, painting, digital art, doll-like face, plastic or waxy skin, airbrushed, beauty filter, over-smoothed skin, uncanny valley, oversized eyes, extra or missing fingers, deformed hands, distorted face, text, watermark, logo, oversaturated, blown highlights';
-  var NEG_ILLUST = 'photorealistic, 3D render, blurry, extra fingers, deformed hands, text, watermark, logo, messy lines';
+  var NEG_ART_BASE = 'low quality, blurry, messy lines, extra or missing fingers, deformed hands, distorted face, text, watermark, logo';
 
   /* ---------- 패턴 (칸에는 한국어로 채워 둔다) ---------- */
   var PATTERNS = [
@@ -73,7 +107,7 @@
       fill: { shot: '자연스러운 스냅, 전신', scene: '서울 골목', camera: '필름 카메라', light: '골든아워', color: '필름 톤', mood: '시네마틱', detail: '옷 주름' } },
     { id: 'product', icon: '🧴', name: '음식·제품', desc: '광고 컷 · 연출 사진', real: 'editorial',
       fill: { shot: '정면 중앙', scene: '흰 벽', camera: '매크로', light: '스튜디오 조명', color: '선명하게', mood: '청량한', detail: '제품 선명하게' } },
-    { id: 'anime', icon: '🎨', name: '애니·일러스트', desc: '그림체 캐릭터', real: 'illust',
+    { id: 'anime', icon: '🎨', name: '애니·일러스트', desc: '그림체 캐릭터', real: 'anime',
       fill: { shot: '상반신', light: '골든아워', color: '파스텔', mood: '몽환적' } },
     { id: 'sticker', icon: '📸', name: '네컷 사진', desc: '포토부스 네 컷', real: 'phone',
       fill: { shot: 'four-panel photo booth strip, same person with a different pose in each frame', camera: '폰카 느낌', light: '폰 플래시', mood: '사랑스러운', detail: '잔머리' } },
@@ -92,6 +126,33 @@
   var modeEl = root.querySelector('[data-mode]');
   var applyBtn = root.querySelector('[data-apply]');
   var realSel = root.querySelector('[data-opt=real]');
+  var customBox = root.querySelector('[data-custom-style]');
+  var customIn = root.querySelector('[data-style-text]');
+
+  // 스타일 목록 채우기
+  realSel.innerHTML = '';
+  STYLE_GROUPS.forEach(function (grp) {
+    var og = document.createElement('optgroup');
+    og.label = grp[0];
+    grp[1].forEach(function (k) {
+      var o = document.createElement('option');
+      o.value = k; o.textContent = STYLES[k].ko;
+      og.appendChild(o);
+    });
+    realSel.appendChild(og);
+  });
+  function setStyle(k) {
+    if (!STYLES[k]) k = 'photo';
+    state.real = k;
+    realSel.value = k;
+    customBox.hidden = k !== 'custom';
+    if (!state.negEdited) neg.value = negFor(k);
+  }
+  function negFor(k) {
+    var st = STYLES[k];
+    if (st.g === 'photo') return NEG_PHOTO;
+    return st.neg ? st.neg + ', ' + NEG_ART_BASE : NEG_ART_BASE;
+  }
 
   /* ---------- 그리기 ---------- */
   PATTERNS.forEach(function (p) {
@@ -146,14 +207,7 @@
       if (f.key === 'subject') return; // 주인공은 지키기
       ta(f.key).value = p.fill[f.key] || '';
     });
-    if (p.real === 'illust') {
-      state.real = 'illust';
-      realSel.disabled = true;
-    } else {
-      realSel.disabled = false;
-      state.real = p.real;
-      realSel.value = p.real;
-    }
+    setStyle(p.real); // 패턴마다 어울리는 스타일로 (고른 뒤 바꿀 수 있어요)
     markDirty();
   }
 
@@ -175,6 +229,15 @@
   applyBtn.addEventListener('click', function () {
     var raw = {};
     FIELDS.forEach(function (f) { raw[f.key] = chipToEnglish(ta(f.key).value); });
+    if (state.real === 'custom') {
+      raw.style = customIn.value.trim();
+      if (!raw.style) {
+        customIn.focus();
+        out.value = '원하는 스타일을 적어 주세요. 예) 90년대 순정만화, 크레파스 그림, 유리공예';
+        out.classList.add('empty');
+        return;
+      }
+    }
     if (!raw.subject) {
       ta('subject').focus();
       out.value = '주인공 칸부터 채워 주세요. 예) 20대 한국 여성';
@@ -226,15 +289,17 @@
   function build() {
     var v = {};
     FIELDS.forEach(function (f) { v[f.key] = clean(state.translated[f.key]); });
-    var realKey = state.pattern === 'anime' ? 'illust' : state.real;
-    var real = REAL[realKey];
+    var st = STYLES[state.real] || STYLES.photo;
+    var custom = state.real === 'custom';
+    var real = custom ? clean(state.translated.style || customIn.value) : st.en;
     var negText = clean(neg.value);
-    var isPhoto = realKey !== 'illust';
+    var isPhoto = st.g === 'photo';
 
     if (state.model === 'flux') {
-      var kw = [isPhoto ? 'RAW photo, photorealistic' : 'illustration'];
+      var kw = [isPhoto ? 'RAW photo, photorealistic' : real];
       FIELDS.forEach(function (f) { if (v[f.key]) kw.push(v[f.key]); });
-      kw.push(real, RATIO_WORD[state.ratio] + ' aspect ratio');
+      if (isPhoto) kw.push(real);
+      kw.push(RATIO_WORD[state.ratio] + ' aspect ratio');
       return kw.join(', ');
     }
 
@@ -259,9 +324,12 @@
 
     // 챗지피티 · 나노바나나: 맨 위에 "바로 이미지를 만들어 달라" 요청
     var lines = [];
+    var ask = ' Do not ask me any questions and do not reply with text — generate the image right away.';
     lines.push(isPhoto
-      ? 'Create one photorealistic image from the description below. Do not ask me any questions and do not reply with text — generate the image right away.'
-      : 'Create one illustration from the description below. Do not ask me any questions and do not reply with text — generate the image right away.');
+      ? 'Create one photorealistic image from the description below.' + ask
+      : custom
+        ? 'Create one image in the style described below.' + ask
+        : 'Create one image in the art style described below — not a photograph.' + ask);
     lines.push('(아래 설명대로 이미지를 바로 만들어 주세요. 질문하지 말고 이미지만 생성해 주세요.)');
     lines.push('');
     FIELDS.forEach(function (f) {
@@ -271,15 +339,14 @@
       lines.push(f.tag + ': ' + t + '.');
     });
     if (!v.shot) lines.push('FORMAT: ' + RATIO_WORD[state.ratio] + ' aspect ratio.');
-    lines.push('REALISM: ' + real + '.');
+    lines.push((isPhoto ? 'REALISM: ' : 'ART STYLE: ') + real + '.');
     lines.push('AVOID: ' + negText + '.');
     return lines.join('\n');
   }
 
   var countEl = root.querySelector('[data-count]');
   function render() {
-    var realKey = state.pattern === 'anime' ? 'illust' : state.real;
-    if (!state.negEdited) neg.value = realKey === 'illust' ? NEG_ILLUST : NEG_PHOTO;
+    if (!state.negEdited) neg.value = negFor(state.real);
     if (!state.translated) {
       out.value = '칸을 채우고 [적용하기]를 누르면 여기에 프롬프트가 만들어져요.';
       out.classList.add('empty');
@@ -294,7 +361,16 @@
 
   neg.addEventListener('input', function () { state.negEdited = true; if (state.translated) render(); });
   root.querySelectorAll('[data-opt]').forEach(function (sel) {
-    sel.addEventListener('change', function () { state[sel.dataset.opt] = sel.value; render(); });
+    sel.addEventListener('change', function () {
+      if (sel.dataset.opt === 'real') setStyle(sel.value);
+      else state[sel.dataset.opt] = sel.value;
+      render();
+    });
+  });
+  customIn.addEventListener('input', markDirty);
+  // 스타일 예시 버튼
+  root.querySelectorAll('[data-style-ex]').forEach(function (b) {
+    b.addEventListener('click', function () { customIn.value = b.textContent.replace(/^\+\s*/, ''); markDirty(); });
   });
   root.querySelector('[data-reset]').addEventListener('click', function () {
     FIELDS.forEach(function (f) { ta(f.key).value = ''; });
@@ -346,6 +422,8 @@
       b.textContent = item.title;
       b.addEventListener('click', function () {
         applyPattern(item.pattern);
+        if (item.real) setStyle(item.real);
+        customIn.value = item.style || '';
         FIELDS.forEach(function (f) { ta(f.key).value = item.values[f.key] || ''; });
         markDirty();
         window.scrollTo({ top: root.offsetTop - 60, behavior: 'smooth' });
@@ -364,7 +442,7 @@
     var h = load('byranPromptHistory2', []);
     var p = PATTERNS.filter(function (x) { return x.id === state.pattern; })[0];
     var sub = values.subject.trim();
-    h.unshift({ title: p.icon + ' ' + (sub.length > 36 ? sub.slice(0, 36) + '…' : sub), pattern: state.pattern, values: values });
+    h.unshift({ title: p.icon + ' ' + (sub.length > 36 ? sub.slice(0, 36) + '…' : sub), pattern: state.pattern, values: values, real: state.real, style: customIn.value });
     save('byranPromptHistory2', h.slice(0, 12));
     drawHistory();
     var btn = e.currentTarget, old = btn.textContent;

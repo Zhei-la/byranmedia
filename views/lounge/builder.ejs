@@ -3,7 +3,7 @@
   <a href="/prompts" class="lg-back">← 프롬프트 모음</a>
   <p class="lg-kicker">Prompt Studio</p>
   <h1 class="lg-h1">프롬프트 생성기</h1>
-  <p class="lg-muted">패턴을 고르고, 칸에 <b>한국어로</b> 원하는 걸 적거나 아래 버튼을 눌러 채우세요. 다 채웠으면 <b>[적용하기]</b>를 누르면 영어 프롬프트가 만들어져요.</p>
+  <p class="lg-muted">패턴을 고르고, 칸에 <b>한국어로</b> 원하는 걸 적거나 아래 버튼을 눌러 채우세요. 실사부터 애니·파스텔·수채화·3D·픽셀아트까지 <b>스타일</b>도 고를 수 있고, 목록에 없으면 <b>직접 적기</b>로 써도 돼요. 다 채웠으면 <b>[적용하기]</b>를 누르면 영어 프롬프트가 만들어져요.</p>
 </section>
 
 <section class="lg-wrap lg-builder" data-builder data-ai="<%= aiOn ? '1' : '' %>">
@@ -36,12 +36,8 @@
             </select>
           </div>
           <div>
-            <label class="lg-lb" for="bReal">사진 느낌</label>
-            <select id="bReal" class="lg-in" data-opt="real">
-              <option value="photo">진짜 사진처럼 (실사)</option>
-              <option value="phone">폰으로 막 찍은 일상</option>
-              <option value="editorial">잡지 화보</option>
-            </select>
+            <label class="lg-lb" for="bReal">스타일 · 그림체</label>
+            <select id="bReal" class="lg-in" data-opt="real"></select>
           </div>
           <div>
             <label class="lg-lb" for="bRatio">비율</label>
@@ -52,6 +48,13 @@
               <option value="2:3">2:3 · 세로 화보</option>
               <option value="16:9">16:9 · 가로</option>
             </select>
+          </div>
+        </div>
+        <div class="lg-bcustom" data-custom-style hidden>
+          <label class="lg-lb" for="bStyleText">원하는 스타일을 적어 주세요 (한국어 OK)</label>
+          <input id="bStyleText" class="lg-in" maxlength="200" data-style-text placeholder="예) 90년대 순정만화 느낌, 크레파스 그림, 유리공예">
+          <div class="lg-bchips">
+            <% ['90년대 순정만화', '크레파스 그림', '종이접기 페이퍼아트', '유리공예', '자수 작품', '몽글몽글 솜사탕 색감'].forEach(function(x){ %><button type="button" data-style-ex>+ <%= x %></button><% }); %>
           </div>
         </div>
         <button type="button" class="lg-btn primary block lg" data-apply>✨ 적용하기 · 영어 프롬프트 만들기</button>
