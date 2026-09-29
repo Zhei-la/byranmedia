@@ -15,6 +15,33 @@ async function migrate() {
   await seedPlanV3();
   await seedEbookCode();
   await seedPlanV5();
+  await resetOwner();
+}
+
+/* 관리자 초기화 (한 번만): 지금 관리자들을 일반 회원으로 내리고,
+ * 이 다음에 카카오로 처음 로그인하는 한 사람이 운영자가 된다 (owner_claim = open → done:회원번호) */
+async function resetOwner() {
+  const { rows } = await db.query(`SELECT 1 FROM lounge_settings WHERE key='owner_reset_v1'`);
+  if (rows.length) return;
+  const r = await db.query(`UPDATE users SET role='member' WHERE role='admin'`);
+  await db.query(
+    `INSERT INTO lounge_settings (key, value) VALUES ('owner_claim', 'open')
+     ON CONFLICT (key) DO UPDATE SET value='open'`
+  );
+  await db.query(`INSERT INTO lounge_settings (key, value) VALUES ('owner_reset_v1', '1') ON CONFLICT (key) DO NOTHING`);
+  console.log(`[라운지] 관리자 ${r.rowCount}명을 일반 회원으로 내렸어요. 다음 카카오 첫 로그인이 운영자가 됩니다.`);
+}
+
+/** 운영자 자리가 비어 있으면 이 회원이 차지한다. 동시에 두 명이 와도 한 명만 된다. */
+async function claimOwner(userId) {
+  const { rows } = await db.query(
+    `UPDATE lounge_settings SET value=$1 WHERE key='owner_claim' AND value='open' RETURNING key`,
+    ['done:' + userId]
+  );
+  if (!rows.length) return false;
+  await db.query(`UPDATE users SET role='admin', status='active' WHERE id=$1`, [userId]);
+  console.log(`[라운지] 회원 #${userId} 이(가) 운영자가 됐어요.`);
+  return true;
 }
 
 /* 평생 피드백을 추천으로, 전자책은 10명마다 2,000원씩 올라 최대 22만원 (한 번만) */
@@ -365,6 +392,6 @@ const SECTIONS = ['수강 안내', '사주·타로', '쿠팡파트너스', '스�
 const PROMPT_CATS = ['인물/화보', '셀카/일상', '뷰티/클로즈업', '캐릭터/코스프레', '음식/제품', '일러스트', '기타'];
 
 module.exports = {
-  migrate, safeLink, settings, saveSettings, SETTING_DEFAULTS, esc, linkify, ago, safeUrl, saveImage,
+  migrate, claimOwner, safeLink, settings, saveSettings, SETTING_DEFAULTS, esc, linkify, ago, safeUrl, saveImage,
   checkNick, INTERESTS, CATEGORIES, RESULT_KINDS, SECTIONS, PROMPT_CATS, kstToday, priceNum, won,
 };

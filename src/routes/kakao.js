@@ -188,6 +188,16 @@ router.get('/auth/kakao/callback', async (req, res) => {
       );
       user = up.rows[0];
     }
+    // 관리자를 초기화한 뒤 카카오로 처음 로그인한 사람이 운영자가 된다 (한 번만)
+    try {
+      if (await require('../lounge/core').claimOwner(user.id)) {
+        const up = await db.query(`SELECT id, status FROM users WHERE id=$1`, [user.id]);
+        user = up.rows[0];
+        req.session.flash = '운영자 계정으로 등록됐어요. 이제 관리 화면을 쓸 수 있어요 👑';
+      }
+    } catch (e) {
+      console.error('[운영자 등록]', e.message);
+    }
 
     await ensureCode(user.id);
 
