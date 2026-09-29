@@ -5,10 +5,11 @@
 %>
 <section class="lg-wrap lg-pagehead">
   <p class="lg-kicker">Library</p>
-  <h1 class="lg-h1">무료 자료실</h1>
+  <h1 class="lg-h1">자료실</h1>
   <p class="lg-muted">쿠팡파트너스 자료집은 가입만 하면 바로 볼 수 있어요.<% if (hasPoints) { %> 💎 표시가 있는 자료집은 커뮤니티에 글·후기를 남겨 모은 포인트로 열어요. 포인트는 쓰고 나서 다시 모으면 돼요.<% } %><% if (hasCode) { %> 🎟 표시는 무료 라이브에서 알려드리는 코드로 열려요.<% } %></p>
   <% if (groups.length > 1) { %>
     <nav class="lg-tabs" aria-label="자료 칸">
+      <% if (products.length) { %><a href="#course">🎓 수강 · 전자책</a><% } %>
       <% groups.forEach(function(g){ %>
         <a href="#s-<%= encodeURIComponent(g.name) %>" class="<%= sec === g.name ? 'on' : '' %>"><%= SEC_ICON[g.name] || '📁' %> <%= g.name %></a>
       <% }); %>
@@ -44,6 +45,47 @@
       <input name="code" class="lg-in" placeholder="코드 입력" autocomplete="off" required maxlength="40" aria-label="라이브 코드">
       <button class="lg-btn primary">열기</button>
     </form>
+  <% } %>
+
+  <% if (products.length) {
+       const ebp = products.find(function(p){ return p.ptype === 'ebook'; });
+       const credit = ebp ? L.priceNum(ebp.price_text) : 0;
+       const hasEb = ebp && mine.includes(ebp.id); %>
+    <div class="lg-libgroup" id="course">
+      <h2 class="lg-h2"><span>🎓</span> 수강 · 전자책 신청</h2>
+      <p class="lg-muted lg-libcourse-lead">무료 자료집이 큰 길이라면, 전자책은 그 길을 하나하나, 1:1 피드백 과정은 고객 모집부터 운영까지 옆에서 같이 가요.</p>
+      <div class="lg-libcourse">
+        <% products.forEach(function(p){ var isEb = p.ptype === 'ebook'; var own = mine.includes(p.id); var after = !isEb && credit ? L.priceNum(p.price_text) - credit : 0; %>
+          <div class="lg-lc <%= isEb ? 'eb' : '' %> <%= p.badge === '추천' ? 'hot' : '' %>">
+            <div class="lg-lc-top">
+              <span class="lg-gift-k"><%= isEb ? '📖 전자책 · 혼자 하기' : '🎓 ' + (p.kind || '1:1 피드백') %></span>
+              <% if (p.badge && !isEb) { %><span class="lg-badge sm"><%= p.badge %></span><% } %>
+            </div>
+            <h3><%= p.title %></h3>
+            <% if (p.subtitle) { %><p><%= p.subtitle %></p><% } %>
+            <div class="lg-lc-price">
+              <% if (p.list_price) { %><s><%= p.list_price %></s><% } %>
+              <b><%= p.price_text || '금액 문의' %></b>
+              <% if (p.price_note) { %><small><%= p.price_note %></small><% } %>
+            </div>
+            <% if (after > 0) { %><p class="lg-lc-credit <%= hasEb ? 'mine' : '' %>">📖 <%= hasEb ? '전자책 구매하셔서' : '전자책 구매자는' %> <%= L.won(credit) %> 차감 → <b><%= L.won(after) %></b></p><% } %>
+            <div class="lg-lc-cta">
+              <% if (own) { %>
+                <a href="/my" class="lg-btn primary sm"><%= isEb ? '📖 내 전자책 보기' : '🎓 수강 중 · 수강 화면' %></a>
+              <% } else { %>
+                <a href="/course?pick=<%= p.id %>#apply" class="lg-btn primary sm">신청하기</a>
+              <% } %>
+              <a href="/course#<%= isEb ? 'ebook' : 'c' + p.id %>" class="lg-btn sm">자세히 보기</a>
+            </div>
+          </div>
+        <% }); %>
+      </div>
+      <a href="/course" class="lg-builderbar lg-lc-more">
+        <span>🧭</span>
+        <div><b>무엇이 다른지 한눈에 보기</b><small>단계별 차이 · 다루는 내용 · 비교표 · 자주 묻는 질문 · 신청서</small></div>
+        <em>자세히 →</em>
+      </a>
+    </div>
   <% } %>
 
   <% if (groups.length) { %>

@@ -12,7 +12,54 @@ async function migrate() {
   await seedPoints();
   await seedStudent();
   await seedEbook();
+  await seedPlanV3();
 }
+
+/* 상품 구성 정리 (한 번만)
+ * 무료 프롬프트 → 무료 전자책 → 사주·타로 전자책 12만 → 6개월 1:1 피드백 110만 → 평생 1:1 피드백 140만
+ * 사주 과정 3기는 숨김(관리자에서 다시 켤 수 있음), 수강 신청은 자료실 안으로 */
+async function seedPlanV3() {
+  const { rows } = await db.query(`SELECT 1 FROM lounge_settings WHERE key='seeded_plan_v3'`);
+  if (rows.length) return;
+  const FEEDBACK = [
+    'AI로 사주·타로 보는 법과 상담 세팅',
+    '파는 상품 만들기 · 단가 잡기',
+    '홍보 방법 · 스레드로 고객 모으기',
+    '스레드 콘텐츠 만들기 · 자동화 프로그램 사용법',
+    '실제 운영하면서 1:1 피드백 · 질문과 수정',
+    'AI를 쓸 줄 알면 AI 사주 자동화 시스템 만드는 법까지',
+  ];
+  await db.query(
+    `UPDATE lounge_products SET price_text='120,000원', list_price=NULL,
+            subtitle='혼자서 AI 사주·타로 부업을 시작할 수 있게, 실제 하는 방법을 정리한 전자책',
+            perks=$1 WHERE title='사주·타로 전자책'`,
+    [['AI로 사주 풀이하는 방법', '타로 상담에 AI 쓰는 방법', '상담 답변 · 리포트 만드는 방법', '상품 구성 · 기본 운영 방법', '바로 복사해 쓰는 프롬프트', '1:1 피드백 없이 혼자 보고 실행하는 분께'].join('\n')]
+  );
+  await db.query(
+    `UPDATE lounge_products SET kind='1:1 피드백 6개월', badge='추천',
+            subtitle='고객 모집부터 상담 운영까지, 실제로 부업을 굴려 보며 6개월 동안 1:1로 같이 가요',
+            price_note='매월 5명만 모집', perks=$1 WHERE title='사주 + 타로 · 6개월 피드백'`,
+    [FEEDBACK.join('\n')]
+  );
+  await db.query(
+    `UPDATE lounge_products SET kind='1:1 피드백 평생', badge='VIP',
+            subtitle='기간 걱정 없이 끝까지. 6개월 과정 전부에 평생 1:1 피드백',
+            price_note='매월 5명만 모집', perks=$1 WHERE title='사주 + 타로 · 평생 피드백'`,
+    [['6개월 과정에서 하는 것 전부', '1:1 피드백 기간 제한 없음', '바이란의 다른 부업 과정 우선 · 할인 참여'].join('\n')]
+  );
+  await db.query(`UPDATE lounge_products SET is_active=false WHERE title='사주 과정 · 3기'`);
+  // 자료실 안에 수강·전자책 칸이 따로 생기므로 링크형 안내는 숨긴다
+  await db.query(`UPDATE lounge_resources SET is_active=false WHERE url IN ('/course', '/course#ebook')`);
+  await db.query(`INSERT INTO lounge_settings (key, value) VALUES ('seeded_plan_v3', '1') ON CONFLICT (key) DO NOTHING`);
+  console.log('[라운지] 상품 구성(전자책 12만 · 110만 · 140만)을 정리했습니다.');
+}
+
+/** "1,100,000원" → 1100000 */
+function priceNum(t) {
+  const n = parseInt(String(t || '').replace(/[^0-9]/g, ''), 10);
+  return Number.isFinite(n) ? n : 0;
+}
+const won = (n) => Number(n || 0).toLocaleString('ko-KR') + '원';
 
 /* 사주·타로 전자책 (15만원) — 무료 자료집과 강의 사이 단계 (한 번만) */
 async function seedEbook() {
@@ -168,6 +215,7 @@ const SETTING_DEFAULTS = {
   prompt_public: '0',                           // 1이면 로그인 없이도 프롬프트 복사 가능
   course_note: '',                              // 수강 신청 페이지 위쪽 안내
   cash_note: '현금(계좌이체)으로 결제하시면 10만원을 더 할인해 드려요',
+  agency_kakao: 'https://open.kakao.com/me/byran_Marketing', // 대행 문의 카톡
   pt_post: '10',                                // 글 1개 포인트
   pt_post_daily: '5',                           // 글 포인트 하루 최대 개수
   pt_review: '50',                              // 후기 1개 포인트
@@ -290,5 +338,5 @@ const PROMPT_CATS = ['인물/화보', '셀카/일상', '뷰티/클로즈업', '�
 
 module.exports = {
   migrate, safeLink, settings, saveSettings, SETTING_DEFAULTS, esc, linkify, ago, safeUrl, saveImage,
-  checkNick, INTERESTS, CATEGORIES, RESULT_KINDS, SECTIONS, PROMPT_CATS, kstToday,
+  checkNick, INTERESTS, CATEGORIES, RESULT_KINDS, SECTIONS, PROMPT_CATS, kstToday, priceNum, won,
 };

@@ -128,7 +128,9 @@ router.get('/admin/lounge', async (req, res) => {
     // 지급할 회원 찾기: 검색어 또는 회원 번호로
     data.found = s || uid ? await q(
       `SELECT u.id, u.name, u.nickname, u.email, u.phone, u.provider, u.created_at,
-              (SELECT string_agg(e.product_title, ', ') FROM lounge_enrollments e WHERE e.user_id=u.id AND ${E.ACTIVE}) AS now_courses
+              (SELECT string_agg(e.product_title, ', ') FROM lounge_enrollments e WHERE e.user_id=u.id AND ${E.ACTIVE}) AS now_courses,
+              EXISTS (SELECT 1 FROM lounge_enrollments e JOIN lounge_products p ON p.id=e.product_id
+                       WHERE e.user_id=u.id AND p.ptype='ebook' AND e.status<>'refunded') AS has_ebook
          FROM users u
         WHERE ${uid ? 'u.id=$1' : `(u.nickname ILIKE $1 OR u.name ILIKE $1 OR u.email ILIKE $1 OR u.phone ILIKE $1)`}
         ORDER BY u.created_at DESC LIMIT 20`,
@@ -145,8 +147,14 @@ router.get('/admin/lounge', async (req, res) => {
       return { ...a, product_id: prod ? prod.id : null };
     });
     const appUids = [...new Set(data.apps.map((a) => a.uid).filter(Boolean))];
-    const enrolledUids = appUids.length ? await q(`SELECT DISTINCT user_id FROM lounge_enrollments e WHERE user_id = ANY($1::int[]) AND ${E.ACTIVE}`, [appUids]) : [];
-    data.enrolledSet = new Set(enrolledUids.map((r) => r.user_id));
+    const enrolledUids = appUids.length ? await q(`SELECT DISTINCT user_id, product_id FROM lounge_enrollments e WHERE user_id = ANY($1::int[]) AND ${E.ACTIVE}`, [appUids]) : [];
+    data.enrolledSet = new Set(enrolledUids.map((r) => r.user_id + ':' + r.product_id)); // 신청한 그 상품을 이미 가졌는지
+    const ebookUids = appUids.length ? await q(
+      `SELECT DISTINCT e.user_id FROM lounge_enrollments e JOIN lounge_products p ON p.id=e.product_id
+        WHERE e.user_id = ANY($1::int[]) AND p.ptype='ebook' AND e.status<>'refunded'`, [appUids]) : [];
+    data.ebookSet = new Set(ebookUids.map((r) => r.user_id));
+    const ebp = await q(`SELECT price_text FROM lounge_products WHERE ptype='ebook' ORDER BY is_active DESC, id LIMIT 1`);
+    data.ebookCredit = ebp[0] ? L.priceNum(ebp[0].price_text) : 0;
     const st = ['active', 'ended', 'all'].includes(req.query.st) ? req.query.st : 'active';
     data.st = st;
     data.enrolls = await q(

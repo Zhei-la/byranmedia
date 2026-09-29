@@ -716,3 +716,32 @@ textarea.lg-in{resize:vertical;line-height:1.6}
 .lg-ebook-vs{margin-top:16px;padding:14px 16px;border-radius:var(--r-sm);background:var(--card);border:1px dashed var(--line);font-size:14px;color:var(--ink-2);display:grid;gap:8px}
 .lg-ebook-vs em{font-style:normal;font-weight:700;color:var(--ink)}
 @media (max-width:760px){ .lg-ebook{grid-template-columns:1fr;padding:20px} }
+
+/* ---------- 자료실 안 수강·전자책 ---------- */
+.lg-libcourse-lead{margin:-4px 0 14px}
+.lg-libcourse{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.lg-lc{display:flex;flex-direction:column;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:18px;box-shadow:var(--shadow)}
+.lg-lc.eb{border-color:#E7CC9C;background:linear-gradient(180deg,var(--gold-soft),var(--card) 60%)}
+.lg-lc.hot{border-color:#BFD8CD;background:linear-gradient(180deg,var(--green-soft),var(--card) 60%)}
+.lg-lc-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.lg-lc h3{font-family:var(--serif);font-size:18px;font-weight:800;letter-spacing:-.01em}
+.lg-lc p{font-size:13.5px;color:var(--ink-2)}
+.lg-lc-price{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 8px;margin-top:auto;padding-top:6px}
+.lg-lc-price s{color:var(--ink-3);font-size:13px}
+.lg-lc-price b{font-size:20px;font-weight:800;letter-spacing:-.01em}
+.lg-lc-price small{font-size:12px;color:var(--red);font-weight:650}
+.lg-lc-credit{font-size:12.5px !important;color:#8A5A12 !important;background:var(--gold-soft);border-radius:8px;padding:6px 9px}
+.lg-lc-credit.mine{outline:1.5px solid var(--gold)}
+.lg-lc-cta{display:flex;gap:6px;flex-wrap:wrap}
+.lg-lc-more{margin-top:12px}
+.lg-badge.sm{position:static;font-size:11px;padding:2px 8px}
+.lg-credit-note{margin-top:14px;padding:12px 16px;border-radius:var(--r-sm);background:var(--gold-soft);color:#6E4A10;font-size:14px}
+.lg-plan .lg-lc-credit{margin:8px 0 2px}
+
+/* ---------- 대행 신청 ---------- */
+.lg-agency{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+.lg-agency-card{display:flex;flex-direction:column;gap:10px;color:var(--ink);text-decoration:none !important;transition:transform .12s,border-color .15s}
+.lg-agency-card:hover{transform:translateY(-2px);border-color:var(--green)}
+.lg-agency-ic{font-size:28px}
+.lg-agency-card em{font-style:normal;font-weight:700;color:var(--green);margin-top:auto}
+.lg-hint.center{text-align:center}

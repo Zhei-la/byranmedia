@@ -51,25 +51,6 @@
   </section>
 <% } %>
 
-<!-- 자료실 -->
-<% if (sections.length) { %>
-<section class="lg-wrap lg-sec">
-  <div class="lg-sec-h">
-    <div><p class="lg-kicker">Library</p><h2 class="lg-h2"><%= user ? '자료실' : '가입하면 바로 보는 무료 자료집' %></h2></div>
-    <a href="/library" class="lg-more">자료실 전체 →</a>
-  </div>
-  <div class="lg-secgrid">
-    <% sections.forEach(function(s){ %>
-      <a href="/library?s=<%= encodeURIComponent(s.section) %>#sec" class="lg-seccard">
-        <span class="i"><%= SEC_ICON[s.section] || '📁' %></span>
-        <b><%= s.section %></b>
-        <small><%= s.n %>개 자료<%= s.has_points ? ' · 💎 포인트로 열기' : '' %><%= s.has_code ? ' · 🔒 라이브 전용 포함' : '' %></small>
-      </a>
-    <% }); %>
-  </div>
-</section>
-<% } %>
-
 <!-- 프롬프트 -->
 <% if (prompts.length) { %>
 <section class="lg-wrap lg-sec">
@@ -90,6 +71,25 @@
     <div><b>프롬프트 생성기로 나만의 프롬프트 만들기</b><small>인물·화보·제품 패턴에 칸만 채우면 영어 프롬프트가 완성돼요</small></div>
     <em>열기 →</em>
   </a>
+</section>
+<% } %>
+
+<!-- 자료실 -->
+<% if (sections.length) { %>
+<section class="lg-wrap lg-sec">
+  <div class="lg-sec-h">
+    <div><p class="lg-kicker">Library</p><h2 class="lg-h2"><%= user ? '자료실' : '가입하면 바로 보는 무료 자료집' %></h2></div>
+    <a href="/library" class="lg-more">자료실 전체 →</a>
+  </div>
+  <div class="lg-secgrid">
+    <% sections.forEach(function(s){ %>
+      <a href="/library?s=<%= encodeURIComponent(s.section) %>#sec" class="lg-seccard">
+        <span class="i"><%= SEC_ICON[s.section] || '📁' %></span>
+        <b><%= s.section %></b>
+        <small><%= s.n %>개 자료<%= s.has_points ? ' · 💎 포인트로 열기' : '' %><%= s.has_code ? ' · 🔒 라이브 전용 포함' : '' %></small>
+      </a>
+    <% }); %>
+  </div>
 </section>
 <% } %>
 
@@ -173,12 +173,12 @@
 <% if (courses.length) { %>
 <section class="lg-wrap lg-sec">
   <div class="lg-sec-h">
-    <div><p class="lg-kicker">Course</p><h2 class="lg-h2">옆에서 같이 잡아드리는 과정</h2></div>
-    <a href="/course" class="lg-more">수강 신청 →</a>
+    <div><p class="lg-kicker">E-book · 1:1 Feedback</p><h2 class="lg-h2">혼자 해볼지, 같이 갈지</h2></div>
+    <a href="/library#course" class="lg-more">수강 · 전자책 →</a>
   </div>
   <div class="lg-courses mini">
     <% courses.forEach(function(c){ %>
-      <a href="/course#c<%= c.id %>" class="lg-course">
+      <a href="/course#<%= c.ptype === 'ebook' ? 'ebook' : 'c' + c.id %>" class="lg-course">
         <% if (c.badge) { %><span class="lg-badge"><%= c.badge %></span><% } %>
         <b><%= c.title %></b>
         <% if (c.subtitle) { %><p><%= c.subtitle %></p><% } %>

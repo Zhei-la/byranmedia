@@ -30,6 +30,7 @@
       <label>전체 카톡방(오픈채팅) 주소<input name="live_room_url" class="lg-in" value="<%= S.live_room_url %>" placeholder="https://open.kakao.com/..."></label>
       <label>오픈채팅 참여코드<input name="live_room_code" class="lg-in" value="<%= S.live_room_code %>"></label>
       <label>외부 후기 모음 주소 (카페 등)<input name="review_link" class="lg-in" value="<%= S.review_link %>"></label>
+      <label>대행 문의 카톡 주소<input name="agency_kakao" class="lg-in" value="<%= S.agency_kakao %>"></label>
     </div>
     <h2 class="lg-h3 mt">라이브 전용 자료 코드</h2>
     <div class="lg-adgrid">
@@ -222,6 +223,7 @@
       <div class="lg-adrow lg-enr-row" style="display:block">
         <b><%= u.nickname || '(닉네임 없음)' %></b> <small>(<%= u.name %><%= u.phone ? ' · ' + u.phone : '' %><%= u.email ? ' · ' + u.email : '' %> · <%= u.provider === 'kakao' ? '카카오' : '이메일' %> 가입 <%= fd(u.created_at) %>)</small>
         <% if (u.now_courses) { %><span class="lg-tag stu">🎓 <%= u.now_courses %></span><% } %>
+        <% if (u.has_ebook && ebookCredit) { %><span class="lg-tag">📖 전자책 구매자 · 피드백 과정 결제 시 <%= L.won(ebookCredit) %> 차감</span><% } %>
         <% grantForm(u, null, null); %>
       </div>
     <% }); %>
@@ -234,8 +236,9 @@
       <div class="lg-adrow lg-enr-row" style="display:block">
         <b><%= a.name %></b> <small><%= a.phone %> · <%= a.plan.replace('수강 신청 · ', '') %> · <%= fd(a.created_at) %><%= a.status === 'done' ? ' · 처리 완료' : '' %></small>
         <% if (a.message) { %><p class="lg-muted" style="margin:4px 0 0"><%= a.message %></p><% } %>
-        <% if (a.uid && enrolledSet.has(a.uid)) { %>
-          <span class="lg-tag stu">🎓 수강권 있음</span>
+        <% if (a.uid && ebookSet.has(a.uid) && ebookCredit) { %><span class="lg-tag">📖 전자책 구매자 · <%= L.won(ebookCredit) %> 차감</span><% } %>
+        <% if (a.uid && enrolledSet.has(a.uid + ':' + a.product_id)) { %>
+          <span class="lg-tag stu">🎓 이미 지급됨</span>
         <% } else if (a.uid) { %>
           <details><summary class="lg-linkbtn">이 회원(#<%= a.uid %>)에게 수강권 지급</summary><% grantForm({ id: a.uid, nickname: a.name }, a.product_id, a.id); %></details>
         <% } else { %>

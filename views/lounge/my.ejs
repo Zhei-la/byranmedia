@@ -41,6 +41,13 @@
           </ul>
         </div>
       <% } %>
+      <% if (upsell) { %>
+        <a href="/course#plans" class="lg-builderbar">
+          <span>🙋</span>
+          <div><b>혼자 하다 막히면, 1:1 피드백 과정으로</b><small>전자책 금액 <%= L.won(upsell) %>을 전액 차감해 드려요 · 고객 모집·스레드 운영까지 같이</small></div>
+          <em>과정 보기 →</em>
+        </a>
+      <% } %>
       <p class="lg-hint">수강생과 전자책 구매자는 자료실의 💎 포인트 자료집도 포인트 없이 바로 열 수 있어요.</p>
     </div>
   <% } else { %>

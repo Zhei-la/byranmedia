@@ -14,7 +14,7 @@ const get = (p, ...h) => router.get(p, ...h.map(wrap));
 const post = (p, ...h) => router.post(p, ...h.map(wrap));
 
 /* ---------------- 공통 ---------------- */
-const LOUNGE_PATHS = ['/community', '/library', '/reviews', '/course', '/store', '/challenge', '/my', '/consult', '/onboard', '/prompts'];
+const LOUNGE_PATHS = ['/community', '/library', '/reviews', '/course', '/store', '/challenge', '/my', '/consult', '/onboard', '/prompts', '/agency'];
 
 // 라운지 화면마다 필요한 값
 async function locals(req, res, next) {
@@ -439,7 +439,11 @@ get('/library', async (req, res) => {
   const hasCode = rows.some((r) => r.access === 'code');
   const hasPoints = rows.some((r) => r.access === 'points');
   const pt = req.user && req.user.nickname ? await P.summary(req.user.id) : null;
-  res.render('lounge/library', {
+  const { rows: products } = await db.query(
+    `SELECT id, title, subtitle, kind, badge, price_text, list_price, price_note, ptype FROM lounge_products
+      WHERE is_active=true ORDER BY (ptype='ebook') DESC, sort_order, id`
+  );
+  res.render('lounge/library', { products, mine: sp.all,
     title: '자료실', active: 'library', groups, hasCode, hasPoints, pt, codeOk: codeOpen(req), isStu: sp.all.length > 0,
     sec: String(req.query.s || ''),
   });
@@ -652,7 +656,7 @@ get('/course', async (req, res) => {
        FROM lounge_products p WHERE p.is_active=true ORDER BY p.sort_order, p.id`
   );
   const mine = req.user ? await E.activeProductIds(req.user.id) : [];
-  res.render('lounge/course', { title: '수강 신청', active: 'course', products, mine, sent: req.query.sent === '1', pick: parseInt(req.query.pick, 10) || null });
+  res.render('lounge/course', { title: '수강 · 전자책 신청', active: 'library', products, mine, sent: req.query.sent === '1', pick: parseInt(req.query.pick, 10) || null });
 });
 
 post('/course/apply', async (req, res) => {
@@ -788,6 +792,11 @@ get('/my', member, async (req, res) => {
   const liveE = enrolls.filter((e) => e.is_active && e.product_id);
   const sp = liveE.map((e) => e.product_id);
   const hasCourse = liveE.some((e) => e.ptype === 'course');
+  let upsell = 0; // 전자책만 가진 사람: 피드백 과정으로 넘어오면 차감되는 금액
+  if (!hasCourse && liveE.some((e) => e.ptype === 'ebook')) {
+    const { rows: ep } = await db.query(`SELECT p.price_text FROM lounge_products p WHERE p.id = ANY($1::int[]) AND p.ptype='ebook' LIMIT 1`, [sp]);
+    upsell = ep[0] ? L.priceNum(ep[0].price_text) : 0;
+  }
   const { rows: stuRes } = sp.length ? await db.query(
     `SELECT id, title, section FROM lounge_resources
       WHERE is_active AND access='course' AND ((cardinality(product_ids)=0 AND $2) OR product_ids && $1::int[]) ORDER BY sort_order, id`, [sp, hasCourse]
@@ -808,8 +817,44 @@ get('/my', member, async (req, res) => {
   ]);
   res.render('lounge/my', {
     title: '마이페이지', active: 'my',
-    myReviews: myReviews.rows, posts: posts.rows, acct: u.rows[0], favs: favs.rows, opened: resOpened.rows, pt, hist, enrolls, stuRes,
+    myReviews: myReviews.rows, posts: posts.rows, acct: u.rows[0], favs: favs.rows, opened: resOpened.rows, pt, hist, enrolls, stuRes, upsell,
   });
+});
+
+/* ---------------- 대행 신청 (스레드 · 블로그) ---------------- */
+const AGENCY = { threads: '스레드 운영 대행', blog: '블로그 운영 대행', both: '스레드 + 블로그', unsure: '잘 모르겠어요 (상담 먼저)' };
+get('/agency', (req, res) => {
+  res.render('lounge/agency', {
+    title: '대행 신청', active: 'agency', sent: req.query.sent === '1', error: null,
+    form: { service: AGENCY[req.query.s] ? req.query.s : 'threads' }, AGENCY,
+    ogT: '바이란 · 스레드·블로그 운영 대행', ogD: '직접 하기 어렵다면 맡겨 주세요. 스레드·블로그 운영 대행 신청.',
+  });
+});
+
+post('/agency', async (req, res) => {
+  if (String(req.body.website || '').trim()) return res.redirect('/agency?sent=1');
+  const form = {
+    service: AGENCY[req.body.service] ? req.body.service : 'unsure',
+    name: String(req.body.name || '').trim().slice(0, 100),
+    phone: String(req.body.phone || '').trim().slice(0, 40),
+    industry: String(req.body.industry || '').trim().slice(0, 80),
+    link: String(req.body.link || '').trim().slice(0, 300),
+    message: String(req.body.message || '').trim().slice(0, 3000),
+  };
+  const fail = (msg) => res.status(400).render('lounge/agency', { title: '대행 신청', active: 'agency', sent: false, error: msg, form, AGENCY });
+  if (!form.name) return fail('이름이나 상호를 적어 주세요.');
+  if (!form.phone) return fail('연락받을 번호나 카톡 아이디를 적어 주세요.');
+  const { rows: cnt } = await db.query(
+    `SELECT count(*)::int AS n FROM inquiries WHERE ip=$1 AND created_at > now() - interval '10 minutes'`, [req.ip]
+  );
+  if (cnt[0].n >= 5) return fail('신청이 여러 건 접수됐어요. 잠시 후 다시 시도해 주세요.');
+  const msg = [form.link ? `계정·사이트: ${form.link}` : '', form.message].filter(Boolean).join('\n\n');
+  const biz = [form.industry, req.user ? `라운지 회원 #${req.user.id}` : ''].filter(Boolean).join(' · ');
+  await db.query(
+    `INSERT INTO inquiries (name, phone, business, plan, message, ip) VALUES ($1,$2,$3,$4,$5,$6)`,
+    [form.name, form.phone, biz.slice(0, 200) || null, `대행 신청 · ${AGENCY[form.service]}`.slice(0, 60), msg || null, req.ip]
+  );
+  res.redirect('/agency?sent=1#apply');
 });
 
 /* ---------------- 1:1 상담 ---------------- */
