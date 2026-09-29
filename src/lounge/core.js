@@ -13,6 +13,18 @@ async function migrate() {
   await seedStudent();
   await seedEbook();
   await seedPlanV3();
+  await seedEbookCode();
+}
+
+/* 전자책에 만세력 코드 파일 포함 (한 번만, 이미 적혀 있으면 건너뜀) */
+async function seedEbookCode() {
+  const { rows } = await db.query(`SELECT 1 FROM lounge_settings WHERE key='seeded_ebook_code_v1'`);
+  if (rows.length) return;
+  await db.query(
+    `UPDATE lounge_products SET perks = '만세력 코드 파일 제공 (사주 명식 계산)' || E'\n' || COALESCE(perks, '')
+      WHERE ptype='ebook' AND COALESCE(perks, '') NOT LIKE '%만세력 코드%'`
+  );
+  await db.query(`INSERT INTO lounge_settings (key, value) VALUES ('seeded_ebook_code_v1', '1') ON CONFLICT (key) DO NOTHING`);
 }
 
 /* 상품 구성 정리 (한 번만)
