@@ -825,7 +825,16 @@ get('/my', member, async (req, res) => {
 });
 
 /* ---------------- 대행 신청 (스레드 · 블로그) ---------------- */
-const AGENCY = { threads: '스레드 운영 대행', blog: '블로그 운영 대행', both: '스레드 + 블로그', unsure: '잘 모르겠어요 (상담 먼저)' };
+const AGENCY = { threads: '스레드 운영 대행', blog: '블로그 운영 대행', both: '스레드 + 블로그', diag: '무료 계정 진단', unsure: '잘 모르겠어요 (상담 먼저)' };
+const AGENCY_PAGES = require('./agency-data');
+get('/agency/:svc(threads|blog)', (req, res) => {
+  const d = AGENCY_PAGES[req.params.svc];
+  res.render('lounge/agency-service', {
+    title: d.name, active: 'library', d, AGENCY, sent: req.query.sent === '1', error: null,
+    form: { service: d.key },
+    ogT: `바이란 · ${d.name}`, ogD: d.sub,
+  });
+});
 get('/agency', (req, res) => {
   res.render('lounge/agency', {
     title: '대행 문의', active: 'library', sent: req.query.sent === '1', error: null,
@@ -844,7 +853,10 @@ post('/agency', async (req, res) => {
     link: String(req.body.link || '').trim().slice(0, 300),
     message: String(req.body.message || '').trim().slice(0, 3000),
   };
-  const fail = (msg) => res.status(400).render('lounge/agency', { title: '대행 문의', active: 'library', sent: false, error: msg, form, AGENCY });
+  const svcBack = (String(req.body.back || '').match(/^\/agency\/(threads|blog)$/) || [])[1];
+  const fail = (msg) => svcBack
+    ? res.status(400).render('lounge/agency-service', { title: AGENCY_PAGES[svcBack].name, active: 'library', d: AGENCY_PAGES[svcBack], sent: false, error: msg, form, AGENCY })
+    : res.status(400).render('lounge/agency', { title: '대행 문의', active: 'library', sent: false, error: msg, form, AGENCY });
   if (!form.name) return fail('이름이나 상호를 적어 주세요.');
   if (!form.phone) return fail('연락받을 번호나 카톡 아이디를 적어 주세요.');
   const { rows: cnt } = await db.query(
@@ -857,7 +869,8 @@ post('/agency', async (req, res) => {
     `INSERT INTO inquiries (name, phone, business, plan, message, ip) VALUES ($1,$2,$3,$4,$5,$6)`,
     [form.name, form.phone, biz.slice(0, 200) || null, `대행 신청 · ${AGENCY[form.service]}`.slice(0, 60), msg || null, req.ip]
   );
-  res.redirect('/agency?sent=1#apply');
+  const backTo = /^\/agency\/(threads|blog)$/.test(String(req.body.back || '')) ? req.body.back : '/agency';
+  res.redirect(`${backTo}?sent=1#apply`);
 });
 
 /* ---------------- 1:1 상담 ---------------- */

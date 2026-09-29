@@ -1,0 +1,33 @@
+<%# 대행 문의서 (back: 보낸 뒤 돌아갈 서비스 페이지) %>
+<div class="lg-card lg-agency-form">
+  <h2 class="lg-h2">대행 문의서</h2>
+  <% if (sent) { %>
+    <div class="lg-alert ok">문의를 받았어요! 확인하고 바로 연락드릴게요.</div>
+    <% if (S.agency_kakao) { %><a href="<%= S.agency_kakao %>" target="_blank" rel="noopener" class="lg-btn kakao block">카카오톡으로 먼저 말 걸기</a><% } %>
+  <% } else { %>
+    <p class="lg-muted">남겨 주시면 확인 후 카톡이나 문자로 연락드려요. 무료 진단부터 받아 보셔도 돼요.</p>
+    <% if (error) { %><div class="lg-alert err"><%= error %></div><% } %>
+    <form method="post" action="/agency">
+      <input type="text" name="website" class="lg-hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+      <input type="hidden" name="back" value="<%= back %>">
+      <label class="lg-lb">어떤 게 필요하세요</label>
+      <div class="lg-chips" role="radiogroup" aria-label="대행 종류">
+        <% Object.keys(AGENCY).forEach(function(k){ %>
+          <label class="lg-chip"><input type="radio" name="service" value="<%= k %>" <%= form.service === k ? 'checked' : '' %>><span><%= AGENCY[k] %></span></label>
+        <% }); %>
+      </div>
+      <label class="lg-lb" for="an">이름 · 상호</label>
+      <input id="an" name="name" class="lg-in" maxlength="100" required value="<%= form.name || (user ? (user.nickname || user.name) : '') %>">
+      <label class="lg-lb" for="ap">연락처 (전화번호나 카톡 아이디)</label>
+      <input id="ap" name="phone" class="lg-in" maxlength="40" required value="<%= form.phone || '' %>">
+      <label class="lg-lb" for="ai">업종 (선택)</label>
+      <input id="ai" name="industry" class="lg-in" maxlength="80" placeholder="예: 필라테스, 네일샵, 온라인 쇼핑몰" value="<%= form.industry || '' %>">
+      <label class="lg-lb" for="al">운영 중인 계정·블로그 주소 (선택)</label>
+      <input id="al" name="link" class="lg-in" maxlength="300" placeholder="https://" value="<%= form.link || '' %>">
+      <label class="lg-lb" for="am">하고 싶은 말 (선택)</label>
+      <textarea id="am" name="message" class="lg-in" rows="3" maxlength="3000" placeholder="원하는 플랜, 지금 상황, 궁금한 점을 편하게 적어 주세요"><%= form.message || '' %></textarea>
+      <button class="lg-btn primary block lg">문의 보내기</button>
+      <% if (S.agency_kakao) { %><a href="<%= S.agency_kakao %>" target="_blank" rel="noopener" class="lg-btn kakao block" style="margin-top:8px">카톡으로 바로 물어보기</a><% } %>
+    </form>
+  <% } %>
+</div>

@@ -1,0 +1,115 @@
+<%- include('_top') %>
+<%
+  const KK = S.agency_kakao;
+  const other = d.key === 'threads' ? { href: '/agency/blog', name: '블로그 운영 대행', icon: '✍️' } : { href: '/agency/threads', name: '스레드 운영 대행', icon: '🧵' };
+%>
+<section class="lg-hero lg-cohero lg-svc-hero <%= d.tint %>">
+  <div class="lg-wrap">
+    <a href="/library#agency" class="lg-back">← 대행 문의</a>
+    <p class="lg-kicker"><%= d.icon %> <%= d.kicker %></p>
+    <h1 class="lg-display"><%- d.title %></h1>
+    <p class="lg-hero-sub"><%= d.sub %></p>
+    <div class="lg-hero-cta">
+      <a href="#apply" class="lg-btn primary lg"><%= d.name %> 신청하기</a>
+      <% if (KK) { %><a href="<%= KK %>" target="_blank" rel="noopener" class="lg-btn kakao lg">카톡으로 물어보기</a><% } %>
+    </div>
+    <p class="lg-hero-note"><b><%= d.from %></b> · 무료 진단 먼저 받아 보셔도 돼요</p>
+  </div>
+</section>
+
+<div class="lg-wrap lg-svc">
+  <div class="lg-svc-main">
+    <section class="lg-sec">
+      <p class="lg-kicker">For you</p><h2 class="lg-h2">이런 분께 맞아요</h2>
+      <ul class="lg-svc-fit">
+        <% d.fit.forEach(function(t){ %><li>“<%= t %>”</li><% }); %>
+      </ul>
+    </section>
+
+    <section class="lg-sec">
+      <p class="lg-kicker">What we do</p><h2 class="lg-h2"><%= d.key === 'threads' ? '계정 운영에 들어가는 일' : '글 한 편이 나가기까지' %></h2>
+      <div class="lg-svc-work">
+        <% d.work.forEach(function(w){ %><div class="lg-card"><span class="i"><%= w[0] %></span><b><%= w[1] %></b><p><%= w[2] %></p></div><% }); %>
+      </div>
+    </section>
+
+    <section class="lg-sec" id="plans">
+      <p class="lg-kicker">Plans</p><h2 class="lg-h2"><%= d.name %> 금액</h2>
+      <div class="lg-svc-plans">
+        <% d.plans.forEach(function(p){ %>
+          <div class="lg-card lg-svc-plan <%= p.hot ? 'hot' : '' %>">
+            <% if (p.hot) { %><span class="lg-badge">추천</span><% } %>
+            <p class="lg-kicker"><%= p.name %></p>
+            <p class="lg-svc-price"><b><%= p.price %></b> <small>/ <%= p.unit %></small></p>
+            <p class="lg-muted"><%= p.note %></p>
+            <ul class="lg-check-list sm"><% p.items.forEach(function(it){ %><li><%= it %></li><% }); %></ul>
+            <a href="#apply" class="lg-btn <%= p.hot ? 'primary' : '' %> block" data-plan="<%= p.name %>">이 플랜으로 문의</a>
+          </div>
+        <% }); %>
+      </div>
+      <p class="lg-credit-note">💡 <%= d.planNote %></p>
+    </section>
+
+    <section class="lg-sec">
+      <p class="lg-kicker">Process</p><h2 class="lg-h2">진행 순서</h2>
+      <ol class="lg-steps">
+        <% d.steps.forEach(function(s){ %><li><b><%= s[0] %></b><span><%= s[1] %></span></li><% }); %>
+      </ol>
+    </section>
+
+    <section class="lg-sec">
+      <p class="lg-kicker">Portfolio</p><h2 class="lg-h2"><%= d.proof.label %></h2>
+      <div class="lg-svc-proof">
+        <% d.proof.stats.forEach(function(st){ %><div class="lg-card"><b><%= st[0] %></b><small><%= st[1] %></small></div><% }); %>
+      </div>
+      <p class="lg-hint"><%= d.proof.note %></p>
+    </section>
+
+    <section class="lg-sec">
+      <p class="lg-kicker">FAQ</p><h2 class="lg-h2">자주 묻는 질문</h2>
+      <div class="lg-faq">
+        <% d.faq.forEach(function(f){ %><details><summary><%= f[0] %></summary><p><%= f[1] %></p></details><% }); %>
+      </div>
+    </section>
+
+    <section class="lg-sec" id="apply">
+      <%- include('_agency_form', { back: '/agency/' + d.key }) %>
+    </section>
+
+    <a href="<%= other.href %>" class="lg-builderbar">
+      <span><%= other.icon %></span>
+      <div><b><%= other.name %>도 궁금하다면</b><small>같이 맡기면 상담 때 묶어서 안내드려요</small></div>
+      <em>보기 →</em>
+    </a>
+  </div>
+
+  <aside class="lg-svc-side">
+    <div class="lg-card lg-svc-sticky">
+      <p class="lg-kicker"><%= d.icon %> <%= d.name %></p>
+      <p class="lg-svc-price"><b><%= d.from %></b></p>
+      <ul class="lg-svc-mini">
+        <% d.plans.forEach(function(p){ %><li><span><%= p.name %></span><b><%= p.price %></b></li><% }); %>
+      </ul>
+      <a href="#apply" class="lg-btn primary block">신청 · 문의하기</a>
+      <% if (KK) { %><a href="<%= KK %>" target="_blank" rel="noopener" class="lg-btn kakao block">카톡 문의</a><% } %>
+      <a href="/agency?s=diag#apply" class="lg-btn ghost block">무료 계정 진단</a>
+    </div>
+  </aside>
+</div>
+
+<div class="lg-svc-bar">
+  <span><b><%= d.from %></b></span>
+  <a href="#apply" class="lg-btn primary">신청하기</a>
+  <% if (KK) { %><a href="<%= KK %>" target="_blank" rel="noopener" class="lg-btn kakao">카톡</a><% } %>
+</div>
+
+<script>
+  // 플랜 버튼을 누르면 문의 내용에 플랜 이름을 적어 둔다
+  document.querySelectorAll('[data-plan]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var m = document.getElementById('am');
+      if (m && !m.value.trim()) m.value = b.getAttribute('data-plan') + ' 플랜으로 문의해요.';
+    });
+  });
+</script>
+<%- include('_bottom') %>
