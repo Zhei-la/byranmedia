@@ -69,6 +69,7 @@
               <b><%= p.price_text || '금액 문의' %></b>
               <% if (p.price_note) { %><small><%= p.price_note %></small><% } %>
             </div>
+            <% if (p.dyn && !p.dyn.maxed) { %><p class="lg-dyn">📈 <%= p.dyn.every %>명 구매할 때마다 <%= L.won(p.dyn.step) %>씩 올라요 · 이 가격 <b><%= p.dyn.left %>자리</b> 남음</p><% } %>
             <% if (after > 0) { %><p class="lg-lc-credit <%= hasEb ? 'mine' : '' %>">📖 <%= hasEb ? '전자책 구매하셔서' : '전자책 구매자는' %> <%= L.won(credit) %> 차감 → <b><%= L.won(after) %></b></p><% } %>
             <div class="lg-lc-cta">
               <% if (own) { %>

@@ -865,3 +865,5 @@ body.lg{background:#fff;color:var(--ink)}
 .lg-lockcard{background:var(--soft)}
 /* 태그·배지는 흰 칸 위에서 보이도록 */
 .lg-tag,.lg-gift-k{background:#fff}
+.lg-dyn{font-size:12.5px !important;color:var(--ink-2) !important;background:#fff;border:1px dashed var(--t5-b);border-radius:8px;padding:5px 9px;margin:4px 0 2px}
+.lg-dyn b{color:var(--accent)}

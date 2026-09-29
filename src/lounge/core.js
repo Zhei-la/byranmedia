@@ -14,6 +14,21 @@ async function migrate() {
   await seedEbook();
   await seedPlanV3();
   await seedEbookCode();
+  await seedPlanV5();
+}
+
+/* 평생 피드백을 추천으로, 전자책은 10명마다 2,000원씩 올라 최대 22만원 (한 번만) */
+async function seedPlanV5() {
+  const { rows } = await db.query(`SELECT 1 FROM lounge_settings WHERE key='seeded_plan_v5'`);
+  if (rows.length) return;
+  await db.query(`UPDATE lounge_products SET badge='추천' WHERE title='사주 + 타로 · 평생 피드백'`);
+  await db.query(`UPDATE lounge_products SET badge=NULL WHERE title='사주 + 타로 · 6개월 피드백' AND badge='추천'`);
+  await db.query(
+    `UPDATE lounge_products SET dyn_start=120000, dyn_step=2000, dyn_every=10, dyn_max=220000
+      WHERE ptype='ebook' AND dyn_start IS NULL`
+  );
+  await db.query(`INSERT INTO lounge_settings (key, value) VALUES ('seeded_plan_v5', '1') ON CONFLICT (key) DO NOTHING`);
+  console.log('[라운지] 평생 피드백 추천, 전자책 판매량 가격을 넣었습니다.');
 }
 
 /* 전자책에 만세력 코드 파일 포함 (한 번만, 이미 적혀 있으면 건너뜀) */

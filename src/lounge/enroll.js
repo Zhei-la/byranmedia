@@ -109,4 +109,47 @@ async function remove(id) {
   await db.query(`DELETE FROM lounge_enrollments WHERE id=$1`, [id]);
 }
 
-module.exports = { ACTIVE, TODAY, SOURCES, STATUSES, parseLinks, list, activeProductIds, activeCourseIds, isStudent, grant, paid, update, remove };
+/* ---------------- 판매량에 따라 오르는 가격 ----------------
+ * 팔린 수 = 이 상품 수강권 중 카드·현금 결제(운영자 무료 지급 제외)이고 환불 안 된 것
+ * 지금 가격 = min(최대가, 시작가 + floor(팔린 수 / every) × step)
+ */
+const won = (n) => Number(n || 0).toLocaleString('ko-KR') + '원';
+function calcPrice(d, sold) {
+  const steps = Math.floor(sold / d.dyn_every);
+  const price = Math.min(d.dyn_max, d.dyn_start + steps * d.dyn_step);
+  const maxed = price >= d.dyn_max;
+  return {
+    price, sold, maxed,
+    left: maxed ? 0 : d.dyn_every - (sold % d.dyn_every), // 이 가격에 남은 자리
+    next: maxed ? price : Math.min(d.dyn_max, price + d.dyn_step),
+    step: d.dyn_step, every: d.dyn_every, start: d.dyn_start, max: d.dyn_max,
+  };
+}
+/** 상품 목록에 지금 가격을 채워 넣는다 (price_text 를 덮어쓰고 p.dyn 에 자세한 값) */
+async function priced(rows) {
+  const ids = rows.map((r) => r.id);
+  if (!ids.length) return rows;
+  const { rows: ds } = await db.query(
+    `SELECT p.id, p.dyn_start, p.dyn_step, p.dyn_every, p.dyn_max,
+            (SELECT count(*) FROM lounge_enrollments e WHERE e.product_id=p.id AND e.source IN ('card','cash') AND e.status<>'refunded')::int AS sold
+       FROM lounge_products p WHERE p.id = ANY($1::int[]) AND p.dyn_start IS NOT NULL AND p.dyn_step > 0 AND p.dyn_every > 0 AND p.dyn_max IS NOT NULL`,
+    [ids]
+  );
+  const m = new Map(ds.map((d) => [d.id, calcPrice(d, d.sold)]));
+  for (const r of rows) {
+    const d = m.get(r.id);
+    if (!d) continue;
+    r.dyn = d;
+    r.price_text = won(d.price);
+  }
+  return rows;
+}
+/** 상품 하나의 지금 가격 (없으면 적어 둔 금액) */
+async function currentPrice(productId) {
+  const { rows } = await db.query(`SELECT id, price_text FROM lounge_products WHERE id=$1`, [productId]);
+  if (!rows[0]) return 0;
+  await priced(rows);
+  return parseInt(String(rows[0].price_text || '').replace(/[^0-9]/g, ''), 10) || 0;
+}
+
+module.exports = { priced, currentPrice, ACTIVE, TODAY, SOURCES, STATUSES, parseLinks, list, activeProductIds, activeCourseIds, isStudent, grant, paid, update, remove };

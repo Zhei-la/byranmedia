@@ -263,3 +263,9 @@ ALTER TABLE lounge_resources ADD COLUMN IF NOT EXISTS product_ids INT[] NOT NULL
 
 -- 상품 종류: course(강의·1:1 과정) | ebook(전자책)
 ALTER TABLE lounge_products ADD COLUMN IF NOT EXISTS ptype VARCHAR(10) NOT NULL DEFAULT 'course';
+
+-- 판매량에 따라 오르는 가격 (전자책): 시작가에서 every 명 팔릴 때마다 step 원씩, 최대 max 원까지
+ALTER TABLE lounge_products ADD COLUMN IF NOT EXISTS dyn_start INT;
+ALTER TABLE lounge_products ADD COLUMN IF NOT EXISTS dyn_step  INT;
+ALTER TABLE lounge_products ADD COLUMN IF NOT EXISTS dyn_every INT;
+ALTER TABLE lounge_products ADD COLUMN IF NOT EXISTS dyn_max   INT;

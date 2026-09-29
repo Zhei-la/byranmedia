@@ -99,7 +99,7 @@ get('/', async (req, res) => {
         WHERE status IN ('recruiting','running') ORDER BY start_date DESC LIMIT 1`),
     q(`SELECT id, title, category, image_ids FROM lounge_prompts
         WHERE is_active=true AND cardinality(image_ids) > 0 ORDER BY created_at DESC LIMIT 8`),
-    q(`SELECT id, title, subtitle, price_text, list_price, price_note, badge FROM lounge_products WHERE is_active=true ORDER BY sort_order, id LIMIT 3`),
+    q(`SELECT id, title, subtitle, price_text, list_price, price_note, badge, ptype FROM lounge_products WHERE is_active=true ORDER BY sort_order, id LIMIT 3`).then(E.priced),
   ]);
 
   res.render('lounge/home', {
@@ -443,6 +443,7 @@ get('/library', async (req, res) => {
     `SELECT id, title, subtitle, kind, badge, price_text, list_price, price_note, ptype FROM lounge_products
       WHERE is_active=true ORDER BY (ptype='ebook') DESC, sort_order, id`
   );
+  await E.priced(products);
   res.render('lounge/library', { products, mine: sp.all,
     title: '자료실', active: 'library', groups, hasCode, hasPoints, pt, codeOk: codeOpen(req), isStu: sp.all.length > 0,
     sec: String(req.query.s || ''),
@@ -655,6 +656,7 @@ get('/course', async (req, res) => {
     `SELECT p.*, (SELECT count(*) FROM lounge_reviews r WHERE r.product_id=p.id AND r.status='approved')::int AS reviews
        FROM lounge_products p WHERE p.is_active=true ORDER BY p.sort_order, p.id`
   );
+  await E.priced(products);
   const mine = req.user ? await E.activeProductIds(req.user.id) : [];
   res.render('lounge/course', { title: '수강 · 전자책 신청', active: 'library', products, mine, sent: req.query.sent === '1', pick: parseInt(req.query.pick, 10) || null });
 });
@@ -794,8 +796,9 @@ get('/my', member, async (req, res) => {
   const hasCourse = liveE.some((e) => e.ptype === 'course');
   let upsell = 0; // 전자책만 가진 사람: 피드백 과정으로 넘어오면 차감되는 금액
   if (!hasCourse && liveE.some((e) => e.ptype === 'ebook')) {
-    const { rows: ep } = await db.query(`SELECT p.price_text FROM lounge_products p WHERE p.id = ANY($1::int[]) AND p.ptype='ebook' LIMIT 1`, [sp]);
-    upsell = ep[0] ? L.priceNum(ep[0].price_text) : 0;
+    // 실제로 낸 금액을 차감 (기록이 없으면 지금 가격)
+    const eb = liveE.find((e) => e.ptype === 'ebook');
+    upsell = eb.amount || (await E.currentPrice(eb.product_id));
   }
   const { rows: stuRes } = sp.length ? await db.query(
     `SELECT id, title, section FROM lounge_resources

@@ -167,6 +167,14 @@
       <label>순서<input name="sort_order" type="number" class="lg-in" value="<%= e ? e.sort_order : 100 %>"></label>
     </div>
     <label>포함 내용 (한 줄에 하나씩)<textarea name="perks" class="lg-in" rows="5" placeholder="1:1 피드백 6개월&#10;타로 자료집"><%= e ? e.perks || '' : '' %></textarea></label>
+    <h2 class="lg-h3 mt">📈 팔릴수록 오르는 가격 (선택)</h2>
+    <div class="lg-adgrid">
+      <label>시작 가격 (원)<input name="dyn_start" type="number" min="0" step="1000" class="lg-in" value="<%= e && e.dyn_start ? e.dyn_start : '' %>" placeholder="예: 120000"></label>
+      <label>몇 명 팔릴 때마다<input name="dyn_every" type="number" min="1" class="lg-in" value="<%= e && e.dyn_every ? e.dyn_every : '' %>" placeholder="예: 10"></label>
+      <label>얼마씩 오를지 (원)<input name="dyn_step" type="number" min="0" step="500" class="lg-in" value="<%= e && e.dyn_step ? e.dyn_step : '' %>" placeholder="예: 2000"></label>
+      <label>최대 가격 (원)<input name="dyn_max" type="number" min="0" step="1000" class="lg-in" value="<%= e && e.dyn_max ? e.dyn_max : '' %>" placeholder="예: 220000"></label>
+    </div>
+    <p class="lg-hint">네 칸을 다 채우면 위 '판매 금액' 대신 이 규칙으로 가격이 자동으로 정해져요. 카드·현금으로 산 사람만 세고, 무료 지급·환불은 빼요.<% if (e && e.dyn) { %> 지금 <b><%= e.dyn.sold %>명</b> 구매 · 현재 <b><%= e.price_text %></b><% } %></p>
     <h2 class="lg-h3 mt">🎓 수강생 화면</h2>
     <div class="lg-adgrid">
       <label>수강 기간 (개월, 비우면 평생)<input name="months" type="number" min="1" class="lg-in" value="<%= e && e.months ? e.months : '' %>" placeholder="예: 6"></label>

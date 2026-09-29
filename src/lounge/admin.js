@@ -81,7 +81,7 @@ router.get('/admin/lounge', async (req, res) => {
     data.products = await q(`SELECT id, title FROM lounge_products ORDER BY sort_order, id`);
   }
   if (tab === 'store') {
-    data.products = await q(`SELECT * FROM lounge_products ORDER BY is_active DESC, sort_order, id`);
+    data.products = await E.priced(await q(`SELECT * FROM lounge_products ORDER BY is_active DESC, sort_order, id`));
     data.resources = await q(`SELECT id, title FROM lounge_resources ORDER BY title`);
     data.edit = req.query.edit ? data.products.find((x) => x.id === Number(req.query.edit)) || null : null;
   }
@@ -153,8 +153,8 @@ router.get('/admin/lounge', async (req, res) => {
       `SELECT DISTINCT e.user_id FROM lounge_enrollments e JOIN lounge_products p ON p.id=e.product_id
         WHERE e.user_id = ANY($1::int[]) AND p.ptype='ebook' AND e.status<>'refunded'`, [appUids]) : [];
     data.ebookSet = new Set(ebookUids.map((r) => r.user_id));
-    const ebp = await q(`SELECT price_text FROM lounge_products WHERE ptype='ebook' ORDER BY is_active DESC, id LIMIT 1`);
-    data.ebookCredit = ebp[0] ? L.priceNum(ebp[0].price_text) : 0;
+    const ebp = await q(`SELECT id, price_text FROM lounge_products WHERE ptype='ebook' ORDER BY is_active DESC, id LIMIT 1`);
+    data.ebookCredit = ebp[0] ? await E.currentPrice(ebp[0].id) : 0;
     const st = ['active', 'ended', 'all'].includes(req.query.st) ? req.query.st : 'active';
     data.st = st;
     data.enrolls = await q(
@@ -342,19 +342,20 @@ router.post('/admin/lounge/products/save', async (req, res) => {
     txt(req.body.list_price, 40) || null, txt(req.body.price_note, 120) || null, txt(req.body.perks, 3000) || null,
     int(req.body.months) || null, txt(req.body.student_links, 2000) || null, txt(req.body.student_note, 500) || null,
     req.body.ptype === 'ebook' ? 'ebook' : 'course',
+    int(req.body.dyn_start) || null, int(req.body.dyn_step) || null, int(req.body.dyn_every) || null, int(req.body.dyn_max) || null,
   ];
   if (!f[0]) return go(res, 'store', '상품 이름을 넣어 주세요.');
   if (id) {
     await db.query(
       `UPDATE lounge_products SET title=$1, subtitle=$2, kind=$3, badge=$4, price_text=$5, point_price=$6, resource_id=$7,
               buy_url=$8, cta_label=$9, is_challenge=$10, sort_order=$11, is_active=$12,
-              list_price=$13, price_note=$14, perks=$15, months=$16, student_links=$17, student_note=$18, ptype=$19 WHERE id=$20`,
+              list_price=$13, price_note=$14, perks=$15, months=$16, student_links=$17, student_note=$18, ptype=$19, dyn_start=$20, dyn_step=$21, dyn_every=$22, dyn_max=$23 WHERE id=$24`,
       [...f, id]
     );
   } else {
     await db.query(
-      `INSERT INTO lounge_products (title, subtitle, kind, badge, price_text, point_price, resource_id, buy_url, cta_label, is_challenge, sort_order, is_active, list_price, price_note, perks, months, student_links, student_note, ptype)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)`,
+      `INSERT INTO lounge_products (title, subtitle, kind, badge, price_text, point_price, resource_id, buy_url, cta_label, is_challenge, sort_order, is_active, list_price, price_note, perks, months, student_links, student_note, ptype, dyn_start, dyn_step, dyn_every, dyn_max)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23)`,
       f
     );
   }
