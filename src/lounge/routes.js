@@ -4,6 +4,7 @@ const db = require('../db');
 const L = require('./core');
 const T = require('./translate');
 const P = require('./points');
+const E = require('./enroll');
 
 const router = express.Router();
 
@@ -27,6 +28,7 @@ async function locals(req, res, next) {
     res.locals.nick = req.user ? req.user.nickname || req.user.name : '';
     res.locals.P = P;
     res.locals.pts = req.user && req.user.nickname ? await P.balance(req.user.id) : null;
+    res.locals.student = req.user && req.user.nickname ? await E.isStudent(req.user.id) : false;
   } catch (e) {
     console.error('[라운지 공통]', e.message);
   }
@@ -394,13 +396,16 @@ get('/u/img/:id(\\d+)', async (req, res) => {
 // 라이브 코드로 연 자료는 세션에 기억한다 (다시 넣지 않아도 되게)
 const codeOpen = (req) => !!(req.session && req.session.liveOk);
 
-function canOpen(req, r, owned) {
+// sp: 수강 중인 과정 번호들
+function canOpen(req, r, owned, sp) {
   if (!req.user || !req.user.nickname) return false;
   if (isAdmin(req)) return true;
-  if (r.access === 'code') return codeOpen(req) || owned.has(r.id);
-  if (r.access === 'points') return owned.has(r.id);
+  if (r.access === 'course') return sp.length > 0 && (!r.product_ids || !r.product_ids.length || r.product_ids.some((id) => sp.includes(id)));
+  if (r.access === 'code') return codeOpen(req) || owned.has(r.id) || sp.length > 0;
+  if (r.access === 'points') return owned.has(r.id) || sp.length > 0; // 수강생은 포인트 없이 열람
   return true;
 }
+const studentIds = (req) => (req.user ? E.activeProductIds(req.user.id) : Promise.resolve([]));
 async function ownedSet(req) {
   if (!req.user) return new Set();
   const { rows } = await db.query(`SELECT resource_id FROM lounge_unlocks WHERE user_id=$1`, [req.user.id]);
@@ -409,14 +414,15 @@ async function ownedSet(req) {
 
 get('/library', async (req, res) => {
   const { rows } = await db.query(
-    `SELECT id, title, description, kind, section, access, lock_note, sort_order, cost FROM lounge_resources
+    `SELECT id, title, description, kind, section, access, lock_note, sort_order, cost, product_ids FROM lounge_resources
       WHERE is_active=true ORDER BY sort_order, id`
   );
   const owned = await ownedSet(req);
+  const sp = await studentIds(req);
   const groups = [];
   const idx = {};
   for (const r of rows) {
-    r.open = canOpen(req, r, owned);
+    r.open = canOpen(req, r, owned, sp);
     if (!(r.section in idx)) {
       idx[r.section] = groups.length;
       groups.push({ name: r.section, items: [] });
@@ -427,7 +433,7 @@ get('/library', async (req, res) => {
   const hasPoints = rows.some((r) => r.access === 'points');
   const pt = req.user && req.user.nickname ? await P.summary(req.user.id) : null;
   res.render('lounge/library', {
-    title: '자료실', active: 'library', groups, hasCode, hasPoints, pt, codeOk: codeOpen(req),
+    title: '자료실', active: 'library', groups, hasCode, hasPoints, pt, codeOk: codeOpen(req), isStu: sp.length > 0,
     sec: String(req.query.s || ''),
   });
 });
@@ -448,13 +454,16 @@ get('/library/:id(\\d+)', member, async (req, res) => {
   const { rows } = await db.query(`SELECT * FROM lounge_resources WHERE id=$1 AND is_active=true`, [req.params.id]);
   const r = rows[0];
   if (!r) return res.status(404).render('error', { title: '없는 자료', message: '자료를 찾지 못했어요.' });
-  if (!canOpen(req, r, await ownedSet(req))) {
+  if (!canOpen(req, r, await ownedSet(req), await studentIds(req))) {
     flash(req, r.access === 'points'
       ? `포인트 ${P.fmt(r.cost)}P로 여는 자료예요. 자료실에서 [포인트로 열기]를 눌러 주세요.`
-      : '라이브 코드를 넣어야 열리는 자료예요.');
+      : r.access === 'course' ? '수강생만 볼 수 있는 자료예요.' : '라이브 코드를 넣어야 열리는 자료예요.');
     return res.redirect(`/library#r${r.id}`);
   }
-  db.query(`INSERT INTO lounge_unlocks (user_id, resource_id) VALUES ($1,$2) ON CONFLICT DO NOTHING`, [req.user.id, r.id]).catch(() => {});
+  // 본 기록은 회원·코드 자료만 남긴다 (포인트 자료는 구매로만, 수강생 열람은 수강권이 끝나면 닫혀야 하므로 남기지 않는다)
+  if ((r.access === 'member' || r.access === 'code') && !isAdmin(req)) {
+    db.query(`INSERT INTO lounge_unlocks (user_id, resource_id) VALUES ($1,$2) ON CONFLICT DO NOTHING`, [req.user.id, r.id]).catch(() => {});
+  }
   const url = L.safeLink(r.url);
   // 사이트 안 주소나 노션 자료집은 바로 그 페이지로 보낸다
   if (url && !r.body && r.kind === 'link') return res.redirect(url);
@@ -465,7 +474,7 @@ post('/library/:id(\\d+)/buy', member, async (req, res) => {
   const { rows } = await db.query(`SELECT id, title, cost, access FROM lounge_resources WHERE id=$1 AND is_active=true`, [req.params.id]);
   const r = rows[0];
   if (!r || r.access !== 'points') return res.redirect('/library');
-  if (isAdmin(req)) return res.redirect(`/library/${r.id}`);
+  if (isAdmin(req) || (await E.isStudent(req.user.id))) return res.redirect(`/library/${r.id}`);
   const out = await P.buy(req.user.id, r);
   if (out.ok) flash(req, `${P.fmt(r.cost)}P를 써서 「${r.title}」을 열었어요 🎉 남은 포인트 ${P.fmt(out.left)}P`);
   else if (out.why === 'owned') flash(req, '이미 열어 둔 자료예요.');
@@ -635,7 +644,8 @@ get('/course', async (req, res) => {
     `SELECT p.*, (SELECT count(*) FROM lounge_reviews r WHERE r.product_id=p.id AND r.status='approved')::int AS reviews
        FROM lounge_products p WHERE p.is_active=true ORDER BY p.sort_order, p.id`
   );
-  res.render('lounge/course', { title: '수강 신청', active: 'course', products, sent: req.query.sent === '1', pick: parseInt(req.query.pick, 10) || null });
+  const mine = req.user ? await E.activeProductIds(req.user.id) : [];
+  res.render('lounge/course', { title: '수강 신청', active: 'course', products, mine, sent: req.query.sent === '1', pick: parseInt(req.query.pick, 10) || null });
 });
 
 post('/course/apply', async (req, res) => {
@@ -767,7 +777,12 @@ post('/challenge/submit', member, async (req, res) => {
 /* ---------------- 마이페이지 ---------------- */
 get('/my', member, async (req, res) => {
   const uid = req.user.id;
-  const [pt, hist] = await Promise.all([P.summary(uid), P.history(uid, 15)]);
+  const [pt, hist, enrolls] = await Promise.all([P.summary(uid), P.history(uid, 15), E.list(uid)]);
+  const sp = enrolls.filter((e) => e.is_active).map((e) => e.product_id).filter(Boolean);
+  const { rows: stuRes } = sp.length ? await db.query(
+    `SELECT id, title, section FROM lounge_resources
+      WHERE is_active AND access='course' AND (cardinality(product_ids)=0 OR product_ids && $1::int[]) ORDER BY sort_order, id`, [sp]
+  ) : { rows: [] };
   const [myReviews, posts, u, favs, resOpened] = await Promise.all([
     db.query(
       `SELECT r.id, r.status, r.rating, r.body, r.created_at, p.title AS product
@@ -784,7 +799,7 @@ get('/my', member, async (req, res) => {
   ]);
   res.render('lounge/my', {
     title: '마이페이지', active: 'my',
-    myReviews: myReviews.rows, posts: posts.rows, acct: u.rows[0], favs: favs.rows, opened: resOpened.rows, pt, hist,
+    myReviews: myReviews.rows, posts: posts.rows, acct: u.rows[0], favs: favs.rows, opened: resOpened.rows, pt, hist, enrolls, stuRes,
   });
 });
 

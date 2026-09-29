@@ -31,7 +31,9 @@
     </div>
   <% } %>
 
-  <% if (hasPoints && me) { %><%- include('_ptbar') %><% } %>
+  <% if (isStu) { %>
+    <div class="lg-ptbar"><div class="lg-ptbar-bal"><b>🎓 수강생이에요</b></div><div class="lg-ptbar-rules"><span>포인트 자료집도 포인트 없이 바로 열려요.</span></div><a href="/my" class="lg-btn sm primary">내 수강 화면 →</a></div>
+  <% } else if (hasPoints && me) { %><%- include('_ptbar') %><% } %>
 
   <% if (hasCode && user && me && !codeOk && user.role !== 'admin') { %>
     <form method="post" action="/library/code" class="lg-codebox">
@@ -51,18 +53,21 @@
         <div class="lg-lib">
           <% g.items.forEach(function(r){ %>
             <div class="lg-libitem <%= r.open ? 'owned' : '' %>" id="r<%= r.id %>">
-              <span class="lg-gift-k"><%= KIND[r.kind] || '자료' %><% if (r.access === 'code') { %> · 라이브 전용<% } else if (r.access === 'points') { %> · 💎 <%= P.fmt(r.cost) %>P<% } else if (g.name !== '수강 안내') { %> · 가입하면 무료<% } %></span>
+              <span class="lg-gift-k"><%= KIND[r.kind] || '자료' %><% if (r.access === 'code') { %> · 라이브 전용<% } else if (r.access === 'course') { %> · 🎓 수강생 전용<% } else if (r.access === 'points') { %> · 💎 <%= P.fmt(r.cost) %>P<% } else if (g.name !== '수강 안내') { %> · 가입하면 무료<% } %></span>
               <h3><%= r.title %></h3>
               <% if (r.description) { %><p><%= r.description %></p><% } %>
               <div class="lg-libitem-f">
                 <% if (r.open) { %>
-                  <span class="lg-tag ok">열림</span>
+                  <span class="lg-tag ok"><%= isStu && (r.access === 'points' || r.access === 'course') ? '수강생 열람' : '열림' %></span>
                   <a href="/library/<%= r.id %>" class="lg-btn primary sm">열어보기</a>
                 <% } else if (!user) { %>
-                  <span class="lg-cost"><%= r.access === 'code' ? '🔒 라이브 전용' : r.access === 'points' ? '💎 ' + P.fmt(r.cost) + 'P' : '회원 무료' %></span>
+                  <span class="lg-cost"><%= r.access === 'code' ? '🔒 라이브 전용' : r.access === 'course' ? '🎓 수강생 전용' : r.access === 'points' ? '💎 ' + P.fmt(r.cost) + 'P' : '회원 무료' %></span>
                   <a href="/login?next=/library" class="lg-btn sm">가입하고 보기</a>
                 <% } else if (!me) { %>
                   <a href="/onboard?next=/library" class="lg-btn sm">닉네임 정하고 보기</a>
+                <% } else if (r.access === 'course') { %>
+                  <span class="lg-cost">🎓 수강생만 볼 수 있어요</span>
+                  <a href="/course" class="lg-btn sm">수강 안내 →</a>
                 <% } else if (r.access === 'points') { var bal = pt ? pt.balance : 0; %>
                   <span class="lg-cost">💎 <b><%= P.fmt(r.cost) %>P</b></span>
                   <% if (bal >= r.cost) { %>

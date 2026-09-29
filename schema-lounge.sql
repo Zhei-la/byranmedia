@@ -234,3 +234,29 @@ CREATE INDEX IF NOT EXISTS idx_point_user ON lounge_point_log (user_id, created_
 CREATE UNIQUE INDEX IF NOT EXISTS uq_point_ref ON lounge_point_log (reason, ref_id)
   WHERE ref_id IS NOT NULL AND reason IN ('post', 'post_back', 'review', 'review_back');
 CREATE UNIQUE INDEX IF NOT EXISTS uq_point_buy ON lounge_point_log (user_id, ref_id) WHERE reason = 'buy';
+
+-- 수강권: 결제(카드 자동) 또는 운영자 지급(현금 등)으로 생기고, 마이페이지에 "수강 중"으로 보인다
+ALTER TABLE lounge_products ADD COLUMN IF NOT EXISTS months INT;           -- 수강 기간(개월). 비우면 평생
+ALTER TABLE lounge_products ADD COLUMN IF NOT EXISTS student_links TEXT;   -- 수강생에게 보여줄 링크: "이름 | 주소" 한 줄에 하나
+ALTER TABLE lounge_products ADD COLUMN IF NOT EXISTS student_note TEXT;    -- 수강생 안내 문구
+
+CREATE TABLE IF NOT EXISTS lounge_enrollments (
+  id            SERIAL PRIMARY KEY,
+  user_id       INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  product_id    INT REFERENCES lounge_products(id) ON DELETE SET NULL,
+  product_title VARCHAR(120) NOT NULL,              -- 과정이 지워져도 이름은 남긴다
+  source        VARCHAR(10) NOT NULL DEFAULT 'admin', -- card | cash | admin
+  amount        INT,
+  order_id      VARCHAR(80),                         -- 카드 결제 주문번호 (같은 결제로 두 번 지급 안 되게)
+  status        VARCHAR(10) NOT NULL DEFAULT 'active', -- active | ended | refunded
+  starts_on     DATE NOT NULL DEFAULT ((now() AT TIME ZONE 'Asia/Seoul')::date),
+  ends_on       DATE,                                -- 비우면 평생
+  memo          VARCHAR(300),
+  granted_by    INT REFERENCES users(id) ON DELETE SET NULL,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_enroll_user ON lounge_enrollments (user_id, status);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_enroll_order ON lounge_enrollments (order_id) WHERE order_id IS NOT NULL;
+
+-- 수강생 전용 자료: access='course' 이고, product_ids 에 든 과정 수강생만 (비우면 수강생 누구나)
+ALTER TABLE lounge_resources ADD COLUMN IF NOT EXISTS product_ids INT[] NOT NULL DEFAULT '{}';

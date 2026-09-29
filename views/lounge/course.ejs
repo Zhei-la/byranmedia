@@ -107,7 +107,11 @@
             <ul class="lg-check-list sm"><% perks.forEach(function(k){ %><li><%= k %></li><% }); %></ul>
           <% } %>
           <div class="lg-prod-cta">
-            <a href="/course?pick=<%= p.id %>#apply" class="lg-btn primary block">이 과정 신청하기</a>
+            <% if (mine.includes(p.id)) { %>
+              <a href="/my" class="lg-btn primary block">🎓 수강 중 · 수강 화면 가기</a>
+            <% } else { %>
+              <a href="/course?pick=<%= p.id %>#apply" class="lg-btn primary block">이 과정 신청하기</a>
+            <% } %>
             <% if (p.buy_url) { %><a href="<%= p.buy_url %>" target="_blank" rel="noopener" class="lg-btn block"><%= p.cta_label || '자세히 보기' %></a><% } %>
           </div>
           <% if (p.reviews) { %><a href="/reviews?p=<%= p.id %>" class="lg-more">후기 <%= p.reviews %>개 →</a><% } %>

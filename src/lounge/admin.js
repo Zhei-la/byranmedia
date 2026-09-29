@@ -3,6 +3,7 @@ const express = require('express');
 const db = require('../db');
 const L = require('./core');
 const P = require('./points');
+const E = require('./enroll');
 const { requireAdmin } = require('../middleware/auth');
 
 const router = express.Router();
@@ -15,7 +16,7 @@ for (const m of ['get', 'post']) {
   router[m] = (p, ...h) => orig(p, ...h.map(wrap));
 }
 
-const TABS = ['home', 'prompts', 'library', 'store', 'board', 'reviews', 'challenge', 'members'];
+const TABS = ['home', 'prompts', 'library', 'store', 'students', 'board', 'reviews', 'challenge', 'members'];
 const go = (res, tab, msg, extra = '') =>
   res.redirect(`/admin/lounge?tab=${tab}${msg ? '&msg=' + encodeURIComponent(msg) : ''}${extra}`);
 const int = (v) => (v === '' || v == null ? null : parseInt(v, 10));
@@ -77,6 +78,7 @@ router.get('/admin/lounge', async (req, res) => {
          FROM lounge_resources r ORDER BY r.is_active DESC, r.sort_order, r.id`
     );
     data.edit = req.query.edit ? data.resources.find((x) => x.id === Number(req.query.edit)) || null : null;
+    data.products = await q(`SELECT id, title FROM lounge_products ORDER BY sort_order, id`);
   }
   if (tab === 'store') {
     data.products = await q(`SELECT * FROM lounge_products ORDER BY is_active DESC, sort_order, id`);
@@ -117,6 +119,45 @@ router.get('/admin/lounge', async (req, res) => {
     );
     data.edit = req.query.edit ? (await q(`SELECT * FROM lounge_prompts WHERE id=$1`, [req.query.edit]))[0] || null : null;
   }
+  if (tab === 'students') {
+    const s = txt(req.query.s, 60);
+    const uid = int(req.query.uid);
+    data.s = s;
+    data.uid = uid;
+    data.products = await q(`SELECT id, title, months, price_text FROM lounge_products ORDER BY is_active DESC, sort_order, id`);
+    // 지급할 회원 찾기: 검색어 또는 회원 번호로
+    data.found = s || uid ? await q(
+      `SELECT u.id, u.name, u.nickname, u.email, u.phone, u.provider, u.created_at,
+              (SELECT string_agg(e.product_title, ', ') FROM lounge_enrollments e WHERE e.user_id=u.id AND ${E.ACTIVE}) AS now_courses
+         FROM users u
+        WHERE ${uid ? 'u.id=$1' : `(u.nickname ILIKE $1 OR u.name ILIKE $1 OR u.email ILIKE $1 OR u.phone ILIKE $1)`}
+        ORDER BY u.created_at DESC LIMIT 20`,
+      [uid || `%${s}%`]
+    ) : [];
+    // 수강 신청서 (라운지 회원이 쓴 건 회원 번호가 붙어 있다)
+    data.apps = (await q(
+      `SELECT i.id, i.name, i.phone, i.plan, i.message, i.status, i.created_at, i.business,
+              substring(i.business from '라운지 회원 #([0-9]+)')::int AS uid
+         FROM inquiries i WHERE i.plan LIKE '수강 신청%' ORDER BY i.created_at DESC LIMIT 30`
+    )).map((a) => {
+      const title = String(a.plan || '').replace(/^수강 신청 · /, '');
+      const prod = data.products.find((p) => p.title === title);
+      return { ...a, product_id: prod ? prod.id : null };
+    });
+    const appUids = [...new Set(data.apps.map((a) => a.uid).filter(Boolean))];
+    const enrolledUids = appUids.length ? await q(`SELECT DISTINCT user_id FROM lounge_enrollments e WHERE user_id = ANY($1::int[]) AND ${E.ACTIVE}`, [appUids]) : [];
+    data.enrolledSet = new Set(enrolledUids.map((r) => r.user_id));
+    const st = ['active', 'ended', 'all'].includes(req.query.st) ? req.query.st : 'active';
+    data.st = st;
+    data.enrolls = await q(
+      `SELECT e.*, e.starts_on::text AS starts_s, e.ends_on::text AS ends_s, (${E.ACTIVE}) AS is_active, (e.ends_on - ${E.TODAY})::int AS days_left,
+              COALESCE(u.nickname, u.name) AS nick, u.name, u.phone
+         FROM lounge_enrollments e JOIN users u ON u.id=e.user_id
+        ${st === 'active' ? `WHERE ${E.ACTIVE}` : st === 'ended' ? `WHERE NOT (${E.ACTIVE})` : ''}
+        ORDER BY e.created_at DESC LIMIT 300`
+    );
+    data.E = E;
+  }
   if (tab === 'members') {
     const s = txt(req.query.s, 40);
     data.s = s;
@@ -124,7 +165,8 @@ router.get('/admin/lounge', async (req, res) => {
       `SELECT u.id, u.name, u.nickname, u.interest, u.status, u.lounge_at,
               (SELECT count(*) FROM lounge_posts p WHERE p.user_id=u.id AND p.is_hidden=false)::int AS posts,
               (SELECT count(*) FROM lounge_unlocks x WHERE x.user_id=u.id)::int AS opened,
-              (SELECT COALESCE(sum(amount),0) FROM lounge_point_log g WHERE g.user_id=u.id)::int AS points
+              (SELECT COALESCE(sum(amount),0) FROM lounge_point_log g WHERE g.user_id=u.id)::int AS points,
+              (SELECT string_agg(e.product_title, ', ') FROM lounge_enrollments e WHERE e.user_id=u.id AND ${E.ACTIVE}) AS courses
          FROM users u
         WHERE u.nickname IS NOT NULL ${s ? `AND (u.nickname ILIKE $1 OR u.name ILIKE $1)` : ''}
         ORDER BY u.lounge_at DESC NULLS LAST LIMIT 200`,
@@ -133,6 +175,36 @@ router.get('/admin/lounge', async (req, res) => {
   }
   const nk = req.user.nickname || req.user.name;
   res.render('lounge/admin', { title: '라운지 관리', active: '', flash: null, me: { nick: nk }, nick: nk, P, pts: null, ...data });
+});
+
+/* ---------------- 수강권 ---------------- */
+const ymdOk = (v) => (/^\d{4}-\d{2}-\d{2}$/.test(String(v || '')) ? String(v) : null);
+router.post('/admin/lounge/enrollments/grant', async (req, res) => {
+  const userId = int(req.body.user_id);
+  const productId = int(req.body.product_id);
+  if (!userId || !productId) return go(res, 'students', '회원과 과정을 골라 주세요.');
+  const u = await db.query(`SELECT id, COALESCE(nickname, name) AS nick FROM users WHERE id=$1`, [userId]);
+  if (!u.rows[0]) return go(res, 'students', '회원을 찾지 못했어요.');
+  const period = req.body.period;
+  const endsOn = period === 'lifetime' ? '' : period === 'custom' ? ymdOk(req.body.ends_on) || '' : undefined;
+  if (period === 'custom' && !ymdOk(req.body.ends_on)) return go(res, 'students', '끝나는 날을 넣어 주세요.', `&uid=${userId}`);
+  const amount = parseInt(String(req.body.amount || '').replace(/[^0-9]/g, ''), 10) || null;
+  const { enrollment } = await E.grant({
+    userId, productId, source: ['cash', 'card', 'admin'].includes(req.body.source) ? req.body.source : 'cash',
+    amount, startsOn: ymdOk(req.body.starts_on), endsOn, memo: txt(req.body.memo, 300) || null, grantedBy: req.user.id,
+  });
+  if (req.body.inquiry_id) await db.query(`UPDATE inquiries SET status='done' WHERE id=$1`, [int(req.body.inquiry_id)]).catch(() => {});
+  go(res, 'students', `${u.rows[0].nick}님에게 「${enrollment.product_title}」 수강권을 지급했어요.`);
+});
+router.post('/admin/lounge/enrollments/:id/save', async (req, res) => {
+  await E.update(int(req.params.id), {
+    status: req.body.status, startsOn: ymdOk(req.body.starts_on), endsOn: ymdOk(req.body.ends_on), memo: txt(req.body.memo, 300),
+  });
+  go(res, 'students', '수강권을 고쳤어요.', req.body.st ? `&st=${encodeURIComponent(req.body.st)}` : '');
+});
+router.post('/admin/lounge/enrollments/:id/delete', async (req, res) => {
+  await E.remove(int(req.params.id));
+  go(res, 'students', '수강권을 지웠어요.', req.body.st ? `&st=${encodeURIComponent(req.body.st)}` : '');
 });
 
 /* ---------------- 포인트 직접 조정 ---------------- */
@@ -221,7 +293,8 @@ router.post('/admin/lounge/resources/save', async (req, res) => {
     url: L.safeLink(req.body.url) || null,
     body: txt(req.body.body, 20000) || null,
     section: txt(req.body.section_custom, 30) || txt(req.body.section, 30) || '무료 자료',
-    access: ['code', 'points'].includes(req.body.access) ? req.body.access : 'member',
+    access: ['code', 'points', 'course'].includes(req.body.access) ? req.body.access : 'member',
+    product_ids: [].concat(req.body.product_ids || []).map((v) => parseInt(v, 10)).filter((n) => n > 0),
     cost: Math.max(0, int(req.body.cost) || 0),
     lock_note: txt(req.body.lock_note, 120) || null,
     sort_order: int(req.body.sort_order) || 100,
@@ -230,15 +303,15 @@ router.post('/admin/lounge/resources/save', async (req, res) => {
   if (!f.title) return go(res, 'library', '제목을 넣어 주세요.');
   if (!f.url && !f.body) return go(res, 'library', '링크나 본문 중 하나는 넣어 주세요.');
   if (f.access === 'points' && !f.cost) return go(res, 'library', '포인트로 여는 자료는 필요한 포인트를 넣어 주세요.');
-  const vals = [f.title, f.description, f.kind, f.url, f.body, f.section, f.access, f.lock_note, f.sort_order, f.is_active, f.cost];
+  const vals = [f.title, f.description, f.kind, f.url, f.body, f.section, f.access, f.lock_note, f.sort_order, f.is_active, f.cost, f.product_ids];
   if (id) {
     await db.query(
-      `UPDATE lounge_resources SET title=$1, description=$2, kind=$3, url=$4, body=$5, section=$6, access=$7, lock_note=$8, sort_order=$9, is_active=$10, cost=$11 WHERE id=$12`,
+      `UPDATE lounge_resources SET title=$1, description=$2, kind=$3, url=$4, body=$5, section=$6, access=$7, lock_note=$8, sort_order=$9, is_active=$10, cost=$11, product_ids=$12 WHERE id=$13`,
       [...vals, id]
     );
   } else {
     await db.query(
-      `INSERT INTO lounge_resources (title, description, kind, url, body, section, access, lock_note, sort_order, is_active, cost) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+      `INSERT INTO lounge_resources (title, description, kind, url, body, section, access, lock_note, sort_order, is_active, cost, product_ids) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
       vals
     );
   }
@@ -259,19 +332,20 @@ router.post('/admin/lounge/products/save', async (req, res) => {
     L.safeUrl(req.body.buy_url) || null, txt(req.body.cta_label, 20) || null,
     req.body.is_challenge === '1', int(req.body.sort_order) || 100, req.body.is_active !== '0',
     txt(req.body.list_price, 40) || null, txt(req.body.price_note, 120) || null, txt(req.body.perks, 3000) || null,
+    int(req.body.months) || null, txt(req.body.student_links, 2000) || null, txt(req.body.student_note, 500) || null,
   ];
   if (!f[0]) return go(res, 'store', '상품 이름을 넣어 주세요.');
   if (id) {
     await db.query(
       `UPDATE lounge_products SET title=$1, subtitle=$2, kind=$3, badge=$4, price_text=$5, point_price=$6, resource_id=$7,
               buy_url=$8, cta_label=$9, is_challenge=$10, sort_order=$11, is_active=$12,
-              list_price=$13, price_note=$14, perks=$15 WHERE id=$16`,
+              list_price=$13, price_note=$14, perks=$15, months=$16, student_links=$17, student_note=$18 WHERE id=$19`,
       [...f, id]
     );
   } else {
     await db.query(
-      `INSERT INTO lounge_products (title, subtitle, kind, badge, price_text, point_price, resource_id, buy_url, cta_label, is_challenge, sort_order, is_active, list_price, price_note, perks)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)`,
+      `INSERT INTO lounge_products (title, subtitle, kind, badge, price_text, point_price, resource_id, buy_url, cta_label, is_challenge, sort_order, is_active, list_price, price_note, perks, months, student_links, student_note)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)`,
       f
     );
   }

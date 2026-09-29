@@ -10,6 +10,23 @@ async function migrate() {
   await seedOnce();
   await seedCourses();
   await seedPoints();
+  await seedStudent();
+}
+
+/* 수강생 화면: 지금 과정(사주·타로)은 루월당으로 연결, 과정별 기간 (한 번만) */
+async function seedStudent() {
+  const { rows } = await db.query(`SELECT 1 FROM lounge_settings WHERE key='seeded_student_v1'`);
+  if (rows.length) return;
+  const LINK = '루월당 바로가기 | https://www.luwolsaju.com/home';
+  const NOTE = '수강 자료와 도구는 루월당에서 이용해요. 로그인이 안 되거나 권한이 필요하면 1:1 상담으로 말씀해 주세요.';
+  for (const [title, months] of [['사주 과정 · 3기', 12], ['사주 + 타로 · 6개월 피드백', 6], ['사주 + 타로 · 평생 피드백', null]]) {
+    await db.query(
+      `UPDATE lounge_products SET months=$2, student_links=COALESCE(student_links, $3), student_note=COALESCE(student_note, $4) WHERE title=$1`,
+      [title, months, LINK, NOTE]
+    );
+  }
+  await db.query(`INSERT INTO lounge_settings (key, value) VALUES ('seeded_student_v1', '1') ON CONFLICT (key) DO NOTHING`);
+  console.log('[라운지] 수강생 연결(루월당)을 넣었습니다.');
 }
 
 /* 포인트 도입: 쿠팡파트너스는 가입만 하면, 사주·타로·스레드 자료집은 1,000P 로 연다 (한 번만) */

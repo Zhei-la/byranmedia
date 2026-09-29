@@ -668,3 +668,30 @@ textarea.lg-in{resize:vertical;line-height:1.6}
   .lg-ptbar .lg-btn{width:100%}
   .lg-ptpill{padding:5px 9px;font-size:12px}
 }
+
+/* ---------- 수강생 ---------- */
+.lg-stu{display:grid;gap:14px}
+.lg-stu-card{border:1px solid #BFD8CD;background:linear-gradient(180deg,var(--green-soft),var(--card) 70%)}
+.lg-stu-h .lg-h3{margin:8px 0 2px}
+.lg-stu-badge{display:inline-flex;align-items:center;gap:4px;background:var(--green);color:#fff;font-size:12.5px;font-weight:750;padding:4px 10px;border-radius:999px}
+.lg-stu-note{margin:10px 0 0;font-size:14px;color:var(--ink-2)}
+.lg-stu-links{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.lg-stu-none{display:flex;align-items:center;gap:14px 20px;flex-wrap:wrap;justify-content:space-between}
+.lg-stu-none > div{flex:1;min-width:220px}
+.lg-stu-none p{margin-top:4px}
+.lg-stu-past{margin-top:12px;font-size:14px;color:var(--ink-2)}
+.lg-stu-past summary{cursor:pointer;color:var(--ink-3)}
+.lg-stu-mini{white-space:nowrap;flex:none;font-size:11px;font-weight:750;color:#fff;background:var(--green);padding:1px 7px;border-radius:999px;margin-left:2px}
+.lg-enr-grant{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;align-items:end;margin-top:10px}
+.lg-enr-grant label{font-size:12.5px;color:var(--ink-3);display:flex;flex-direction:column;gap:4px}
+.lg-enr-grant .lg-in{padding:8px 10px;font-size:14px}
+.lg-enr-edit{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px}
+.lg-enr-edit .lg-in{width:auto;flex:0 1 auto;padding:6px 9px;font-size:13px}
+.lg-enr-edit input[name=memo]{flex:1 1 160px;min-width:0}
+.lg-enr-row details{margin-top:6px}
+.lg-tag.stu{background:var(--green);color:#fff}
+@media (max-width:640px){ .lg-stu-links .lg-btn{flex:1 1 100%} }
+.lg-adfield{border:1px dashed var(--line);border-radius:var(--r-sm);padding:10px 14px;margin:10px 0;display:flex;flex-wrap:wrap;gap:6px 16px}
+.lg-adfield legend{font-size:12.5px;color:var(--ink-3);padding:0 4px}
+
+.lg-mepill:has(.lg-stu-mini){max-width:220px}
