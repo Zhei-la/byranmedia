@@ -10,6 +10,7 @@
   <% if (groups.length > 1) { %>
     <nav class="lg-tabs" aria-label="자료 칸">
       <% if (products.length) { %><a href="#course">🎓 수강 · 전자책</a><% } %>
+      <a href="#agency">💼 대행 문의</a>
       <% groups.forEach(function(g){ %>
         <a href="#s-<%= encodeURIComponent(g.name) %>" class="<%= sec === g.name ? 'on' : '' %>"><%= SEC_ICON[g.name] || '📁' %> <%= g.name %></a>
       <% }); %>
@@ -89,8 +90,8 @@
   <% } %>
 
   <% if (groups.length) { %>
-    <% groups.forEach(function(g){ %>
-      <div class="lg-libgroup" id="s-<%= encodeURIComponent(g.name) %>">
+    <% groups.forEach(function(g, gi){ %>
+      <div class="lg-libgroup tint-<%= gi % 5 + 1 %>" id="s-<%= encodeURIComponent(g.name) %>">
         <h2 class="lg-h2"><span><%= SEC_ICON[g.name] || '📁' %></span> <%= g.name %></h2>
         <div class="lg-lib">
           <% g.items.forEach(function(r){ %>
@@ -136,5 +137,30 @@
       <p>곧 무료 자료집이 올라와요. 조금만 기다려 주세요!</p>
     </div>
   <% } %>
+
+  <div class="lg-libgroup tint-4" id="agency">
+    <h2 class="lg-h2"><span>💼</span> 대행 문의</h2>
+    <p class="lg-muted lg-libcourse-lead">직접 배우기보다 내 가게·브랜드 계정을 맡기고 싶다면, 운영을 대신 해 드려요. 금액은 업종과 운영 범위를 듣고 안내드려요.</p>
+    <div class="lg-agency">
+      <a href="/agency?s=threads#apply" class="lg-card lg-agency-card">
+        <span class="lg-agency-ic">🧵</span>
+        <h3 class="lg-h3">스레드 운영 대행</h3>
+        <p class="lg-muted">성과가 비교적 빨리 보이는 채널이에요. 글 기획부터 꾸준한 발행까지 맡아서 문의로 이어지게 운영해요.</p>
+        <ul class="lg-check-list sm"><li>계정 방향 · 프로필 세팅</li><li>업종에 맞춘 글 기획과 꾸준한 발행</li><li>3개월 이상 운영을 권해요</li></ul>
+        <em>스레드 대행 문의 →</em>
+      </a>
+      <a href="/agency?s=blog#apply" class="lg-card lg-agency-card">
+        <span class="lg-agency-ic">✍️</span>
+        <h3 class="lg-h3">블로그 운영 대행</h3>
+        <p class="lg-muted">사업자라면 꼭 관리해야 하는 기본 채널이에요. 검색으로 찾아오는 손님이 볼 글을 꾸준히 쌓아요.</p>
+        <ul class="lg-check-list sm"><li>업종 · 지역에 맞춘 글 주제 잡기</li><li>정기 포스팅으로 꾸준히 쌓기</li><li>기간 제한 없이 꾸준함이 답이에요</li></ul>
+        <em>블로그 대행 문의 →</em>
+      </a>
+    </div>
+    <div class="lg-lc-cta lg-agency-cta">
+      <a href="/agency#apply" class="lg-btn primary">대행 문의하기</a>
+      <% if (S.agency_kakao) { %><a href="<%= S.agency_kakao %>" target="_blank" rel="noopener" class="lg-btn kakao">카톡으로 물어보기</a><% } %>
+    </div>
+  </div>
 </section>
 <%- include('_bottom') %>

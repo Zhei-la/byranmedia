@@ -82,13 +82,19 @@
     <a href="/library" class="lg-more">자료실 전체 →</a>
   </div>
   <div class="lg-secgrid">
-    <% sections.forEach(function(s){ %>
-      <a href="/library?s=<%= encodeURIComponent(s.section) %>#sec" class="lg-seccard">
+    <% sections.forEach(function(s, si){ %>
+      <a href="/library?s=<%= encodeURIComponent(s.section) %>#sec" class="lg-seccard tint-<%= si % 5 + 1 %>">
         <span class="i"><%= SEC_ICON[s.section] || '📁' %></span>
         <b><%= s.section %></b>
         <small><%= s.n %>개 자료<%= s.has_points ? ' · 💎 포인트로 열기' : '' %><%= s.has_code ? ' · 🔒 라이브 전용 포함' : '' %></small>
       </a>
     <% }); %>
+    <a href="/library#course" class="lg-seccard tint-5">
+      <span class="i">🎓</span><b>수강 · 전자책</b><small>혼자 하기 · 1:1 피드백</small>
+    </a>
+    <a href="/library#agency" class="lg-seccard tint-4">
+      <span class="i">💼</span><b>대행 문의</b><small>스레드 · 블로그 운영 대행</small>
+    </a>
   </div>
 </section>
 <% } %>

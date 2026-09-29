@@ -1,11 +1,12 @@
 <%- include('_top') %>
 <section class="lg-hero lg-cohero">
   <div class="lg-wrap">
+    <a href="/library#agency" class="lg-back">← 자료실</a>
     <p class="lg-kicker">바이란 · 운영 대행</p>
     <h1 class="lg-display">직접 하기 어렵다면,<br><em>맡겨 주세요</em></h1>
     <p class="lg-hero-sub">부업을 직접 배우기보다 내 가게·브랜드 계정을 꾸준히 굴려 줄 사람이 필요한 분을 위한 운영 대행이에요.</p>
     <div class="lg-hero-cta">
-      <a href="#apply" class="lg-btn primary lg">대행 신청하기</a>
+      <a href="#apply" class="lg-btn primary lg">대행 문의하기</a>
       <% if (S.agency_kakao) { %><a href="<%= S.agency_kakao %>" target="_blank" rel="noopener" class="lg-btn kakao lg">카톡으로 먼저 물어보기</a><% } %>
     </div>
   </div>
@@ -22,7 +23,7 @@
         <li>업종에 맞춘 글 기획과 꾸준한 발행</li>
         <li>3개월 이상 운영을 권해요</li>
       </ul>
-      <em>스레드 대행 신청 →</em>
+      <em>스레드 대행 문의 →</em>
     </a>
     <a href="/agency?s=blog#apply" class="lg-card lg-agency-card">
       <span class="lg-agency-ic">✍️</span>
@@ -33,7 +34,7 @@
         <li>정기 포스팅으로 꾸준히 쌓기</li>
         <li>기간 제한 없이 꾸준함이 답이에요</li>
       </ul>
-      <em>블로그 대행 신청 →</em>
+      <em>블로그 대행 문의 →</em>
     </a>
   </div>
   <p class="lg-hint center">금액은 업종과 운영 범위를 들어 본 뒤 안내드려요. 직접 배워서 해보고 싶다면 <a href="/library#course">자료실의 전자책 · 1:1 피드백 과정</a>을 봐 주세요.</p>
@@ -41,9 +42,9 @@
 
 <section class="lg-wrap narrow lg-sec" id="apply">
   <div class="lg-card">
-    <h2 class="lg-h2">대행 신청서</h2>
+    <h2 class="lg-h2">대행 문의서</h2>
     <% if (sent) { %>
-      <div class="lg-alert ok">신청을 받았어요! 확인하고 바로 연락드릴게요.</div>
+      <div class="lg-alert ok">문의를 받았어요! 확인하고 바로 연락드릴게요.</div>
       <% if (S.agency_kakao) { %><a href="<%= S.agency_kakao %>" target="_blank" rel="noopener" class="lg-btn kakao block">카카오톡으로 먼저 말 걸기</a><% } %>
     <% } else { %>
       <p class="lg-muted">남겨 주시면 확인 후 카톡이나 문자로 연락드려요.</p>
@@ -66,7 +67,7 @@
         <input id="al" name="link" class="lg-in" maxlength="300" placeholder="https://" value="<%= form.link || '' %>">
         <label class="lg-lb" for="am">하고 싶은 말 (선택)</label>
         <textarea id="am" name="message" class="lg-in" rows="3" maxlength="3000" placeholder="지금 상황, 원하는 것, 궁금한 점을 편하게 적어 주세요"><%= form.message || '' %></textarea>
-        <button class="lg-btn primary block lg">신청하기</button>
+        <button class="lg-btn primary block lg">문의 보내기</button>
       </form>
     <% } %>
   </div>

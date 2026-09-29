@@ -825,7 +825,7 @@ get('/my', member, async (req, res) => {
 const AGENCY = { threads: '스레드 운영 대행', blog: '블로그 운영 대행', both: '스레드 + 블로그', unsure: '잘 모르겠어요 (상담 먼저)' };
 get('/agency', (req, res) => {
   res.render('lounge/agency', {
-    title: '대행 신청', active: 'agency', sent: req.query.sent === '1', error: null,
+    title: '대행 문의', active: 'library', sent: req.query.sent === '1', error: null,
     form: { service: AGENCY[req.query.s] ? req.query.s : 'threads' }, AGENCY,
     ogT: '바이란 · 스레드·블로그 운영 대행', ogD: '직접 하기 어렵다면 맡겨 주세요. 스레드·블로그 운영 대행 신청.',
   });
@@ -841,7 +841,7 @@ post('/agency', async (req, res) => {
     link: String(req.body.link || '').trim().slice(0, 300),
     message: String(req.body.message || '').trim().slice(0, 3000),
   };
-  const fail = (msg) => res.status(400).render('lounge/agency', { title: '대행 신청', active: 'agency', sent: false, error: msg, form, AGENCY });
+  const fail = (msg) => res.status(400).render('lounge/agency', { title: '대행 문의', active: 'library', sent: false, error: msg, form, AGENCY });
   if (!form.name) return fail('이름이나 상호를 적어 주세요.');
   if (!form.phone) return fail('연락받을 번호나 카톡 아이디를 적어 주세요.');
   const { rows: cnt } = await db.query(
