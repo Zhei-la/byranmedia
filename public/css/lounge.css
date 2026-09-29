@@ -867,3 +867,11 @@ body.lg{background:#fff;color:var(--ink)}
 .lg-tag,.lg-gift-k{background:#fff}
 .lg-dyn{font-size:12.5px !important;color:var(--ink-2) !important;background:#fff;border:1px dashed var(--t5-b);border-radius:8px;padding:5px 9px;margin:4px 0 2px}
 .lg-dyn b{color:var(--accent)}
+.lg-agency-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.lg-agency-price{font-size:13.5px;color:var(--ink-2);background:#fff;border:1px solid var(--t4-b);border-radius:999px;padding:4px 12px}
+.lg-agency-price b{color:var(--ink);font-size:15px}
+.lg-agency-btns{display:flex;flex-wrap:wrap;gap:6px;margin-top:auto;padding-top:8px}
+.lg-agency-btns .lg-btn{padding:9px 13px;font-size:13.5px}
+.lg-agency-card .lg-check-list{margin:2px 0 4px}
+.lg-agency-diag{margin-top:12px;background:var(--t4) !important}
+@media (max-width:640px){ .lg-agency-btns .lg-btn{flex:1 1 100%} }
