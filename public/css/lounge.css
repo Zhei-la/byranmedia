@@ -1,25 +1,28 @@
 /* ===== 바이란 라운지 ===== */
 :root{
-  --paper:#F6F4EF;
-  --paper-2:#EFECE4;
+  /* 화이트 톤 · 모노 + 포인트 레드 (2026-09 리뉴얼) */
+  --paper:#FFFFFF;
+  --paper-2:#F5F5F6;
   --card:#FFFFFF;
-  --ink:#171A18;
-  --ink-2:#4F5753;
-  --ink-3:#8A918D;
-  --line:#E3DFD6;
-  --line-2:#EEEBE4;
-  --green:#2F6F5E;
-  --green-d:#23574A;
-  --green-soft:#E5EFEA;
+  --ink:#171717;
+  --ink-2:#4B4D4F;
+  --ink-3:#8B8E91;
+  --line:#EAEAEC;
+  --line-2:#F2F2F4;
+  --green:#171717;      /* 주요 색 (예전 초록 자리) */
+  --green-d:#000000;
+  --green-soft:#F3F4F6;
+  --accent:#FC1C49;     /* 포인트 레드 */
+  --accent-soft:#FFEDF1;
   --gold:#C98A2E;
-  --gold-soft:#FBF1DF;
-  --red:#B4412F;
-  --red-soft:#FAEAE6;
+  --gold-soft:#FFF6E6;
+  --red:#E5263F;
+  --red-soft:#FFEDF0;
   --kakao:#FEE500;
-  --r:14px;
-  --r-sm:9px;
-  --shadow:0 1px 2px rgba(23,26,24,.04),0 4px 18px rgba(23,26,24,.05);
-  --serif:'Noto Serif KR',Georgia,serif;
+  --r:12px;
+  --r-sm:8px;
+  --shadow:none;
+  --serif:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic',sans-serif;
   --sans:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic',sans-serif;
   --mono:'SF Mono','JetBrains Mono',D2Coding,Consolas,monospace;
 }
@@ -747,3 +750,78 @@ textarea.lg-in{resize:vertical;line-height:1.6}
 .lg-hint.center{text-align:center}
 .lg-bcustom{margin:4px 0 12px;padding:12px 14px;border:1px dashed var(--green);border-radius:var(--r-sm);background:var(--green-soft)}
 .lg-bcustom .lg-bchips button{background:var(--card)}
+
+
+/* ===================================================================
+   화이트 톤 정리 — 흰 바탕, 굵은 고딕 제목, 테두리만 있는 카드, 레드 포인트
+   =================================================================== */
+body.lg{background:#fff;color:var(--ink)}
+.lg-head{background:rgba(255,255,255,.94);border-bottom:1px solid var(--line)}
+.lg-brand-tag{color:var(--ink);border-color:var(--ink);font-weight:700}
+.lg-nav a{font-weight:600;color:var(--ink-2)}
+.lg-nav a.on{background:var(--ink);color:#fff}
+.lg-nav-tool{color:var(--ink-2) !important}
+
+.lg-kicker{color:var(--ink-3);letter-spacing:.08em}
+.lg-display,.lg-h1,.lg-h2{letter-spacing:-.035em;font-weight:800}
+.lg-display em{color:var(--ink);box-shadow:inset 0 -.3em 0 var(--accent-soft)}
+.lg-h3{font-weight:750}
+
+.lg-btn{border-radius:10px;font-weight:650}
+.lg-btn.primary{background:var(--ink);border-color:var(--ink)}
+.lg-btn.primary:hover{background:#000}
+.lg-btn.light{color:var(--ink)}
+.lg-btn.danger{border-color:#F5C6CF}
+
+.lg-hero{background:none;padding:48px 0 12px}
+.lg-hero-card,.lg-card,.lg-seccard,.lg-libitem,.lg-course,.lg-plan,.lg-rung,.lg-lc,.lg-ptbar{box-shadow:none}
+.lg-card{border-color:var(--line)}
+.lg-card.muted{background:var(--paper-2);border-color:transparent}
+.lg-seccard:hover,.lg-agency-card:hover{border-color:var(--ink)}
+.lg-final{background:var(--paper-2)}
+
+/* 띠 배너 */
+.lg-builderbar{background:var(--paper-2);border:0}
+.lg-builderbar>span{background:#fff}
+.lg-builderbar em{color:var(--ink)}
+
+/* 배지 · 태그 */
+.lg-badge{background:var(--accent)}
+.lg-board li.notice a{background:var(--paper-2)}
+.lg-tag.ok{background:var(--paper-2);color:var(--ink)}
+.lg-plan-price small,.lg-lc-price small{color:var(--accent)}
+
+/* 프롬프트 카드: 이미지 + 아래 글 (쇼핑몰 목록처럼) */
+.lg-pgrid{gap:36px 18px}
+.lg-pcard{border-top:0;padding-top:0}
+.lg-pcard-img{border-radius:12px;background:var(--paper-2)}
+.lg-pcard-meta{font-family:var(--sans);font-size:12px;font-weight:500;color:#4B4D4F;text-transform:none;margin:12px 0 2px}
+.lg-pcard b{font-size:15px;font-weight:700;letter-spacing:-.01em}
+.lg-pcard-pre{font-family:var(--sans);font-size:12px}
+
+/* 과정 · 전자책 카드: 색 그라데이션 빼고 테두리로 강조 */
+.lg-plan.hot,.lg-lc.hot,.lg-rung.top{border:1.5px solid var(--ink);background:#fff}
+.lg-rung.mid,.lg-lc.eb,.lg-ebook,.lg-stu-card,.lg-cover-col.tarot{background:#fff;border-color:var(--line)}
+.lg-rung.mid .lg-rung-n{background:var(--accent)}
+.lg-rung.top .lg-rung-n{background:var(--ink)}
+.lg-rung-lead b{color:var(--ink);box-shadow:inset 0 -.35em 0 var(--accent-soft)}
+.lg-cover-col h3 small{color:var(--ink-2);background:var(--paper-2)}
+.lg-cover-col.tarot .lg-feat li::before{color:var(--ink)}
+.lg-compare td:last-child,.lg-compare th:last-child{background:var(--paper-2)}
+.lg-stu-badge{background:var(--ink)}
+.lg-stu-mini{background:var(--ink)}
+.lg-bcustom{border-color:var(--line);background:var(--paper-2)}
+.lg-libitem.owned,.lg-missions li.done{border-color:var(--line)}
+.lg-compose{border-color:var(--line)}
+.lg-bresult textarea[readonly]{background:var(--paper-2)}
+.lg-ptbar{border-left:3px solid var(--gold)}
+
+/* 탭 · 칩 */
+.lg-tabs a.on,.lg-chipnav a.on{background:var(--ink);color:#fff}
+.lg-chipnav a{border-color:var(--line)}
+
+/* 아래 탭바 · 푸터 */
+.lg-foot{background:#fff}
+.lg-course:has(.lg-badge) b{padding-right:58px}
+.lg-course:hover{border-color:var(--ink)}
+.lg-price-note{color:var(--accent) !important}
