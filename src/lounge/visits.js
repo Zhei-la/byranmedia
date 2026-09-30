@@ -82,12 +82,17 @@ function track(req, res, next) {
   if (req.method !== 'GET' || SKIP_PATH.test(req.path)) return next();
   const ua = req.get('user-agent') || '';
   if (!ua || BOT.test(ua)) return next();
-  if (req.user && req.user.role === 'admin') return next();
+  const isOwner = !!(req.user && req.user.role === 'admin');
 
   let vid = readCookie(req, 'bv');
   if (!/^[a-f0-9]{16,40}$/.test(vid)) {
     vid = crypto.randomBytes(12).toString('hex');
     res.cookie('bv', vid, { maxAge: 1000 * 60 * 60 * 24 * 400, httpOnly: true, sameSite: 'lax', secure: PROD });
+  }
+  // 운영자로 로그인한 기기는 '운영자 기기'로 기억 → 관리 통계에서 빼기 (로그아웃하고 들어와도)
+  if (isOwner) {
+    db.query(`INSERT INTO lounge_owner_devices (vid, user_id) VALUES ($1,$2) ON CONFLICT (vid) DO NOTHING`, [vid, req.user.id])
+      .catch((e) => console.error('[운영자 기기]', e.message));
   }
   const ref = refHost(req);
   const src = sourceOf(req, ref);
@@ -125,7 +130,7 @@ async function summary(r) {
     const { rows } = await db.query(
       `SELECT count(DISTINCT vid)::int AS people, count(DISTINCT ip)::int AS ips,
               COALESCE(sum(visits),0)::int AS visits, COALESCE(sum(views),0)::int AS views
-         FROM lounge_visits WHERE ${cond}`
+         FROM lounge_visits_x WHERE ${cond}`
     );
     return rows[0];
   };
@@ -154,9 +159,9 @@ async function stats(r = 'today', days = 14) {
   const daily = await q(
     `WITH d AS (SELECT generate_series(${DAY} - ($1::int - 1), ${DAY}, interval '1 day')::date AS day)
      SELECT d.day::text AS day, to_char(d.day, 'MM.DD') AS label, extract(isodow FROM d.day)::int AS dow,
-            (SELECT count(DISTINCT vid) FROM lounge_visits v WHERE v.day = d.day)::int AS v,
-            (SELECT COALESCE(sum(visits),0) FROM lounge_visits v WHERE v.day = d.day)::int AS vc,
-            (SELECT COALESCE(sum(views),0) FROM lounge_visits v WHERE v.day = d.day)::int AS pv,
+            (SELECT count(DISTINCT vid) FROM lounge_visits_x v WHERE v.day = d.day)::int AS v,
+            (SELECT COALESCE(sum(visits),0) FROM lounge_visits_x v WHERE v.day = d.day)::int AS vc,
+            (SELECT COALESCE(sum(views),0) FROM lounge_visits_x v WHERE v.day = d.day)::int AS pv,
             (SELECT count(*) FROM users u WHERE u.role <> 'admin' AND ${KDATE('u.created_at')} = d.day)::int AS j
        FROM d ORDER BY d.day DESC`,
     [days]
@@ -167,7 +172,7 @@ async function stats(r = 'today', days = 14) {
   const platforms = await q(
     `WITH v AS (
        SELECT COALESCE(source, 'direct') AS src, count(DISTINCT vid)::int AS people, COALESCE(sum(visits),0)::int AS visits
-         FROM lounge_visits WHERE ${rc} GROUP BY 1
+         FROM lounge_visits_x WHERE ${rc} GROUP BY 1
      ), j AS (
        SELECT COALESCE(source, 'direct') AS src, count(*)::int AS joins FROM users WHERE role <> 'admin' AND ${uc} GROUP BY 1
      )
@@ -176,11 +181,11 @@ async function stats(r = 'today', days = 14) {
   );
   const refs = await q(
     `SELECT ref_host AS host, count(DISTINCT vid)::int AS n
-       FROM lounge_visits WHERE ${rc} AND ref_host IS NOT NULL GROUP BY 1 ORDER BY n DESC LIMIT 10`
+       FROM lounge_visits_x WHERE ${rc} AND ref_host IS NOT NULL GROUP BY 1 ORDER BY n DESC LIMIT 10`
   );
   const pages = await q(
     `SELECT first_path AS path, count(DISTINCT vid)::int AS n
-       FROM lounge_visits WHERE ${rc} GROUP BY 1 ORDER BY n DESC LIMIT 8`
+       FROM lounge_visits_x WHERE ${rc} GROUP BY 1 ORDER BY n DESC LIMIT 8`
   );
   const joins = await q(
     `SELECT id, COALESCE(nickname, name, '(이름 없음)') AS nick, nickname IS NOT NULL AS done,
@@ -196,7 +201,7 @@ async function stats(r = 'today', days = 14) {
 /** 머리 부분에 늘 보이는 오늘 숫자 */
 async function todayBrief() {
   const { rows } = await db.query(
-    `SELECT (SELECT count(DISTINCT vid) FROM lounge_visits WHERE day = ${DAY})::int AS v,
+    `SELECT (SELECT count(DISTINCT vid) FROM lounge_visits_x WHERE day = ${DAY})::int AS v,
             (SELECT count(*) FROM users WHERE (created_at AT TIME ZONE 'Asia/Seoul')::date = ${DAY})::int AS j`
   );
   return rows[0];
@@ -216,7 +221,7 @@ async function byDay(from, to) {
   const { rows } = await db.query(
     `WITH d AS (SELECT generate_series($1::date, $2::date, interval '1 day')::date AS day),
           v AS (SELECT day, count(DISTINCT vid)::int AS people, COALESCE(sum(visits),0)::int AS visits, COALESCE(sum(views),0)::int AS views
-                  FROM lounge_visits WHERE day BETWEEN $1::date AND $2::date GROUP BY day),
+                  FROM lounge_visits_x WHERE day BETWEEN $1::date AND $2::date GROUP BY day),
           j AS (SELECT ${KDATE('created_at')} AS day, count(*)::int AS joins FROM users
                  WHERE role <> 'admin' AND ${KDATE('created_at')} BETWEEN $1::date AND $2::date GROUP BY 1)
      SELECT d.day::text AS day, extract(isodow FROM d.day)::int AS dow, extract(day FROM d.day)::int AS dnum,
@@ -232,7 +237,7 @@ async function periodTotal(from, to) {
   const { rows } = await db.query(
     `SELECT count(DISTINCT vid)::int AS people, COALESCE(sum(visits),0)::int AS visits, COALESCE(sum(views),0)::int AS views,
             (SELECT count(*) FROM users WHERE role <> 'admin' AND ${KDATE('created_at')} BETWEEN $1::date AND $2::date)::int AS joins
-       FROM lounge_visits WHERE day BETWEEN $1::date AND $2::date`,
+       FROM lounge_visits_x WHERE day BETWEEN $1::date AND $2::date`,
     [from, to]
   );
   return rows[0];
@@ -242,8 +247,8 @@ async function dayDetail(day) {
   const q = (sql) => db.query(sql, [day]).then((x) => x.rows);
   const [platforms, pages, joins] = await Promise.all([
     q(`SELECT COALESCE(source,'direct') AS src, count(DISTINCT vid)::int AS people, COALESCE(sum(visits),0)::int AS visits
-         FROM lounge_visits WHERE day=$1::date GROUP BY 1 ORDER BY people DESC`),
-    q(`SELECT first_path AS path, count(DISTINCT vid)::int AS n FROM lounge_visits WHERE day=$1::date GROUP BY 1 ORDER BY n DESC LIMIT 8`),
+         FROM lounge_visits_x WHERE day=$1::date GROUP BY 1 ORDER BY people DESC`),
+    q(`SELECT first_path AS path, count(DISTINCT vid)::int AS n FROM lounge_visits_x WHERE day=$1::date GROUP BY 1 ORDER BY n DESC LIMIT 8`),
     q(`SELECT id, COALESCE(nickname, name) AS nick, source, to_char(created_at AT TIME ZONE 'Asia/Seoul', 'HH24:MI') AS at
          FROM users WHERE role <> 'admin' AND ${KDATE('created_at')} = $1::date ORDER BY created_at`),
   ]);

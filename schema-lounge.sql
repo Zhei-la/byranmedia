@@ -357,3 +357,14 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS chat_ban_until  TIMESTAMPTZ;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS write_ban_until TIMESTAMPTZ;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS ban_note        VARCHAR(300);
 ALTER TABLE users ADD COLUMN IF NOT EXISTS prev_status     VARCHAR(20);
+
+-- 운영자 기기: 운영자로 로그인한 적 있는 기기(방문 쿠키). 관리 통계에서만 빼고, 홈 '오늘 방문'에는 포함
+CREATE TABLE IF NOT EXISTS lounge_owner_devices (
+  vid        VARCHAR(40) PRIMARY KEY,
+  user_id    INT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+-- 관리 통계용: 운영자 기기를 뺀 방문 기록 (이 파일 맨 아래에 두기)
+DROP VIEW IF EXISTS lounge_visits_x;
+CREATE VIEW lounge_visits_x AS
+  SELECT v.* FROM lounge_visits v WHERE NOT EXISTS (SELECT 1 FROM lounge_owner_devices o WHERE o.vid = v.vid);
