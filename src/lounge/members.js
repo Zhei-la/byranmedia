@@ -1,4 +1,5 @@
 /* 운영자: 회원 관리 — 이 사람이 수강생인지, 전자책 구매자인지, 그냥 가입자인지 한눈에 */
+const bcrypt = require('bcryptjs');
 const db = require('../db');
 const E = require('./enroll');
 
@@ -147,4 +148,36 @@ async function csv({ kind, s }) {
   return '﻿' + lines.join('\r\n');
 }
 
-module.exports = { KINDS, PRESET_TAGS, list, counts, detail, save, setStudent, setAdmin, ban, kick, csv };
+/** 운영자가 이메일 계정을 직접 만든다 (카카오 없이 이메일+비밀번호로 로그인). 실패하면 이유 문장을 throw */
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+const NICK_RE = /^[\p{L}\p{M}\p{N}_ ]{2,10}$/u;
+async function create({ email, password, nickname, kind, memo }) {
+  email = String(email || '').trim().toLowerCase();
+  password = String(password || '');
+  nickname = String(nickname || '').trim();
+  if (!EMAIL_RE.test(email) || email.length > 255) throw new Error('이메일 주소를 확인해 주세요.');
+  if (password.length < 8) throw new Error('비밀번호는 8자 이상으로 정해 주세요.');
+  if (nickname && !NICK_RE.test(nickname)) throw new Error('닉네임은 한글·영문·숫자 2~10자로 적어 주세요.');
+  const { rows: dup } = await db.query(`SELECT id FROM users WHERE email=$1`, [email]);
+  if (dup.length) throw new Error('이미 이 이메일로 가입된 회원이 있어요.');
+  if (nickname) {
+    const { rows: dn } = await db.query(`SELECT 1 FROM users WHERE lower(nickname)=lower($1)`, [nickname]);
+    if (dn.length) throw new Error('이미 쓰는 닉네임이에요.');
+  }
+  const hash = await bcrypt.hash(password, 12);
+  const { rows } = await db.query(
+    `INSERT INTO users (email, password_hash, name, nickname, provider, role, status, is_student, memo, country)
+     VALUES ($1,$2,$3,$4,'local',$5,'active',$6,$7,$8) RETURNING id`,
+    [email, hash, (nickname || email.split('@')[0]).slice(0, 100), nickname || null,
+     kind === 'admin' ? 'admin' : 'member', kind === 'student', String(memo || '').trim().slice(0, 3000) || null, nickname ? 'KR' : null]
+  );
+  return rows[0].id;
+}
+/** 비밀번호 새로 정하기 (이메일 로그인용) */
+async function setPassword(id, password) {
+  password = String(password || '');
+  if (password.length < 8) throw new Error('비밀번호는 8자 이상으로 정해 주세요.');
+  await db.query(`UPDATE users SET password_hash=$1 WHERE id=$2`, [await bcrypt.hash(password, 12), id]);
+}
+
+module.exports = { create, setPassword, KINDS, PRESET_TAGS, list, counts, detail, save, setStudent, setAdmin, ban, kick, csv };

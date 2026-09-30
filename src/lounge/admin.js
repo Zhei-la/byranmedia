@@ -283,6 +283,25 @@ router.get('/admin/lounge/members/:id(\\d+)', async (req, res) => {
     today: new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' }),
   });
 });
+// 이메일로 회원 직접 만들기 (작업 도와줄 사람·수강생 등)
+router.post('/admin/lounge/members/new', async (req, res) => {
+  try {
+    const id = await M.create(req.body);
+    const url = `${(process.env.BASE_URL || 'https://byranmedia.com').replace(/\/+$/, '')}/login/email`;
+    res.redirect(`/admin/lounge/members/${id}?msg=${encodeURIComponent('계정을 만들었어요. 로그인 주소: ' + url)}`);
+  } catch (e) {
+    res.redirect(`/admin/lounge?tab=members&msg=${encodeURIComponent('❗ ' + e.message)}#newmember`);
+  }
+});
+router.post('/admin/lounge/members/:id(\\d+)/password', async (req, res) => {
+  const id = int(req.params.id);
+  try {
+    await M.setPassword(id, req.body.password);
+    res.redirect(`/admin/lounge/members/${id}?msg=${encodeURIComponent('비밀번호를 바꿨어요. 이메일 로그인에 새 비밀번호로 들어가면 돼요.')}#pw`);
+  } catch (e) {
+    res.redirect(`/admin/lounge/members/${id}?msg=${encodeURIComponent('❗ ' + e.message)}#pw`);
+  }
+});
 router.post('/admin/lounge/members/:id(\\d+)/student', async (req, res) => {
   const id = int(req.params.id);
   const on = req.body.on === '1';

@@ -1294,3 +1294,8 @@ a.lg-msg-who{text-decoration:none !important;color:#4A4A4F}
 .lg-ownerlink summary{cursor:pointer;font-weight:700}
 .lg-ownerlink p{margin:10px 0;font-size:13px;line-height:1.6}
 .lg-ownerlink .lg-input{width:100%;font-size:13px}
+.lg-newmember summary{cursor:pointer;font-weight:700;list-style:none}
+.lg-newmember summary::-webkit-details-marker{display:none}
+.lg-newmember[open] summary{margin-bottom:12px}
+.lg-nmgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:640px){.lg-nmgrid{grid-template-columns:1fr}}

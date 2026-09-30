@@ -553,6 +553,24 @@
     <button class="lg-btn sm">검색</button>
     <a href="/admin/lounge/members.csv?<%= kind ? 'k=' + kind + '&' : '' %><%= s ? 's=' + encodeURIComponent(s) : '' %>" class="lg-btn sm ghost">엑셀로 받기</a>
   </form>
+  <details class="lg-card lg-newmember" id="newmember" <%= msg && /^❗/.test(msg) ? "open" : "" %>>
+    <summary>➕ 이메일로 회원 만들기 <small class="lg-muted">카카오 없이 이메일·비밀번호로 로그인하는 계정</small></summary>
+    <form method="post" action="/admin/lounge/members/new" class="lg-adform" autocomplete="off">
+      <div class="lg-nmgrid">
+        <label>이메일<input name="email" type="email" class="lg-in" required maxlength="255" placeholder="helper@gmail.com" autocomplete="off"></label>
+        <label>비밀번호 <small class="lg-muted">8자 이상</small><input name="password" type="text" class="lg-in" required minlength="8" maxlength="100" placeholder="처음 비밀번호" autocomplete="new-password"></label>
+        <label>닉네임 <small class="lg-muted">선택 · 비우면 첫 로그인 때 직접 정해요</small><input name="nickname" class="lg-in" maxlength="10" placeholder="예: 바이란도우미"></label>
+        <label>구분<select name="kind" class="lg-in">
+          <option value="member">일반</option>
+          <option value="student">🎓 수강생</option>
+          <option value="admin">👑 운영자 (관리 화면·사이트 작업 가능)</option>
+        </select></label>
+      </div>
+      <label>메모 <small class="lg-muted">선택</small><input name="memo" class="lg-in" maxlength="300" placeholder="예: 사이트 작업 도와주는 분"></label>
+      <button class="lg-btn primary">계정 만들기</button>
+      <p class="lg-hint">만든 뒤 이메일과 비밀번호를 그분께 알려 주세요. 로그인은 <b>byranmedia.com/login/email</b> 에서 해요. 비밀번호는 회원 화면에서 언제든 바꿀 수 있어요.</p>
+    </form>
+  </details>
   <p class="lg-hint">회원을 누르면 수강권 지급·기간 수정, 메모·태그, 포인트, 쓴 글까지 한 화면에서 봐요.</p>
   <div class="lg-mlist">
     <% members.forEach(function(m){ var K = KINDS[m.kind] || KINDS.member; %>

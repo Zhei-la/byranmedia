@@ -65,6 +65,13 @@
       <button class="lg-btn primary">저장</button>
     </form>
 
+    <form method="post" action="/admin/lounge/members/<%= m.id %>/password" class="lg-card lg-adform" id="pw" autocomplete="off">
+      <h2 class="lg-h3">🔑 이메일 로그인 비밀번호 <small class="lg-muted"><%= m.email %></small></h2>
+      <label>새 비밀번호 <small class="lg-muted">8자 이상</small><input name="password" type="text" class="lg-in" required minlength="8" maxlength="100" autocomplete="new-password"></label>
+      <button class="lg-btn sm primary">비밀번호 바꾸기</button>
+      <p class="lg-hint"><%= m.provider === 'kakao' ? '카카오로 가입한 회원이에요. 여기서 비밀번호를 정하면 위 이메일로도 로그인할 수 있어요.' : '로그인 주소: byranmedia.com/login/email' %></p>
+    </form>
+
     <div class="lg-card" id="ban">
       <h2 class="lg-h3">🚫 제재 <small class="lg-muted">문제 있는 회원만</small></h2>
       <% var fmtB = function(x){ if (!x) return ''; var d = new Date(x); return d.getFullYear() > new Date().getFullYear() + 50 ? '무기한' : d.toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Seoul' }) + '까지'; }; %>
