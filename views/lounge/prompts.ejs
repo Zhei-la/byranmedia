@@ -10,10 +10,6 @@
   const shareHref = isMember ? '/prompts/share' : '/login?next=' + encodeURIComponent('/prompts/share');
 %>
 <section class="lg-wrap lg-pagehead lg-phead">
-  <nav class="lg-pscope" aria-label="프롬프트 종류">
-    <a href="/prompts" class="<%= shared ? '' : 'on' %>">✨ 바이란 프롬프트 <small><%= counts.official %></small></a>
-    <a href="/prompts/shared" class="<%= shared ? 'on' : '' %>">🙌 모두의 프롬프트 <small><%= counts.shared %></small></a>
-  </nav>
   <% if (shared) { %>
     <p class="lg-kicker">Shared by members · <%= all %> works</p>
     <h1 class="lg-display sm">모두의 프롬프트<br><em>회원들이 직접 만든 것</em></h1>
@@ -38,6 +34,10 @@
     <em>요청하기 →</em>
   </a>
 
+  <nav class="lg-pscope wide" aria-label="프롬프트 종류">
+    <a href="/prompts" class="<%= shared ? '' : 'on' %>">✨ 바이란 프롬프트 <small><%= counts.official %></small></a>
+    <a href="/prompts/shared" class="<%= shared ? 'on' : '' %>">🙌 모두의 프롬프트 <small><%= counts.shared %></small></a>
+  </nav>
   <form class="lg-pfilter" method="get" action="<%= shared ? "/prompts/shared" : "/prompts" %>" role="search">
     <div class="lg-pfilter-tabs">
       <a href="<%= qs({ fav: '' }) %>" class="<%= !fav ? 'on' : '' %>">전체 <small><%= all %></small></a>
