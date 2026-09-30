@@ -29,7 +29,7 @@ const BASE = `
   ), m AS (
     SELECT u.id, u.name, u.nickname, u.email, u.phone, u.provider, u.role, u.status, u.interest,
            u.memo, u.admin_tags, u.country, u.created_at, u.chat_ban_until, u.write_ban_until, u.ban_note,
-           (u.chat_ban_until > now()) AS chat_banned, (u.write_ban_until > now()) AS write_banned, u.lounge_at, u.last_login_at, u.referred_by, u.is_student,
+           (u.chat_ban_until > now()) AS chat_banned, (u.write_ban_until > now()) AS write_banned, u.lounge_at, u.last_login_at, u.referred_by, u.is_student, u.admin_made,
            COALESCE(en.ebook, false) AS has_ebook, COALESCE(en.stu, false) AS has_course,
            GREATEST(u.last_seen_at, u.last_login_at, lv.at) AS seen_at, COALESCE(lv.vdays, 0) AS vdays, COALESCE(lv.vcount, 0) AS vcount,
            en.courses, COALESCE(en.n, 0) AS enroll_n,
@@ -167,10 +167,10 @@ async function create({ email, password, nickname, kind, memo }) {
   }
   const hash = await bcrypt.hash(password, 12);
   const { rows } = await db.query(
-    `INSERT INTO users (email, password_hash, name, nickname, provider, role, status, is_student, memo, country)
-     VALUES ($1,$2,$3,$4,'local',$5,'active',$6,$7,$8) RETURNING id`,
+    `INSERT INTO users (email, password_hash, name, nickname, provider, role, status, is_student, memo, country, admin_made)
+     VALUES ($1,$2,$3,$4,'local',$5,'active',$6,$7,$8,true) RETURNING id`,
     [email, hash, (nickname || email.split('@')[0]).slice(0, 100), nickname || null,
-     'admin', false, String(memo || '').trim().slice(0, 3000) || null, nickname ? 'KR' : null]
+     kind === 'admin' ? 'admin' : 'member', kind === 'student', String(memo || '').trim().slice(0, 3000) || null, nickname ? 'KR' : null]
   );
   return rows[0].id;
 }

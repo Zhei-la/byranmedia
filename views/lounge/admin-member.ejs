@@ -66,12 +66,12 @@
       <button class="lg-btn primary">저장</button>
     </form>
 
-    <% if (m.role === 'admin') { %>
+    <% if (m.role === 'admin' || m.admin_made) { %>
     <form method="post" action="/admin/lounge/members/<%= m.id %>/password" class="lg-card lg-adform" id="pw" autocomplete="off">
       <h2 class="lg-h3">🔑 이메일 로그인 비밀번호 <small class="lg-muted"><%= m.email %></small></h2>
       <label>새 비밀번호 <small class="lg-muted">8자 이상</small><input name="password" type="text" class="lg-in" required minlength="8" maxlength="100" autocomplete="new-password"></label>
       <button class="lg-btn sm primary">비밀번호 바꾸기</button>
-      <p class="lg-hint">운영자 계정만 이메일 로그인이 돼요. 로그인 주소: byranmedia.com/login/email</p>
+      <p class="lg-hint"><%= m.admin_made ? '관리 화면에서 만든 계정이라 이메일 로그인이 돼요.' : '운영자 계정이라 이메일 로그인이 돼요.' %> 로그인 주소: byranmedia.com/login/email</p>
     </form>
     <% } %>
 

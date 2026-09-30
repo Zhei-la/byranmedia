@@ -558,17 +558,21 @@
     <a href="/admin/lounge/members.csv?<%= kind ? 'k=' + kind + '&' : '' %><%= s ? 's=' + encodeURIComponent(s) : '' %>" class="lg-btn sm ghost">엑셀로 받기</a>
   </form>
   <details class="lg-card lg-newmember" id="newmember" <%= msg && /^❗/.test(msg) ? "open" : "" %>>
-    <summary>➕ 운영자 계정 만들기 (이메일) <small class="lg-muted">사이트 작업 도와줄 분 등 · 카카오 없이 이메일·비밀번호로 로그인</small></summary>
+    <summary>➕ 이메일 계정 만들기 <small class="lg-muted">카카오 없이 이메일·비밀번호로 로그인하는 계정 (관리자만 만들 수 있어요)</small></summary>
     <form method="post" action="/admin/lounge/members/new" class="lg-adform" autocomplete="off">
       <div class="lg-nmgrid">
         <label>이메일<input name="email" type="email" class="lg-in" required maxlength="255" placeholder="helper@gmail.com" autocomplete="off"></label>
         <label>비밀번호 <small class="lg-muted">8자 이상</small><input name="password" type="text" class="lg-in" required minlength="8" maxlength="100" placeholder="처음 비밀번호" autocomplete="new-password"></label>
         <label>닉네임 <small class="lg-muted">선택 · 비우면 첫 로그인 때 직접 정해요</small><input name="nickname" class="lg-in" maxlength="10" placeholder="예: 바이란도우미"></label>
-        <input type="hidden" name="kind" value="admin">
+        <label>구분<select name="kind" class="lg-in">
+          <option value="admin">👑 운영자 (관리 화면·사이트 작업 가능)</option>
+          <option value="member">일반</option>
+          <option value="student">🎓 수강생</option>
+        </select></label>
       </div>
       <label>메모 <small class="lg-muted">선택</small><input name="memo" class="lg-in" maxlength="300" placeholder="예: 사이트 작업 도와주는 분"></label>
       <button class="lg-btn primary">계정 만들기</button>
-      <p class="lg-hint">👑 운영자 권한으로 만들어져요(관리 화면 사용 가능). 만든 뒤 이메일과 비밀번호를 그분께 알려 주세요. 로그인 주소는 <b>byranmedia.com/login/email</b> — 로그인 화면엔 안 보이는 숨은 주소예요. 일반 회원은 이메일 로그인이 안 되고 카카오로만 들어와요. 권한은 회원 화면에서 언제든 뺄 수 있어요.</p>
+      <p class="lg-hint">여기서 만든 계정은 구분과 상관없이 이메일로 로그인돼요. 로그인 주소는 <b>byranmedia.com/login/email</b> — 로그인 화면엔 안 보이는 숨은 주소예요. 카카오로 스스로 가입한 회원은 이메일 로그인이 안 되고 카카오로만 들어와요. 권한·비밀번호는 회원 화면에서 언제든 바꿀 수 있어요.</p>
     </form>
   </details>
   <p class="lg-hint">회원을 누르면 수강권 지급·기간 수정, 메모·태그, 포인트, 쓴 글까지 한 화면에서 봐요.</p>

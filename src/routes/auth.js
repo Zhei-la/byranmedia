@@ -63,7 +63,7 @@ router.post('/login', async (req, res) => {
     }
 
     const { rows } = await db.query(
-      `SELECT id, password_hash, status, role FROM users WHERE email = $1`,
+      `SELECT id, password_hash, status, role, admin_made FROM users WHERE email = $1`,
       [email]
     );
 
@@ -78,8 +78,8 @@ router.post('/login', async (req, res) => {
     const ok = await bcrypt.compare(password, rows[0].password_hash);
     await record(ok);
     if (!ok) return fail('이메일 또는 비밀번호가 맞지 않습니다.');
-    // 이메일 로그인은 운영자 계정만. 일반 회원은 카카오로만 로그인
-    if (rows[0].role !== 'admin') return fail('이메일 로그인은 운영자 계정만 쓸 수 있어요. 카카오로 로그인해 주세요.');
+    // 이메일 로그인은 운영자 계정 + 운영자가 관리 화면에서 만들어 준 계정만. 나머지는 카카오로만 로그인
+    if (rows[0].role !== 'admin' && !rows[0].admin_made) return fail('이 계정은 이메일 로그인을 쓸 수 없어요. 카카오로 로그인해 주세요.');
 
     req.session.regenerate((err) => {
       if (err) return fail('로그인 처리 중 문제가 생겼습니다. 다시 시도해 주세요.');

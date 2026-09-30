@@ -366,6 +366,11 @@ CREATE TABLE IF NOT EXISTS lounge_owner_devices (
 );
 -- 회원 최근 방문 시각 (화면 열 때마다 갱신)
 ALTER TABLE users ADD COLUMN IF NOT EXISTS last_seen_at TIMESTAMPTZ;
+-- 운영자가 관리 화면에서 만든 이메일 계정 표시 (이 계정들은 이메일 로그인 가능)
+ALTER TABLE users ADD COLUMN IF NOT EXISTS admin_made BOOLEAN NOT NULL DEFAULT false;
+UPDATE users SET admin_made = true
+ WHERE NOT admin_made AND provider = 'local' AND kakao_id IS NULL AND status = 'active'
+   AND created_at >= TIMESTAMPTZ '2026-09-30 10:29:00+00' AND created_at < TIMESTAMPTZ '2026-10-01 00:00:00+00';
 -- 조회수: 같은 글·프롬프트는 하루에 기기 1대당 1번만 (새로고침·재방문은 안 셈). 며칠 지난 기록은 지움
 CREATE TABLE IF NOT EXISTS lounge_view_log (
   kind    CHAR(1)     NOT NULL,           -- p=프롬프트, c=커뮤니티 글
