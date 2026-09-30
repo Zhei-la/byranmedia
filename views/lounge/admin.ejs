@@ -6,7 +6,7 @@
 <section class="lg-wrap wide lg-pagehead">
   <p class="lg-kicker">Admin</p>
   <h1 class="lg-h1">라운지 관리</h1>
-  <p class="lg-muted">회원 승인·도구·문의는 <a href="/admin">기존 관리 화면</a>에서 해요.</p>
+  <p class="lg-muted">회원 승인·도구·문의는 <a href="/admin">기존 관리 화면</a>에서 해요. · <a href="/hub">🛠 블로그 대행 도구 열기</a></p>
   <div class="lg-adstats">
     <a href="/admin/lounge?tab=stats" class="lg-adstats-link"><span class="today">오늘 방문 <b><%= brief.v %></b>명</span></a>
     <a href="/admin/lounge?tab=stats" class="lg-adstats-link"><span class="today">오늘 가입 <b><%= brief.j %></b>명</span></a>
@@ -470,22 +470,42 @@
   </form>
 <% } %>
 
-<% if (tab === 'members') { %>
-  <form method="get" action="/admin/lounge" class="lg-inlineform"><input type="hidden" name="tab" value="members"><input name="s" class="lg-in" value="<%= s %>" placeholder="닉네임·이름 검색"><button class="lg-btn sm">검색</button></form>
-  <div class="lg-admin-list">
-    <% members.forEach(function(m){ %>
-      <div class="lg-adrow">
-        <div class="grow"><b><%= m.nickname %> <small>(<%= m.name %>)</small></b> <% if (m.courses) { %><span class="lg-tag stu">🎓 <%= m.courses %></span><% } %><small>💎 <b><%= P.fmt(m.points) %>P</b> · <%= m.interest || '관심 미선택' %> · 글 <%= m.posts %> · 연 자료 <%= m.opened %> · 가입 <%= d(m.lounge_at) %> · 도구 <%= { active: '이용 중', pending: '미승인', suspended: '중지' }[m.status] %></small></div>
-        <form method="post" action="/admin/lounge/members/<%= m.id %>/points" class="lg-ptadj">
-          <input type="hidden" name="s" value="<%= s %>">
-          <input name="amount" type="number" class="lg-in" placeholder="+100 / -100" aria-label="<%= m.nickname %> 포인트 더하기·빼기" required>
-          <input name="note" class="lg-in" maxlength="100" placeholder="메모 (선택)" aria-label="메모">
-          <button class="lg-btn sm">포인트 반영</button>
-        </form>
-        <a href="/admin/lounge?tab=students&uid=<%= m.id %>#grant" class="lg-btn sm">수강권 지급</a>
-        <a href="/admin/users/<%= m.id %>" class="lg-btn sm ghost">회원 정보</a>
-      </div>
+<% if (tab === 'members') {
+  const fd = (x) => x ? new Date(x).toLocaleDateString('ko-KR', { year: '2-digit', month: 'numeric', day: 'numeric', timeZone: 'Asia/Seoul' }) : '';
+  const ago = function(x){ if (!x) return '—'; var d = Math.floor((Date.now() - new Date(x)) / 86400000); return d <= 0 ? '오늘' : d === 1 ? '어제' : d < 30 ? d + '일 전' : fd(x); };
+  const kq = function(k){ return '/admin/lounge?tab=members' + (k ? '&k=' + k : '') + (s ? '&s=' + encodeURIComponent(s) : ''); };
+%>
+  <div class="lg-mfilter">
+    <a href="<%= kq('') %>" class="<%= !kind ? 'on' : '' %>">전체 <b><%= kcount.all || 0 %></b></a>
+    <% ['student','ebook','ended','member','noprofile','suspended','admin'].forEach(function(k){ if (!kcount[k] && kind !== k) return; %>
+      <a href="<%= kq(k) %>" class="<%= kind === k ? 'on' : '' %>"><%= KINDS[k].label %> <b><%= kcount[k] || 0 %></b></a>
     <% }); %>
+  </div>
+  <form method="get" action="/admin/lounge" class="lg-inlineform">
+    <input type="hidden" name="tab" value="members"><% if (kind) { %><input type="hidden" name="k" value="<%= kind %>"><% } %>
+    <input name="s" class="lg-in" value="<%= s %>" placeholder="닉네임 · 카카오 이름 · 전화 · 이메일 · 메모 · 태그">
+    <button class="lg-btn sm">검색</button>
+    <a href="/admin/lounge/members.csv?<%= kind ? 'k=' + kind + '&' : '' %><%= s ? 's=' + encodeURIComponent(s) : '' %>" class="lg-btn sm ghost">엑셀로 받기</a>
+  </form>
+  <p class="lg-hint">회원을 누르면 수강권 지급·기간 수정, 메모·태그, 포인트, 쓴 글까지 한 화면에서 봐요.</p>
+  <div class="lg-mlist">
+    <% members.forEach(function(m){ var K = KINDS[m.kind] || KINDS.member; %>
+      <a href="/admin/lounge/members/<%= m.id %>" class="lg-mrow">
+        <span class="lg-ava"><%= (m.nickname || m.name || '?').slice(0,1) %></span>
+        <span class="lg-mrow-main">
+          <span class="lg-mrow-top">
+            <b><%= m.nickname || '(닉네임 없음)' %></b><small class="lg-muted"><%= m.name %></small>
+            <i class="lg-kind <%= K.cls %>"><%= K.label %></i>
+            <% (m.admin_tags || '').split(',').filter(Boolean).forEach(function(t){ %><i class="lg-mtag"><%= t %></i><% }); %>
+          </span>
+          <% if (m.courses) { %><span class="lg-mrow-course">🎟 <%= m.courses %></span><% } %>
+          <small class="lg-muted">가입 <%= fd(m.created_at) %> · 최근 <%= ago(m.seen_at) %><%= m.interest ? ' · ' + m.interest : '' %> · 글 <%= m.posts %> · 💎 <%= P.fmt(m.points) %>P<%= m.phone ? ' · 📞 ' + m.phone : '' %></small>
+          <% if (m.memo) { %><small class="lg-mrow-memo">📝 <%= m.memo.split('\n')[0].slice(0, 60) %></small><% } %>
+        </span>
+        <span class="lg-mrow-go">›</span>
+      </a>
+    <% }); %>
+    <% if (!members.length) { %><p class="lg-muted">해당하는 회원이 없어요.</p><% } %>
   </div>
 <% } %>
 

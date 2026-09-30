@@ -74,6 +74,13 @@
     });
   });
 
+  /* 확인이 필요한 버튼 (폼 안의 다른 버튼) */
+  $$('[data-confirmbtn]').forEach(function (b) {
+    b.addEventListener('click', function (e) {
+      if (!window.confirm(b.getAttribute('data-confirmbtn'))) e.preventDefault();
+    });
+  });
+
   /* 모달 */
   $$('[data-open]').forEach(function (b) {
     b.addEventListener('click', function () {

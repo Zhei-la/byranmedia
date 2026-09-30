@@ -5,6 +5,7 @@ const L = require('./core');
 const P = require('./points');
 const E = require('./enroll');
 const V = require('./visits');
+const M = require('./members');
 const { requireAdmin } = require('../middleware/auth');
 
 const router = express.Router();
@@ -20,6 +21,13 @@ for (const m of ['get', 'post']) {
 const TABS = ['stats', 'home', 'prompts', 'library', 'store', 'students', 'board', 'reviews', 'challenge', 'members'];
 const go = (res, tab, msg, extra = '') =>
   res.redirect(`/admin/lounge?tab=${tab}${msg ? '&msg=' + encodeURIComponent(msg) : ''}${extra}`);
+// 회원 상세 화면에서 보낸 폼은 그 화면으로 돌아간다
+const retOk = (v) => (/^\/admin\/lounge\/members\/\d+$/.test(String(v || '')) ? String(v) : null);
+function goRet(req, res, tab, msg, extra = '') {
+  const r = retOk(req.body && req.body.ret);
+  if (r) return res.redirect(`${r}?msg=${encodeURIComponent(msg)}`);
+  return go(res, tab, msg, extra);
+}
 const int = (v) => (v === '' || v == null ? null : parseInt(v, 10));
 const txt = (v, n = 500) => String(v == null ? '' : v).trim().slice(0, n);
 
@@ -170,19 +178,11 @@ router.get('/admin/lounge', async (req, res) => {
     data.E = E;
   }
   if (tab === 'members') {
-    const s = txt(req.query.s, 40);
-    data.s = s;
-    data.members = await q(
-      `SELECT u.id, u.name, u.nickname, u.interest, u.status, u.lounge_at,
-              (SELECT count(*) FROM lounge_posts p WHERE p.user_id=u.id AND p.is_hidden=false)::int AS posts,
-              (SELECT count(*) FROM lounge_unlocks x WHERE x.user_id=u.id)::int AS opened,
-              (SELECT COALESCE(sum(amount),0) FROM lounge_point_log g WHERE g.user_id=u.id)::int AS points,
-              (SELECT string_agg(e.product_title, ', ') FROM lounge_enrollments e WHERE e.user_id=u.id AND ${E.ACTIVE}) AS courses
-         FROM users u
-        WHERE u.nickname IS NOT NULL ${s ? `AND (u.nickname ILIKE $1 OR u.name ILIKE $1)` : ''}
-        ORDER BY u.lounge_at DESC NULLS LAST LIMIT 200`,
-      s ? [`%${s}%`] : []
-    );
+    data.s = txt(req.query.s, 40);
+    data.kind = M.KINDS[req.query.k] ? req.query.k : '';
+    data.KINDS = M.KINDS;
+    data.kcount = await M.counts();
+    data.members = await M.list({ kind: data.kind, s: data.s });
   }
   const nk = req.user.nickname || req.user.name;
   res.render('lounge/admin', { title: '라운지 관리', active: '', flash: null, me: { nick: nk }, nick: nk, P, pts: null, ...data });
@@ -198,33 +198,58 @@ router.post('/admin/lounge/enrollments/grant', async (req, res) => {
   if (!u.rows[0]) return go(res, 'students', '회원을 찾지 못했어요.');
   const period = req.body.period;
   const endsOn = period === 'lifetime' ? '' : period === 'custom' ? ymdOk(req.body.ends_on) || '' : undefined;
-  if (period === 'custom' && !ymdOk(req.body.ends_on)) return go(res, 'students', '끝나는 날을 넣어 주세요.', `&uid=${userId}`);
+  if (period === 'custom' && !ymdOk(req.body.ends_on)) return goRet(req, res, 'students', '끝나는 날을 넣어 주세요.', `&uid=${userId}`);
   const amount = parseInt(String(req.body.amount || '').replace(/[^0-9]/g, ''), 10) || null;
   const { enrollment } = await E.grant({
     userId, productId, source: ['cash', 'card', 'admin'].includes(req.body.source) ? req.body.source : 'cash',
     amount, startsOn: ymdOk(req.body.starts_on), endsOn, memo: txt(req.body.memo, 300) || null, grantedBy: req.user.id,
   });
   if (req.body.inquiry_id) await db.query(`UPDATE inquiries SET status='done' WHERE id=$1`, [int(req.body.inquiry_id)]).catch(() => {});
-  go(res, 'students', `${u.rows[0].nick}님에게 「${enrollment.product_title}」 수강권을 지급했어요.`);
+  goRet(req, res, 'students', `${u.rows[0].nick}님에게 「${enrollment.product_title}」 수강권을 지급했어요.`);
 });
 router.post('/admin/lounge/enrollments/:id/save', async (req, res) => {
   await E.update(int(req.params.id), {
     status: req.body.status, startsOn: ymdOk(req.body.starts_on), endsOn: ymdOk(req.body.ends_on), memo: txt(req.body.memo, 300),
   });
-  go(res, 'students', '수강권을 고쳤어요.', req.body.st ? `&st=${encodeURIComponent(req.body.st)}` : '');
+  goRet(req, res, 'students', '수강권을 고쳤어요.', req.body.st ? `&st=${encodeURIComponent(req.body.st)}` : '');
 });
 router.post('/admin/lounge/enrollments/:id/delete', async (req, res) => {
   await E.remove(int(req.params.id));
-  go(res, 'students', '수강권을 지웠어요.', req.body.st ? `&st=${encodeURIComponent(req.body.st)}` : '');
+  goRet(req, res, 'students', '수강권을 지웠어요.', req.body.st ? `&st=${encodeURIComponent(req.body.st)}` : '');
 });
 
 /* ---------------- 포인트 직접 조정 ---------------- */
 router.post('/admin/lounge/members/:id/points', async (req, res) => {
   const amount = parseInt(req.body.amount, 10);
   const uid = parseInt(req.params.id, 10);
-  if (!uid || !amount || Math.abs(amount) > 1000000) return go(res, 'members', '더하거나 뺄 포인트를 숫자로 넣어 주세요. (빼려면 -100 처럼)');
+  if (!uid || !amount || Math.abs(amount) > 1000000) return goRet(req, res, 'members', '더하거나 뺄 포인트를 숫자로 넣어 주세요. (빼려면 -100 처럼)');
   await P.adjust(uid, amount, txt(req.body.note, 100) || '운영자 조정');
-  go(res, 'members', `${amount > 0 ? '+' : ''}${amount}P 반영했어요.`, req.body.s ? '&s=' + encodeURIComponent(txt(req.body.s, 40)) : '');
+  goRet(req, res, 'members', `${amount > 0 ? '+' : ''}${amount}P 반영했어요.`, req.body.s ? '&s=' + encodeURIComponent(txt(req.body.s, 40)) : '');
+});
+
+/* ---------------- 회원 관리 ---------------- */
+router.get('/admin/lounge/members.csv', async (req, res) => {
+  const body = await M.csv({ kind: M.KINDS[req.query.k] ? req.query.k : '', s: txt(req.query.s, 40) });
+  const day = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' });
+  res.set('Content-Type', 'text/csv; charset=utf-8');
+  res.set('Content-Disposition', `attachment; filename="members-${day}.csv"`);
+  res.send(body);
+});
+router.get('/admin/lounge/members/:id(\\d+)', async (req, res) => {
+  const d = await M.detail(int(req.params.id));
+  if (!d) return go(res, 'members', '없는 회원이에요.');
+  const products = (await db.query(`SELECT id, title, months FROM lounge_products ORDER BY sort_order, id`)).rows;
+  res.render('lounge/admin-member', {
+    title: `${d.m.nickname || d.m.name} · 회원 관리`, active: '', L, S: await L.settings(), P, E, pts: null,
+    flash: null, me: { nick: req.user.nickname || req.user.name }, nick: req.user.nickname || req.user.name,
+    msg: req.query.msg || null, ...d, products, KINDS: M.KINDS, PRESET_TAGS: M.PRESET_TAGS,
+    today: new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' }),
+  });
+});
+router.post('/admin/lounge/members/:id(\\d+)/save', async (req, res) => {
+  const id = int(req.params.id);
+  await M.save(id, { memo: req.body.memo, phone: req.body.phone, tags: [].concat(req.body.tag || [], req.body.tag_new || []) });
+  res.redirect(`/admin/lounge/members/${id}?msg=${encodeURIComponent('메모·태그를 저장했어요.')}`);
 });
 
 /* ---------------- 설정 ---------------- */

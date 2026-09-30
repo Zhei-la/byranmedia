@@ -289,3 +289,6 @@ ALTER TABLE lounge_posts ADD COLUMN IF NOT EXISTS prompt_id INT REFERENCES loung
 -- 로그인 없이 남긴 프롬프트 요청: 이름(선택)과 도배 방지용 IP
 ALTER TABLE lounge_posts ADD COLUMN IF NOT EXISTS guest_name VARCHAR(20);
 ALTER TABLE lounge_posts ADD COLUMN IF NOT EXISTS guest_ip   VARCHAR(64);
+
+-- 운영자가 붙이는 회원 태그 (쉼표로 구분: 상담 중, 입금 대기 …) — 메모는 users.memo
+ALTER TABLE users ADD COLUMN IF NOT EXISTS admin_tags VARCHAR(200);

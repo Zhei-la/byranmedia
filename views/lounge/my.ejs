@@ -1,3 +1,4 @@
+<% const SOONM = typeof soon !== 'undefined' && soon ? soon : {}; %>
 <%- include('_top') %>
 <section class="lg-wrap lg-pagehead">
   <p class="lg-kicker">My</p>
@@ -50,7 +51,7 @@
       <% } %>
       <p class="lg-hint">수강생과 전자책 구매자는 자료실의 💎 포인트 자료집도 포인트 없이 바로 열 수 있어요.</p>
     </div>
-  <% } else { %>
+  <% } else if (!SOONM.course) { %>
     <div class="lg-card lg-stu-none">
       <div><b>🎓 수강 중인 과정이 없어요</b><p class="lg-muted">강의나 전자책을 결제하시면 여기에 뜨고, 자료와 도구로 바로 들어갈 수 있어요. 현금으로 결제하셨다면 확인 후 열어 드려요.</p></div>
       <a href="/course" class="lg-btn primary sm">수강 신청 보기</a>
@@ -74,7 +75,7 @@
     <div class="lg-bbtns">
       <a href="/community?cat=proof&write=1#write" class="lg-btn sm">글 쓰고 모으기</a>
       <a href="/reviews?write=1#write" class="lg-btn sm">후기 쓰고 모으기</a>
-      <a href="/library" class="lg-btn sm primary">자료집 열기</a>
+      <% if (!SOONM.library) { %><a href="/library" class="lg-btn sm primary">자료집 열기</a><% } %>
     </div>
     <% if (hist.length) { %>
       <ul class="lg-pthist">
@@ -83,25 +84,11 @@
         <% }); %>
       </ul>
     <% } else { %>
-      <p class="lg-muted">아직 기록이 없어요. 가입 인사부터 남겨 보세요!</p>
+      <p class="lg-muted">아직 기록이 없어요. 오늘 한 걸 인증해 보세요!</p>
     <% } %>
   </div>
 
-  <div class="lg-card">
-    <h2 class="lg-h3">🛠 블로그 대행 도구</h2>
-    <% if (acct.status === 'active') { %>
-      <p class="lg-muted">수강생 도구를 쓰실 수 있어요.</p>
-      <a href="/hub" class="lg-btn primary block">도구 열기</a>
-    <% } else if (acct.status === 'suspended') { %>
-      <p class="lg-muted">도구 이용이 중지된 계정이에요. 1:1 상담으로 문의해 주세요.</p>
-    <% } else if (acct.referred_by) { %>
-      <p class="lg-muted">⏳ 도구 이용 승인을 기다리고 있어요.</p>
-    <% } else { %>
-      <p class="lg-muted">바이란 수강생이시면 추천인 코드를 넣고 도구 이용을 신청해 주세요.</p>
-      <a href="/welcome" class="lg-btn block">추천인 코드 넣기</a>
-    <% } %>
-  </div>
-
+  <% if (!SOONM.library) { %>
   <div class="lg-card" id="box">
     <h2 class="lg-h3">📚 내가 본 자료</h2>
     <% if (opened.length) { %>
@@ -112,6 +99,7 @@
       <p class="lg-muted">아직 연 자료가 없어요. <a href="/library">자료실</a>에서 무료 자료집부터 챙겨 가세요.</p>
     <% } %>
   </div>
+  <% } %>
 
   <div class="lg-card">
     <h2 class="lg-h3">♡ 즐겨찾기한 프롬프트</h2>

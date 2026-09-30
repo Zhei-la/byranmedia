@@ -1,0 +1,133 @@
+<%- include('_top') %>
+<%
+  const K = KINDS[m.kind] || KINDS.member;
+  const kst = (x, t) => x ? new Date(x).toLocaleString('ko-KR', Object.assign({ timeZone: 'Asia/Seoul', year: 'numeric', month: 'numeric', day: 'numeric' }, t ? { hour: '2-digit', minute: '2-digit' } : {})) : '—';
+  const tags = (m.admin_tags || '').split(',').filter(Boolean);
+  const ret = '/admin/lounge/members/' + m.id;
+  const CAT = L.CATEGORIES;
+  const PT = { post: '글 작성', post_back: '글 삭제로 회수', review: '후기 작성', review_back: '후기 회수', buy: '자료 열기', admin: '운영자' };
+%>
+<section class="lg-wrap wide lg-pagehead">
+  <a href="/admin/lounge?tab=members" class="lg-back">← 회원 목록</a>
+  <div class="lg-mhead">
+    <span class="lg-ava lg"><%= (m.nickname || m.name || '?').slice(0,1) %></span>
+    <div>
+      <h1 class="lg-h1"><%= m.nickname || '(닉네임 없음)' %> <i class="lg-kind <%= K.cls %>"><%= K.label %></i></h1>
+      <p class="lg-muted">카카오 이름 <b><%= m.name %></b> · 회원 번호 #<%= m.id %><% tags.forEach(function(t){ %> <i class="lg-mtag"><%= t %></i><% }); %></p>
+    </div>
+  </div>
+  <% if (msg) { %><div class="lg-alert ok"><%= msg %></div><% } %>
+</section>
+
+<section class="lg-wrap wide lg-sec lg-admin lg-mgrid">
+  <div class="lg-mcol">
+    <div class="lg-card">
+      <h2 class="lg-h3">기본 정보</h2>
+      <dl class="lg-mdl">
+        <dt>가입</dt><dd><%= kst(m.created_at, true) %> · <%= m.provider === 'kakao' ? '카카오' : '이메일' %></dd>
+        <dt>프로필 완료</dt><dd><%= m.lounge_at ? kst(m.lounge_at, true) : '아직 (닉네임 안 정함)' %></dd>
+        <dt>최근 방문</dt><dd><%= kst(m.seen_at, true) %></dd>
+        <dt>관심</dt><dd><%= m.interest || '—' %></dd>
+        <dt>이메일</dt><dd><%= m.email || '—' %></dd>
+        <dt>전화</dt><dd><%= m.phone || '—' %></dd>
+        <% if (referrer) { %><dt>추천인</dt><dd><a href="/admin/lounge/members/<%= referrer.id %>"><%= referrer.nick %></a></dd><% } %>
+        <dt>활동</dt><dd>글 <%= m.posts %>개 · 💎 <%= P.fmt(m.points) %>P</dd>
+      </dl>
+    </div>
+
+    <form method="post" action="/admin/lounge/members/<%= m.id %>/save" class="lg-card lg-adform">
+      <h2 class="lg-h3">📝 운영자 메모 · 태그 <small class="lg-muted">회원에게는 안 보여요</small></h2>
+      <div class="lg-mtags">
+        <% PRESET_TAGS.forEach(function(t){ %>
+          <label class="lg-chip"><input type="checkbox" name="tag" value="<%= t %>" <%= tags.includes(t) ? 'checked' : '' %>><span><%= t %></span></label>
+        <% }); %>
+        <% tags.filter(function(t){ return !PRESET_TAGS.includes(t); }).forEach(function(t){ %>
+          <label class="lg-chip"><input type="checkbox" name="tag" value="<%= t %>" checked><span><%= t %></span></label>
+        <% }); %>
+      </div>
+      <label>태그 직접 추가 (쉼표로 여러 개)<input name="tag_new" class="lg-in" maxlength="60" placeholder="예: 9월 설명회, 지인 소개"></label>
+      <label>전화번호<input name="phone" class="lg-in" maxlength="30" value="<%= m.phone || '' %>" placeholder="010-0000-0000"></label>
+      <label>메모<textarea name="memo" class="lg-in" rows="5" maxlength="3000" placeholder="예: 9/29 카톡 상담 · 평생 과정 관심 · 10월 초 입금 예정"><%= m.memo || '' %></textarea></label>
+      <button class="lg-btn primary">저장</button>
+    </form>
+
+    <div class="lg-card">
+      <h2 class="lg-h3">💎 포인트 <small class="lg-muted">지금 <%= P.fmt(m.points) %>P</small></h2>
+      <form method="post" action="/admin/lounge/members/<%= m.id %>/points" class="lg-ptadj">
+        <input type="hidden" name="ret" value="<%= ret %>">
+        <input name="amount" type="number" class="lg-in" placeholder="+100 / -100" required aria-label="더하거나 뺄 포인트">
+        <input name="note" class="lg-in" maxlength="100" placeholder="메모 (선택)" aria-label="메모">
+        <button class="lg-btn sm">반영</button>
+      </form>
+      <% if (points.length) { %>
+        <ul class="lg-refs"><% points.forEach(function(h){ %><li><span><%= PT[h.reason] || h.reason %><%= h.note ? ' · ' + h.note : '' %> <small class="lg-muted"><%= kst(h.created_at) %></small></span><b><%= h.amount > 0 ? '+' : '' %><%= P.fmt(h.amount) %></b></li><% }); %></ul>
+      <% } else { %><p class="lg-muted">포인트 기록이 없어요.</p><% } %>
+    </div>
+  </div>
+
+  <div class="lg-mcol">
+    <div class="lg-card lg-adform">
+      <h2 class="lg-h3">🎓 수강 · 전자책</h2>
+      <% if (enrolls.length) { %>
+        <% enrolls.forEach(function(e){ %>
+          <form method="post" action="/admin/lounge/enrollments/<%= e.id %>/save" class="lg-menr <%= e.is_active ? 'on' : '' %>">
+            <input type="hidden" name="ret" value="<%= ret %>">
+            <div class="lg-menr-h">
+              <b><%= e.ptype === 'ebook' ? '📖' : '🎓' %> <%= e.product_title %></b>
+              <i class="lg-kind <%= e.is_active ? 'k-stu' : 'k-ended' %>"><%= e.is_active ? '수강 중' + (e.days_left != null ? ' · ' + e.days_left + '일 남음' : ' · 평생') : (E.STATUSES[e.status] || e.status) %></i>
+            </div>
+            <small class="lg-muted"><%= E.SOURCES[e.source] || e.source %><%= e.amount ? ' · ' + L.won(e.amount) : '' %> · 지급 <%= kst(e.created_at) %></small>
+            <div class="lg-menr-f">
+              <label>상태<select name="status" class="lg-in"><% Object.keys(E.STATUSES).forEach(function(k){ %><option value="<%= k %>" <%= e.status === k ? 'selected' : '' %>><%= E.STATUSES[k] %></option><% }); %></select></label>
+              <label>시작<input type="date" name="starts_on" class="lg-in" value="<%= e.starts_s || '' %>"></label>
+              <label>끝 (비우면 평생)<input type="date" name="ends_on" class="lg-in" value="<%= e.ends_s || '' %>"></label>
+              <label class="wide">메모<input name="memo" class="lg-in" maxlength="300" value="<%= e.memo || '' %>"></label>
+            </div>
+            <div class="lg-menr-b">
+              <button class="lg-btn sm primary">고치기</button>
+              <button class="lg-btn sm ghost danger" formaction="/admin/lounge/enrollments/<%= e.id %>/delete" data-confirmbtn="이 수강권을 지울까요? (환불이면 상태를 '환불'로 두는 게 좋아요)">지우기</button>
+            </div>
+          </form>
+        <% }); %>
+      <% } else { %><p class="lg-muted">수강·전자책 기록이 없어요.</p><% } %>
+
+      <details class="lg-mgrant" <%= enrolls.length ? '' : 'open' %>>
+        <summary class="lg-btn sm">＋ 수강권 지급 (현금 결제 등)</summary>
+        <form method="post" action="/admin/lounge/enrollments/grant" class="lg-enr-grant" data-confirm="<%= m.nickname || m.name %>님에게 수강권을 지급할까요?">
+          <input type="hidden" name="user_id" value="<%= m.id %>">
+          <input type="hidden" name="ret" value="<%= ret %>">
+          <label>과정<select name="product_id" class="lg-in" required><% products.forEach(function(p){ %><option value="<%= p.id %>"><%= p.title %> (<%= p.months ? p.months + '개월' : '평생' %>)</option><% }); %></select></label>
+          <label>결제 방법<select name="source" class="lg-in"><option value="cash">현금(계좌이체)</option><option value="card">카드</option><option value="admin">무료·기타</option></select></label>
+          <label>받은 금액 (선택)<input name="amount" class="lg-in" inputmode="numeric" placeholder="예: 1100000"></label>
+          <label>시작일<input name="starts_on" type="date" class="lg-in" value="<%= today %>"></label>
+          <label>기간<select name="period" class="lg-in"><option value="default">과정 기간대로</option><option value="lifetime">평생</option><option value="custom">직접 정하기 →</option></select></label>
+          <label>끝나는 날 (직접 정할 때)<input name="ends_on" type="date" class="lg-in"></label>
+          <label>메모 (선택)<input name="memo" class="lg-in" maxlength="300" placeholder="예: 9/29 계좌 입금 확인"></label>
+          <button class="lg-btn primary">수강권 지급</button>
+        </form>
+      </details>
+    </div>
+
+    <div class="lg-card">
+      <h2 class="lg-h3">✍️ 쓴 글</h2>
+      <% if (posts.length) { %>
+        <ul class="lg-refs"><% posts.forEach(function(p){ %><li><a href="/community/<%= p.id %>"><%= (CAT[p.category] || {label:'글'}).label %> · <%= p.title %><%= p.is_hidden ? ' (숨김)' : '' %></a><small class="lg-muted"><%= kst(p.created_at) %></small></li><% }); %></ul>
+      <% } else { %><p class="lg-muted">아직 쓴 글이 없어요.</p><% } %>
+      <% if (reviews.length) { %>
+        <h3 class="lg-h3 mt">⭐ 후기</h3>
+        <ul class="lg-refs"><% reviews.forEach(function(r){ %><li><span><%= '★'.repeat(r.rating) %> <%= r.body %></span><small class="lg-muted"><%= { pending: '승인 대기', approved: '공개', rejected: '반려' }[r.status] || r.status %></small></li><% }); %></ul>
+      <% } %>
+      <% if (opened.length) { %>
+        <h3 class="lg-h3 mt">📚 연 자료</h3>
+        <ul class="lg-refs"><% opened.forEach(function(r){ %><li><span><%= r.title %></span><small class="lg-muted"><%= kst(r.created_at) %></small></li><% }); %></ul>
+      <% } %>
+      <% if (inquiries.length) { %>
+        <h3 class="lg-h3 mt">📮 신청 · 문의</h3>
+        <ul class="lg-refs"><% inquiries.forEach(function(i){ %><li><span><%= i.plan || '문의' %><% if (i.message) { %><br><small class="lg-muted"><%= i.message %></small><% } %></span><small class="lg-muted"><%= kst(i.created_at) %></small></li><% }); %></ul>
+      <% } %>
+    </div>
+
+    <p class="lg-hint">도구 이용 승인·이용 중지·비밀번호 같은 계정 설정은 <a href="/admin/users/<%= m.id %>">기존 회원 정보 화면</a>에서 해요.</p>
+  </div>
+</section>
+<%- include('_bottom') %>
