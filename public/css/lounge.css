@@ -1104,3 +1104,8 @@ body.lg{background:#fff;color:var(--ink)}
 .lg-openchat em{font-style:normal;font-weight:700;font-size:13.5px;white-space:nowrap}
 .lg-openchat-btn{display:inline-flex;align-items:center;gap:6px;margin-top:12px;padding:9px 14px;border-radius:999px;background:#FEE500;color:#191600;font-weight:700;font-size:13.5px;text-decoration:none !important}
 .lg-openchat-wrap{margin-top:14px}.lg-openchat-wrap:empty{display:none}
+.lg-tablewrap{overflow-x:auto;margin:0 -4px}
+.lg-daytable td.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;text-align:left}
+.lg-daytable td.left,.lg-daytable th:last-child{text-align:left}
+#ips .lg-card-h{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+#ips .lg-mfilter{margin:0}

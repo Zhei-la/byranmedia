@@ -304,3 +304,8 @@ ALTER TABLE lounge_prompts ADD COLUMN IF NOT EXISTS status   VARCHAR(12) NOT NUL
 ALTER TABLE lounge_prompts ADD COLUMN IF NOT EXISTS fix_note VARCHAR(500);
 ALTER TABLE lounge_prompts ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ;
 CREATE INDEX IF NOT EXISTS idx_prompts_user ON lounge_prompts (user_id, created_at DESC);
+
+-- 방문 '횟수': 같은 사람이 30분 넘게 쉬었다가 다시 오면 1번 더 (views 는 본 화면 수)
+ALTER TABLE lounge_visits ADD COLUMN IF NOT EXISTS visits  INT NOT NULL DEFAULT 1;
+ALTER TABLE lounge_visits ADD COLUMN IF NOT EXISTS last_at TIMESTAMPTZ;
+CREATE INDEX IF NOT EXISTS idx_visits_ip ON lounge_visits (day, ip);
