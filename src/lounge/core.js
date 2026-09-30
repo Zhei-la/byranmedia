@@ -459,7 +459,7 @@ const RESULT_KINDS = {
 // 자료실 칸 (관리자 화면에서 고를 수 있는 기본값. 직접 입력도 된다)
 const SECTIONS = ['수강 안내', '사주·타로', '쿠팡파트너스', '스레드 글쓰기', 'AI 이미지', '무료 자료'];
 
-const PROMPT_CATS = ['인물/화보', '셀카/일상', '뷰티/클로즈업', '캐릭터/코스프레', '음식/제품', '일러스트', '기타'];
+const PROMPT_CATS = ['인물/화보', '셀카/일상', '뷰티/클로즈업', '캐릭터/코스프레', '귀여운/동물', '음식/제품', '일러스트', '기타'];
 
 module.exports = {
   migrate, claimOwner, safeLink, settings, saveSettings, soonOf, soonBlocked, SETTING_DEFAULTS, esc, linkify, ago, safeUrl, saveImage,
