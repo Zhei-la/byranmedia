@@ -862,3 +862,5 @@ body.bf{background:var(--bg);display:block}
   margin:22px 0 2px;padding-bottom:7px;border-bottom:1px solid var(--line);
 }
 .fill-g:first-child{margin-top:0}
+.login-alt{margin-top:18px;text-align:center;font-size:13px;color:#8a8a8a}
+.login-alt a{color:inherit;text-decoration:underline;font-weight:600}

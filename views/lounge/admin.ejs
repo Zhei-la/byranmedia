@@ -7,6 +7,10 @@
   <p class="lg-kicker">Admin</p>
   <h1 class="lg-h1">라운지 관리</h1>
   <p class="lg-muted">회원 승인·도구·문의는 <a href="/admin">기존 관리 화면</a>에서 해요. · <a href="/hub">🛠 블로그 대행 도구 열기</a></p>
+  <div class="lg-acctbar">
+    <span>지금 계정: <b><%= user.nickname || user.name %></b> <small class="lg-muted"><%= user.email %></small></span>
+    <form method="post" action="/logout" class="inline"><input type="hidden" name="to" value="switch"><button class="lg-btn sm ghost">🔄 다른 계정으로 로그인</button></form>
+  </div>
   <div class="lg-adstats">
     <a href="/admin/lounge?tab=stats" class="lg-adstats-link"><span class="today">오늘 방문한 사람 <b><%= brief.v %></b>명</span></a>
     <a href="/admin/lounge?tab=stats" class="lg-adstats-link"><span class="today">오늘 가입 <b><%= brief.j %></b>명</span></a>

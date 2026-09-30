@@ -218,9 +218,11 @@ router.get('/pending', async (req, res) => {
 
 /* ---------------- 로그아웃 ---------------- */
 router.post('/logout', (req, res) => {
+  // to=switch: 다른 계정으로 로그인 (로그아웃하고 로그인 화면으로)
+  const to = req.body && req.body.to === 'switch' ? '/login?switch=1' : '/';
   req.session.destroy(() => {
     res.clearCookie('zhlab.sid');
-    res.redirect('/');
+    res.redirect(to);
   });
 });
 

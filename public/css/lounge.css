@@ -1299,3 +1299,5 @@ a.lg-msg-who{text-decoration:none !important;color:#4A4A4F}
 .lg-newmember[open] summary{margin-bottom:12px}
 .lg-nmgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 @media (max-width:640px){.lg-nmgrid{grid-template-columns:1fr}}
+.lg-acctbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin-top:10px;font-size:14px}
+.lg-acctbar small{margin-left:4px}
