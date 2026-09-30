@@ -52,8 +52,15 @@
     <div class="lg-stat"><small>인증 글</small><p><b><%= X.proofs %></b><span>건</span></p></div>
     <div class="lg-stat"><small>방문 → 가입</small><p><b><%= X.rate %></b><span>%</span></p></div>
   </div>
-  <p class="lg-hint"><b>방문한 사람</b>은 기기(폰·PC 브라우저) 하나당 1명이에요. 같은 폰으로 여러 번 와도 1명, <b>방문 횟수</b>는 30분 넘게 쉬었다가 다시 오면 1번 더 세요. <%= PL ? '▲▼는 ' + PL + ' 늘거나 줄어든 숫자예요.' : '' %> 운영자(나)와 검색봇은 빼요. 전체 가입자 <%= M.total_users %>명<% if (M.since) { %> · <%= M.since.replace(/-/g, '.') %>부터 기록<% } %>.
+  <p class="lg-hint"><b>방문한 사람</b>은 기기(폰·PC 브라우저) 하나당 1명이에요. 같은 폰으로 여러 번 와도 1명, <b>방문 횟수</b>는 30분 넘게 쉬었다가 다시 오면 1번 더 세요. <%= PL ? '▲▼는 ' + PL + ' 늘거나 줄어든 숫자예요.' : '' %> 운영자(나)와 봇은 빼요 — 화면을 열고 <b>실제로 스크롤·터치하거나 몇 초 머문 브라우저만</b> 사람으로 세요. 전체 가입자 <%= M.total_users %>명<% if (M.since) { %> · <%= M.since.replace(/-/g, '.') %>부터 기록<% } %>.
   <br><small>※ 스레드·인스타·카톡 앱 안에서 연 화면은 앱마다 따로 저장돼서, 같은 사람이 다른 앱으로 들어오면 2명으로 셀 수 있어요.</small></p>
+  <% if (typeof ownerUrl !== 'undefined') { %>
+  <details class="lg-card mt lg-ownerlink">
+    <summary>📵 내 폰의 카톡·스레드 앱에서 들어온 것도 빼기</summary>
+    <p class="lg-muted">카톡·스레드·인스타 앱 안에서 사이트를 열면 로그인이 안 된 별도 브라우저라 '다른 사람'으로 세져요. 아래 주소를 <b>그 앱 안에서 한 번씩</b> 열면 (예: 카톡 나와의 채팅에 보내고 눌러 보기) 그 브라우저도 운영자 기기로 기억돼 통계에서 빠져요. 남에게 보내지 마세요.</p>
+    <div class="lg-copyrow"><input class="lg-input" readonly value="<%= ownerUrl %>" onclick="this.select()"></div>
+  </details>
+  <% } %>
 
   <div class="lg-card mt">
     <h2 class="lg-h3">📱 어느 플랫폼에서 들어왔나 <small class="lg-muted"><%= RL %></small></h2>

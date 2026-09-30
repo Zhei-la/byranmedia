@@ -50,6 +50,7 @@ router.get('/admin/lounge', async (req, res) => {
   if (tab === 'stats') {
     data.range = ['7d', 'all'].includes(req.query.r) ? req.query.r : 'today';
     data.stats = await V.stats(data.range, 14);
+    data.ownerUrl = `${(process.env.BASE_URL || 'https://byranmedia.com').replace(/\/+$/, '')}/v/me/${V.ownerKey()}`;
     data.SOURCES = V.SOURCES;
     const t = await V.todayStr();
     const from = new Date(t + 'T00:00:00Z'); from.setUTCDate(from.getUTCDate() - 13);

@@ -8,8 +8,9 @@ const crypto = require('crypto');
 const db = require('../db');
 
 const DAY = `(now() AT TIME ZONE 'Asia/Seoul')::date`;
-const SKIP_PATH = /^\/(admin|u\/|chat\/|api\/|auth\/|healthz|favicon|manifest|robots|sitemap)|\.[a-z0-9]{2,5}$/i;
-const BOT = /bot|crawl|spider|slurp|preview|scrap|facebookexternalhit|kakaotalk-scrap|daum|yeti|curl|wget|python|go-http|java\/|headless|lighthouse|monitor|uptime|axios|node-fetch/i;
+const SKIP_PATH = /^\/(admin|u\/|chat\/|api\/|auth\/|v\/|healthz|favicon|manifest|robots|sitemap)|\.[a-z0-9]{2,5}$/i;
+// 봇·크롤러: 이름을 밝히는 것 + 브라우저인 척하는 흔한 가짜 (아주 옛날 크롬/파이어폭스, 텐센트 크롤러의 iPhone OS 13_2_3 등)
+const BOT = /bot|crawl|spider|slurp|preview|scrap|facebookexternalhit|kakaotalk-scrap|daumoa|yeti|curl|wget|python|go-http|java\/|headless|lighthouse|monitor|uptime|axios|node-fetch|checker|scanner|leads|httpclient|okhttp|libwww|compatible;|iPhone OS 13_2_3|Chrome\/[1-9]\d\.|Firefox\/[1-8]\d\.|PhantomJS|Puppeteer|Playwright|Selenium/i;
 const PROD = process.env.NODE_ENV === 'production';
 
 function readCookie(req, name) {
@@ -265,4 +266,30 @@ function deviceId(req) {
   return /^[a-f0-9]{16,40}$/.test(v) ? v : null;
 }
 
-module.exports = { track, stats, byDay, periodTotal, dayDetail, todayStr, todayBrief, publicToday, deviceId, SOURCES, readCookie };
+/** 사람 확인 신호: 화면에서 스크롤·터치 등을 하거나 몇 초 머물면 브라우저가 보냄 → 그 기기를 '사람'으로 표시 */
+function hi(req, res) {
+  res.status(204).end();
+  const ua = req.get('user-agent') || '';
+  const vid = readCookie(req, 'bv');
+  if (!ua || BOT.test(ua) || !/^[a-f0-9]{16,40}$/.test(vid)) return;
+  const mark = () => db.query(`UPDATE lounge_visits SET human = true WHERE day = ${DAY} AND vid = $1`, [vid]).then((r) => r.rowCount);
+  mark().then((n) => { if (!n) setTimeout(() => mark().catch(() => {}), 3000); }).catch((e) => console.error('[사람 확인]', e.message));
+}
+
+/** 운영자 전용 주소: 카톡·스레드 앱 안 브라우저처럼 로그인 안 한 곳에서 한 번 열면 그 브라우저도 통계에서 빠짐 */
+function ownerKey() {
+  return crypto.createHmac('sha256', String(process.env.SESSION_SECRET || 'byran')).update('owner-device').digest('hex').slice(0, 20);
+}
+function markOwner(req, res) {
+  if (req.params.key !== ownerKey()) return res.redirect('/');
+  let vid = readCookie(req, 'bv');
+  if (!/^[a-f0-9]{16,40}$/.test(vid)) {
+    vid = crypto.randomBytes(12).toString('hex');
+    res.cookie('bv', vid, { maxAge: 1000 * 60 * 60 * 24 * 400, httpOnly: true, sameSite: 'lax', secure: PROD });
+  }
+  db.query(`INSERT INTO lounge_owner_devices (vid, user_id) VALUES ($1, NULL) ON CONFLICT (vid) DO NOTHING`, [vid])
+    .then(() => res.type('html').send('<meta name="viewport" content="width=device-width,initial-scale=1"><div style="font:16px/1.6 sans-serif;padding:40px 20px;text-align:center">✅ 이 브라우저는 이제 <b>운영자 기기</b>로 기억돼요.<br>관리 통계에서 빠져요.<br><br><a href="/">홈으로</a></div>'))
+    .catch(() => res.redirect('/'));
+}
+
+module.exports = { hi, ownerKey, markOwner, track, stats, byDay, periodTotal, dayDetail, todayStr, todayBrief, publicToday, deviceId, SOURCES, readCookie };

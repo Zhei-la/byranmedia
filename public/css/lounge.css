@@ -1291,3 +1291,6 @@ a.lg-msg-who{text-decoration:none !important;color:#4A4A4F}
 .lg-stat-aside b.sub{font-size:13px;color:#4A4A4F}
 .lg-stat-aside small{font-size:11px;color:#8A8A8E;text-align:left}
 @media (min-width:721px){.lg-stat-aside{position:static;transform:none;margin-top:8px;display:inline-grid}}
+.lg-ownerlink summary{cursor:pointer;font-weight:700}
+.lg-ownerlink p{margin:10px 0;font-size:13px;line-height:1.6}
+.lg-ownerlink .lg-input{width:100%;font-size:13px}

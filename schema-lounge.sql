@@ -364,7 +364,11 @@ CREATE TABLE IF NOT EXISTS lounge_owner_devices (
   user_id    INT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
--- 관리 통계용: 운영자 기기를 뺀 방문 기록 (이 파일 맨 아래에 두기)
+-- 사람 확인: 화면을 연 뒤 실제로 만지거나(스크롤·터치) 잠시 머문 브라우저만 true (봇·크롤러 걸러내기)
 DROP VIEW IF EXISTS lounge_visits_x;
+ALTER TABLE lounge_visits ADD COLUMN IF NOT EXISTS human BOOLEAN NOT NULL DEFAULT false;
+-- 이 기능 전 기록: 로그인했거나 2화면 이상 본 기기만 사람으로 (쿠키 없는 봇은 늘 1화면)
+UPDATE lounge_visits SET human = true WHERE NOT human AND day <= DATE '2026-09-30' AND (user_id IS NOT NULL OR views > 1);
+-- 관리 통계용: 사람 확인된 + 운영자 기기를 뺀 방문 기록 (이 파일 맨 아래에 두기)
 CREATE VIEW lounge_visits_x AS
-  SELECT v.* FROM lounge_visits v WHERE NOT EXISTS (SELECT 1 FROM lounge_owner_devices o WHERE o.vid = v.vid);
+  SELECT v.* FROM lounge_visits v WHERE v.human AND NOT EXISTS (SELECT 1 FROM lounge_owner_devices o WHERE o.vid = v.vid);
