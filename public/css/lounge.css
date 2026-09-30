@@ -962,3 +962,4 @@ body.lg{background:#fff;color:var(--ink)}
 @media (max-width:640px){.lg-reqbox{flex-direction:column;align-items:flex-start}}
 .lg-peek{display:inline-block;margin-left:6px;padding:2px 8px;border-radius:999px;background:#171717;color:#fff;font-size:10.5px;letter-spacing:0;text-transform:none;font-weight:700;vertical-align:1px}
 .lg-cols>*,.lg-col-main{min-width:0}
+.lg-foot-mail{font-size:13px;color:#6B6B70;margin:4px 0 0}.lg-foot-mail a{color:inherit;font-weight:600;text-decoration:underline;text-underline-offset:2px}
