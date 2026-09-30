@@ -1,6 +1,6 @@
 /* 방문자 세기
  * - 브라우저마다 쿠키(bv)로 이름표를 붙이고 하루에 한 줄 + IP 를 같이 남긴다
- * - 운영자 통계: IP 하나당 1명 / 홈에 보이는 '오늘 방문': 본 화면 수를 모두 더한 값(중복 포함)
+ * - 운영자 통계: 기기(브라우저) 하나당 1명 / 홈에 보이는 '오늘 방문': 본 화면 수를 모두 더한 값(중복 포함)
  * - 화면(HTML)을 연 것만 센다. 사진·CSS·채팅 새로고침·봇·운영자는 빼고
  * - 날짜는 한국 시간 기준
  */
@@ -62,82 +62,80 @@ function track(req, res, next) {
   next();
 }
 
+/** 기간 조건: today(당일) | 7d(최근 7일) | all(전체). prev = 바로 앞 같은 길이 기간 (비교용) */
+function range(r, col, prev = false) {
+  if (r === 'all') return prev ? null : 'true';
+  if (r === '7d') return prev ? `${col} BETWEEN ${DAY} - 13 AND ${DAY} - 7` : `${col} >= ${DAY} - 6`;
+  return prev ? `${col} = ${DAY} - 1` : `${col} = ${DAY}`;
+}
+const KDATE = (c) => `(${c} AT TIME ZONE 'Asia/Seoul')::date`;
+
+/** 요약 숫자 — '방문한 사람'은 기기(브라우저) 하나당 1명 */
+async function summary(r) {
+  const one = async (cond) => {
+    if (!cond) return null;
+    const { rows } = await db.query(
+      `SELECT count(DISTINCT vid)::int AS people, COALESCE(sum(visits),0)::int AS visits, COALESCE(sum(views),0)::int AS views
+         FROM lounge_visits WHERE ${cond}`
+    );
+    return rows[0];
+  };
+  const cnt = async (table, col, extra, prev) => {
+    const c = range(r, KDATE(col), prev);
+    if (!c) return null;
+    const { rows } = await db.query(`SELECT count(*)::int AS n FROM ${table} WHERE ${c}${extra ? ' AND ' + extra : ''}`);
+    return rows[0].n;
+  };
+  const [cur, prev, joins, joinsPrev, reqs, shares, proofs] = await Promise.all([
+    one(range(r, 'day')), one(range(r, 'day', true)),
+    cnt('users', 'created_at', "role <> 'admin'"), cnt('users', 'created_at', "role <> 'admin'", true),
+    cnt('lounge_posts', 'created_at', "category='request'"),
+    cnt('lounge_prompts', 'created_at', 'user_id IS NOT NULL'),
+    cnt('lounge_posts', 'created_at', "category='proof'"),
+  ]);
+  const rate = cur.people ? Math.round((joins / cur.people) * 1000) / 10 : 0;
+  return { ...cur, prev, joins, joinsPrev, reqs, shares, proofs, rate };
+}
+
 /** 운영자 화면용 숫자 */
-async function stats(days = 14) {
-  const q = (sql, p) => db.query(sql, p).then((r) => r.rows);
-  const [today] = await q(
-    `WITH d AS (SELECT ${DAY} AS t)
-     SELECT (SELECT count(DISTINCT COALESCE(ip, vid)) FROM lounge_visits, d WHERE day = d.t)::int AS v,
-            (SELECT COALESCE(sum(views),0) FROM lounge_visits, d WHERE day = d.t)::int AS pv,
-            (SELECT COALESCE(sum(visits),0) FROM lounge_visits, d WHERE day = d.t)::int AS vc,
-            (SELECT count(DISTINCT ip) FROM lounge_visits, d WHERE day = d.t AND ip IN (
-               SELECT ip FROM lounge_visits x WHERE x.day = d.t AND x.ip IS NOT NULL GROUP BY ip HAVING sum(x.visits) > 1))::int AS rv,
-            (SELECT count(DISTINCT COALESCE(ip, vid)) FROM lounge_visits, d WHERE day = d.t - 1)::int AS v_y,
-            (SELECT count(*) FROM users, d WHERE (created_at AT TIME ZONE 'Asia/Seoul')::date = d.t)::int AS j,
-            (SELECT count(*) FROM users, d WHERE (created_at AT TIME ZONE 'Asia/Seoul')::date = d.t - 1)::int AS j_y,
-            (SELECT count(*) FROM users, d WHERE (lounge_at AT TIME ZONE 'Asia/Seoul')::date = d.t)::int AS p,
-            (SELECT count(*) FROM lounge_posts, d WHERE (created_at AT TIME ZONE 'Asia/Seoul')::date = d.t)::int AS posts,
-            (SELECT count(*) FROM users)::int AS total_users,
-            (SELECT min(day) FROM lounge_visits)::text AS since`
-  );
+async function stats(r = 'today', days = 14) {
+  const q = (sql, p) => db.query(sql, p).then((x) => x.rows);
+  const sum = await summary(r);
+  const [meta] = await q(`SELECT (SELECT count(*) FROM users WHERE role <> 'admin')::int AS total_users, (SELECT min(day) FROM lounge_visits)::text AS since`);
   const daily = await q(
     `WITH d AS (SELECT generate_series(${DAY} - ($1::int - 1), ${DAY}, interval '1 day')::date AS day)
      SELECT d.day::text AS day, to_char(d.day, 'MM.DD') AS label, extract(isodow FROM d.day)::int AS dow,
-            (SELECT count(DISTINCT COALESCE(ip, vid)) FROM lounge_visits v WHERE v.day = d.day)::int AS v,
-            (SELECT COALESCE(sum(views),0) FROM lounge_visits v WHERE v.day = d.day)::int AS pv,
+            (SELECT count(DISTINCT vid) FROM lounge_visits v WHERE v.day = d.day)::int AS v,
             (SELECT COALESCE(sum(visits),0) FROM lounge_visits v WHERE v.day = d.day)::int AS vc,
-            (SELECT count(*) FROM users u WHERE (u.created_at AT TIME ZONE 'Asia/Seoul')::date = d.day)::int AS j,
-            (SELECT count(*) FROM users u WHERE (u.lounge_at AT TIME ZONE 'Asia/Seoul')::date = d.day)::int AS p
+            (SELECT COALESCE(sum(views),0) FROM lounge_visits v WHERE v.day = d.day)::int AS pv,
+            (SELECT count(*) FROM users u WHERE u.role <> 'admin' AND ${KDATE('u.created_at')} = d.day)::int AS j
        FROM d ORDER BY d.day DESC`,
     [days]
   );
+  const rc = range(r, 'day');
   const refs = await q(
-    `SELECT COALESCE(ref_host, '직접 들어옴 · 즐겨찾기') AS host, count(DISTINCT COALESCE(ip, vid))::int AS n
-       FROM lounge_visits WHERE day >= ${DAY} - 6 GROUP BY 1 ORDER BY n DESC LIMIT 10`
+    `SELECT COALESCE(ref_host, '직접 들어옴 · 즐겨찾기') AS host, count(DISTINCT vid)::int AS n
+       FROM lounge_visits WHERE ${rc} GROUP BY 1 ORDER BY n DESC LIMIT 10`
   );
   const pages = await q(
-    `SELECT first_path AS path, count(DISTINCT COALESCE(ip, vid))::int AS n
-       FROM lounge_visits WHERE day >= ${DAY} - 6 GROUP BY 1 ORDER BY n DESC LIMIT 8`
+    `SELECT first_path AS path, count(DISTINCT vid)::int AS n
+       FROM lounge_visits WHERE ${rc} GROUP BY 1 ORDER BY n DESC LIMIT 8`
   );
   const joins = await q(
     `SELECT id, COALESCE(nickname, name, '(이름 없음)') AS nick, nickname IS NOT NULL AS done,
             to_char(created_at AT TIME ZONE 'Asia/Seoul', 'MM.DD HH24:MI') AS at
-       FROM users ORDER BY created_at DESC LIMIT 10`
+       FROM users WHERE role <> 'admin' ORDER BY created_at DESC LIMIT 10`
   );
   const countries = await q(
     `SELECT COALESCE(country, '') AS code, count(*)::int AS n FROM users WHERE role <> 'admin' GROUP BY 1 ORDER BY n DESC LIMIT 15`
   );
-  return { today, daily, refs, pages, joins, countries };
-}
-
-/** IP별: 몇 번 들어왔는지(방문 횟수)·본 화면 수·처음/마지막 시간·회원이면 닉네임
- *  range: 'today' | 'yesterday' | '7d' */
-async function byIp(range = 'today', limit = 200) {
-  const cond = range === 'yesterday' ? `v.day = ${DAY} - 1` : range === '7d' ? `v.day >= ${DAY} - 6` : `v.day = ${DAY}`;
-  const { rows } = await db.query(
-    `SELECT COALESCE(v.ip, '(IP 기록 전)') AS ip,
-            sum(v.visits)::int AS visits, sum(v.views)::int AS views, count(DISTINCT v.day)::int AS days,
-            to_char(min(v.created_at) AT TIME ZONE 'Asia/Seoul', 'MM.DD HH24:MI') AS first_at,
-            to_char(max(COALESCE(v.last_at, v.created_at)) AT TIME ZONE 'Asia/Seoul', 'MM.DD HH24:MI') AS last_at,
-            string_agg(DISTINCT COALESCE(u.nickname, u.name), ', ') AS members,
-            (array_agg(v.ref_host ORDER BY v.created_at) FILTER (WHERE v.ref_host IS NOT NULL))[1] AS ref_host
-       FROM lounge_visits v LEFT JOIN users u ON u.id = v.user_id
-      WHERE ${cond}
-      GROUP BY COALESCE(v.ip, '(IP 기록 전)')
-      ORDER BY visits DESC, views DESC LIMIT $1`,
-    [limit]
-  );
-  const { rows: sum } = await db.query(
-    `SELECT count(DISTINCT COALESCE(v.ip, v.vid))::int AS ips, COALESCE(sum(v.visits),0)::int AS visits, COALESCE(sum(v.views),0)::int AS views
-       FROM lounge_visits v WHERE ${cond}`
-  );
-  return { rows, sum: sum[0] };
+  return { sum, meta, daily, refs, pages, joins, countries };
 }
 
 /** 머리 부분에 늘 보이는 오늘 숫자 */
 async function todayBrief() {
   const { rows } = await db.query(
-    `SELECT (SELECT count(DISTINCT COALESCE(ip, vid)) FROM lounge_visits WHERE day = ${DAY})::int AS v,
+    `SELECT (SELECT count(DISTINCT vid) FROM lounge_visits WHERE day = ${DAY})::int AS v,
             (SELECT count(*) FROM users WHERE (created_at AT TIME ZONE 'Asia/Seoul')::date = ${DAY})::int AS j`
   );
   return rows[0];
@@ -152,4 +150,4 @@ async function publicToday() {
   return pubCache.n;
 }
 
-module.exports = { track, stats, byIp, todayBrief, publicToday };
+module.exports = { track, stats, todayBrief, publicToday };

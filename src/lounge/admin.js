@@ -48,9 +48,8 @@ router.get('/admin/lounge', async (req, res) => {
   data.counts = counts;
   data.brief = await V.todayBrief().catch(() => ({ v: 0, j: 0 }));
   if (tab === 'stats') {
-    data.stats = await V.stats(14);
-    data.ipRange = ['yesterday', '7d'].includes(req.query.r) ? req.query.r : 'today';
-    data.ips = await V.byIp(data.ipRange);
+    data.range = ['7d', 'all'].includes(req.query.r) ? req.query.r : 'today';
+    data.stats = await V.stats(data.range, 14);
   }
 
   if (tab === 'board') {

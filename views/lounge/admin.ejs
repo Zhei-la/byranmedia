@@ -8,7 +8,7 @@
   <h1 class="lg-h1">라운지 관리</h1>
   <p class="lg-muted">회원 승인·도구·문의는 <a href="/admin">기존 관리 화면</a>에서 해요. · <a href="/hub">🛠 블로그 대행 도구 열기</a></p>
   <div class="lg-adstats">
-    <a href="/admin/lounge?tab=stats" class="lg-adstats-link"><span class="today">오늘 방문 <b><%= brief.v %></b>명</span></a>
+    <a href="/admin/lounge?tab=stats" class="lg-adstats-link"><span class="today">오늘 방문한 사람 <b><%= brief.v %></b>명</span></a>
     <a href="/admin/lounge?tab=stats" class="lg-adstats-link"><span class="today">오늘 가입 <b><%= brief.j %></b>명</span></a>
     <span>회원 <b><%= counts.members %></b></span>
     <span>이번 주 새 회원 <b><%= counts.new7 %></b></span>
@@ -24,44 +24,36 @@
 
 <section class="lg-wrap wide lg-sec lg-admin">
 
-<% if (tab === 'stats') { var T = stats.today; var diff = function(a, b){ var n = a - b; return n > 0 ? '어제보다 +' + n : n < 0 ? '어제보다 ' + n : '어제와 같아요'; }; %>
-  <div class="lg-kpis">
-    <div class="lg-kpi hi"><small>오늘 방문자 (다른 IP 수)</small><b><%= T.v %>명</b><em><%= diff(T.v, T.v_y) %> (어제 <%= T.v_y %>명)</em></div>
-    <div class="lg-kpi hi"><small>오늘 총 방문 횟수</small><b><%= T.vc %>번</b><em>그중 두 번 이상 온 IP <%= T.rv %>개</em></div>
-    <div class="lg-kpi"><small>오늘 가입</small><b><%= T.j %>명</b><em><%= diff(T.j, T.j_y) %> (어제 <%= T.j_y %>명) · 전체 <%= T.total_users %>명</em></div>
-    <div class="lg-kpi"><small>오늘 본 화면 수</small><b><%= T.pv %></b><em>홈에 보이는 '오늘 방문'이 이 숫자예요</em></div>
-  </div>
-  <p class="lg-hint"><b>방문자</b> = 서로 다른 IP 수 · <b>방문 횟수</b> = 들어온 횟수 (같은 IP라도 30분 넘게 쉬었다가 다시 오면 1번 더) · <b>본 화면</b> = 넘겨 본 페이지 수. 한국 시간 하루 기준, <b>IP 하나당 1명</b>으로 세요 (같은 와이파이에서 들어온 사람은 1명으로 묶일 수 있어요). 운영자와 검색봇은 빼요. 홈에 보이는 '오늘 방문'은 본 화면 수를 모두 더한 숫자예요.<% if (T.since) { %> <%= T.since.replace(/-/g, '.') %>부터 세기 시작했어요.<% } else { %> 방문 기록은 이번 업데이트부터 쌓여요.<% } %></p>
+<% if (tab === 'stats') {
+  var X = stats.sum, M = stats.meta;
+  var RL = { today: '당일', '7d': '최근 7일', all: '전체' }[range];
+  var PL = { today: '어제보다', '7d': '지난 7일보다', all: '' }[range];
+  var up = function(a, b){ if (b == null) return ''; var n = a - b; return n > 0 ? '<i class="lg-up">▲ ' + n + '</i>' : n < 0 ? '<i class="lg-down">▼ ' + (-n) + '</i>' : '<i class="lg-same">–</i>'; };
+%>
+  <nav class="lg-rangetabs">
+    <a href="/admin/lounge?tab=stats" class="<%= range === 'today' ? 'on' : '' %>">당일</a>
+    <a href="/admin/lounge?tab=stats&r=7d" class="<%= range === '7d' ? 'on' : '' %>">최근 7일</a>
+    <a href="/admin/lounge?tab=stats&r=all" class="<%= range === 'all' ? 'on' : '' %>">전체</a>
+  </nav>
 
-
-  <div class="lg-card mt" id="ips">
-    <div class="lg-card-h">
-      <h2 class="lg-h3">🌐 IP별 방문 <small class="lg-muted">다른 IP <b><%= ips.sum.ips %></b>개 · 방문 <b><%= ips.sum.visits %></b>번 · 본 화면 <b><%= ips.sum.views %></b></small></h2>
-      <div class="lg-mfilter">
-        <a href="/admin/lounge?tab=stats#ips" class="<%= ipRange === 'today' ? 'on' : '' %>">오늘</a>
-        <a href="/admin/lounge?tab=stats&r=yesterday#ips" class="<%= ipRange === 'yesterday' ? 'on' : '' %>">어제</a>
-        <a href="/admin/lounge?tab=stats&r=7d#ips" class="<%= ipRange === '7d' ? 'on' : '' %>">최근 7일</a>
-      </div>
-    </div>
-    <div class="lg-tablewrap">
-    <table class="lg-daytable">
-      <thead><tr><th>IP</th><th>방문 횟수</th><th>본 화면</th><% if (ipRange === '7d') { %><th>온 날</th><% } %><th>처음</th><th>마지막</th><th>회원 · 유입</th></tr></thead>
-      <tbody>
-        <% ips.rows.forEach(function(r){ %>
-          <tr><td class="mono"><%= r.ip %></td><td><b><%= r.visits %></b></td><td><%= r.views %></td><% if (ipRange === '7d') { %><td><%= r.days %>일</td><% } %><td><%= r.first_at %></td><td><%= r.last_at %></td><td class="left"><%= r.members || '' %><%= r.members && r.ref_host ? ' · ' : '' %><small class="lg-muted"><%= r.ref_host || '' %></small></td></tr>
-        <% }); %>
-        <% if (!ips.rows.length) { %><tr><td colspan="7" class="left lg-muted">아직 기록이 없어요.</td></tr><% } %>
-      </tbody>
-    </table>
-    </div>
-    <p class="lg-hint">운영자(나)·검색봇은 빼고 세요. 같은 와이파이(회사·카페)에서 들어온 여러 사람은 같은 IP로 묶일 수 있어요. '(IP 기록 전)'은 IP를 모으기 전(오늘 오전) 기록이에요.</p>
+  <div class="lg-statlist">
+    <div class="lg-stat"><small>방문한 사람</small><p><b><%= X.people %></b><span>명</span><%- up(X.people, X.prev && X.prev.people) %></p></div>
+    <div class="lg-stat"><small>총 방문 횟수</small><p><b><%= X.visits %></b><span>회</span><%- up(X.visits, X.prev && X.prev.visits) %></p></div>
+    <div class="lg-stat"><small>화면을 연 횟수</small><p><b><%= X.views %></b><span>회</span></p></div>
+    <div class="lg-stat"><small>가입</small><p><b><%= X.joins %></b><span>명</span><%- up(X.joins, X.joinsPrev) %></p></div>
+    <div class="lg-stat"><small>프롬프트 요청</small><p><b><%= X.reqs %></b><span>건</span></p></div>
+    <div class="lg-stat"><small>프롬프트 공유</small><p><b><%= X.shares %></b><span>건</span></p></div>
+    <div class="lg-stat"><small>인증 글</small><p><b><%= X.proofs %></b><span>건</span></p></div>
+    <div class="lg-stat"><small>방문 → 가입</small><p><b><%= X.rate %></b><span>%</span></p></div>
   </div>
+  <p class="lg-hint"><b>방문한 사람</b>은 기기(폰·PC 브라우저) 하나당 1명이에요. 같은 폰으로 여러 번 와도 1명, <b>방문 횟수</b>는 30분 넘게 쉬었다가 다시 오면 1번 더 세요. <%= PL ? '▲▼는 ' + PL + ' 늘거나 줄어든 숫자예요.' : '' %> 운영자(나)와 검색봇은 빼요. 전체 가입자 <%= M.total_users %>명<% if (M.since) { %> · <%= M.since.replace(/-/g, '.') %>부터 기록<% } %>.
+  <br><small>※ 스레드·인스타·카톡 앱 안에서 연 화면은 앱마다 따로 저장돼서, 같은 사람이 다른 앱으로 들어오면 2명으로 셀 수 있어요.</small></p>
 
   <div class="lg-two mt">
     <div class="lg-card">
       <h2 class="lg-h3">최근 14일</h2>
       <table class="lg-daytable">
-        <thead><tr><th>날짜</th><th>방문자(IP)</th><th>방문 횟수</th><th>본 화면</th><th>가입</th></tr></thead>
+        <thead><tr><th>날짜</th><th>사람</th><th>방문</th><th>화면</th><th>가입</th></tr></thead>
         <tbody>
           <% stats.daily.forEach(function(r, i){ %>
             <tr class="<%= i === 0 ? 'today' : '' %>"><td><%= r.label %> <small class="lg-muted">(<%= '월화수목금토일'[r.dow - 1] %>)</small><%= i === 0 ? ' 오늘' : '' %></td><td><%= r.v %></td><td><%= r.vc %></td><td><%= r.pv %></td><td><%= r.j %></td></tr>
@@ -71,13 +63,13 @@
     </div>
     <div>
       <div class="lg-card">
-        <h2 class="lg-h3">어디서 들어왔나 <small class="lg-muted">최근 7일</small></h2>
+        <h2 class="lg-h3">어디서 들어왔나 <small class="lg-muted"><%= RL %></small></h2>
         <% if (stats.refs.length) { %>
           <ul class="lg-refs"><% stats.refs.forEach(function(r){ %><li><span><%= r.host %></span><b><%= r.n %>명</b></li><% }); %></ul>
         <% } else { %><p class="lg-muted">아직 기록이 없어요.</p><% } %>
       </div>
       <div class="lg-card mt">
-        <h2 class="lg-h3">처음 들어온 화면 <small class="lg-muted">최근 7일</small></h2>
+        <h2 class="lg-h3">처음 들어온 화면 <small class="lg-muted"><%= RL %></small></h2>
         <% if (stats.pages.length) { %>
           <ul class="lg-refs"><% stats.pages.forEach(function(r){ %><li><span><%= r.path %></span><b><%= r.n %>명</b></li><% }); %></ul>
         <% } else { %><p class="lg-muted">아직 기록이 없어요.</p><% } %>
@@ -90,7 +82,7 @@
       </div>
       <div class="lg-card mt">
         <h2 class="lg-h3">최근 가입</h2>
-        <ul class="lg-refs"><% stats.joins.forEach(function(u){ %><li><span><%= u.nick %><%= u.done ? '' : ' · 프로필 전' %></span><small class="lg-muted"><%= u.at %></small></li><% }); %></ul>
+        <ul class="lg-refs"><% stats.joins.forEach(function(u){ %><li><span><a href="/admin/lounge/members/<%= u.id %>"><%= u.nick %></a><%= u.done ? '' : ' · 프로필 전' %></span><small class="lg-muted"><%= u.at %></small></li><% }); %></ul>
       </div>
     </div>
   </div>
