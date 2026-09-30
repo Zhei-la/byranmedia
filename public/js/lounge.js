@@ -23,6 +23,17 @@
     sync();
   });
 
+  /* 커뮤니티: '요청하기/인증하기' 누르면 쓰기 칸 펼치기 */
+  $$('[data-openwrite]').forEach(function (b) {
+    b.addEventListener('click', function (e) {
+      var f = document.getElementById('write');
+      if (!f) return;
+      e.preventDefault();
+      f.hidden = !f.hidden;
+      if (!f.hidden) { var t = f.querySelector('[name=guest_name],[name=title]'); if (t) t.focus(); }
+    });
+  });
+
   /* 준비중인 곳: 눌러도 들어가지 않고 알림만 */
   var soon = (document.body.getAttribute('data-soon') || '').split(' ');
   function isSoon(p) {

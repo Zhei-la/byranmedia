@@ -1,9 +1,7 @@
-<%# 커뮤니티 분류 탭 (글 + 후기를 한곳에) %>
-<% const CN = L.CATEGORIES; const cur = typeof cat !== 'undefined' ? cat : 'review'; %>
-<nav class="lg-tabs" aria-label="분류">
-  <a href="/community" class="<%= cur === 'all' ? 'on' : '' %>">전체</a>
-  <% Object.keys(CN).forEach(function(k){ %>
-    <a href="/community?cat=<%= k %>" class="<%= cur === k ? 'on' : '' %>"><%= CN[k].label %></a>
-  <% }); %>
-  <a href="/reviews" class="<%= cur === 'review' ? 'on' : '' %>">⭐ 후기</a>
+<%# 커뮤니티 세 칸: 채팅 · 프롬프트 요청 · 인증 %>
+<% const cur = typeof cat !== 'undefined' ? cat : ''; %>
+<nav class="lg-cnav" aria-label="커뮤니티 메뉴">
+  <a href="/community" class="<%= cur === 'chat' ? 'on' : '' %>"><span>💬</span>채팅</a>
+  <a href="/community?cat=request" class="<%= cur === 'request' ? 'on' : '' %>"><span>🎨</span>프롬프트 요청</a>
+  <a href="/community?cat=proof" class="<%= cur === 'proof' ? 'on' : '' %>"><span>✅</span>인증</a>
 </nav>

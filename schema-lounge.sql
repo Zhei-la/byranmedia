@@ -285,3 +285,7 @@ CREATE INDEX IF NOT EXISTS idx_visits_day ON lounge_visits (day);
 
 -- 프롬프트 요청 글에 운영자가 올린 프롬프트를 연결
 ALTER TABLE lounge_posts ADD COLUMN IF NOT EXISTS prompt_id INT REFERENCES lounge_prompts(id) ON DELETE SET NULL;
+
+-- 로그인 없이 남긴 프롬프트 요청: 이름(선택)과 도배 방지용 IP
+ALTER TABLE lounge_posts ADD COLUMN IF NOT EXISTS guest_name VARCHAR(20);
+ALTER TABLE lounge_posts ADD COLUMN IF NOT EXISTS guest_ip   VARCHAR(64);

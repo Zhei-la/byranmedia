@@ -963,3 +963,24 @@ body.lg{background:#fff;color:var(--ink)}
 .lg-peek{display:inline-block;margin-left:6px;padding:2px 8px;border-radius:999px;background:#171717;color:#fff;font-size:10.5px;letter-spacing:0;text-transform:none;font-weight:700;vertical-align:1px}
 .lg-cols>*,.lg-col-main{min-width:0}
 .lg-foot-mail{font-size:13px;color:#6B6B70;margin:4px 0 0}.lg-foot-mail a{color:inherit;font-weight:600;text-decoration:underline;text-underline-offset:2px}
+
+/* 커뮤니티 세 칸 */
+.lg-chead{padding-bottom:0}
+.lg-chead .lg-muted{margin-bottom:18px}
+.lg-cnav{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;background:#F4F4F6;border-radius:14px;padding:5px}
+.lg-cnav a{display:flex;align-items:center;justify-content:center;gap:6px;padding:11px 6px;border-radius:10px;font-weight:700;font-size:14.5px;color:#6B6B70;text-decoration:none;white-space:nowrap}
+.lg-cnav a span{font-size:15px}
+.lg-cnav a.on{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.lg-csec{margin-top:16px;display:flex;flex-direction:column;gap:14px;padding-bottom:40px}
+.lg-csec .lg-chat.tall{min-height:520px}
+.lg-cintro{display:flex;align-items:center;gap:16px;justify-content:space-between;border-radius:14px;padding:16px 18px;border:1px solid}
+.lg-cintro.req{background:#FFF7F0;border-color:#FBE3CF}
+.lg-cintro.proof{background:#F2FBF5;border-color:#CDEBD8}
+.lg-cintro b{font-size:15px}
+.lg-cintro p{margin:4px 0 0;font-size:13.5px;color:#5B5B60;line-height:1.6}
+.lg-cintro .lg-btn{flex:none}
+.lg-cwrite{display:flex;flex-direction:column;gap:10px}
+.lg-cwrite[hidden]{display:none}
+.lg-hp{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
+@media (max-width:640px){.lg-cintro{flex-direction:column;align-items:flex-start}.lg-cnav a{font-size:13.5px}}
+.lg-chead,.lg-csec{max-width:760px}

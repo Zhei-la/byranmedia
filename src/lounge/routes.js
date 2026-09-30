@@ -91,12 +91,12 @@ get('/', async (req, res) => {
     q(`SELECT r.id, r.kind, r.headline, r.channel, r.image_id, COALESCE(u.nickname,u.name) AS nick
          FROM lounge_results r JOIN users u ON u.id=r.user_id
         WHERE r.is_hidden=false ORDER BY r.created_at DESC LIMIT 12`),
-    q(`SELECT p.id, p.category, p.title, p.is_pinned, p.views, p.created_at, p.user_id,
-              COALESCE(u.nickname,u.name) AS nick, u.role,
+    q(`SELECT p.id, p.category, p.title, p.is_pinned, p.views, p.created_at, p.user_id, p.prompt_id,
+              COALESCE(u.nickname, u.name, p.guest_name, '손님') AS nick, u.role,
               (SELECT count(*) FROM lounge_comments c WHERE c.post_id=p.id AND c.is_hidden=false)::int AS comments
          FROM lounge_posts p LEFT JOIN users u ON u.id=p.user_id
-        WHERE p.is_hidden=false
-        ORDER BY (p.category='notice' AND p.is_pinned) DESC, p.created_at DESC LIMIT 8`),
+        WHERE p.is_hidden=false AND p.category IN ('request','proof')
+        ORDER BY p.created_at DESC LIMIT 8`),
     q(`SELECT c.id, c.body, c.created_at, COALESCE(u.nickname,u.name) AS nick, u.role
          FROM lounge_chat c JOIN users u ON u.id=c.user_id
         WHERE c.is_hidden=false ORDER BY c.id DESC LIMIT 6`),
@@ -151,7 +151,7 @@ post('/onboard', async (req, res) => {
     throw e;
   }
   const libSoon = (res.locals.soon || {}).library;
-  flash(req, first ? (libSoon ? `환영해요, ${chk.value}님! 커뮤니티에 가입 인사부터 남겨 주세요 👋` : `환영해요, ${chk.value}님! 자료실에서 무료 자료집부터 챙겨 가세요 🎁`) : '프로필을 바꿨어요.');
+  flash(req, first ? (libSoon ? `환영해요, ${chk.value}님! 채팅에서 인사 남기거나 원하는 프롬프트를 요청해 보세요 👋` : `환영해요, ${chk.value}님! 자료실에서 무료 자료집부터 챙겨 가세요 🎁`) : '프로필을 바꿨어요.');
   let to = nextUrl || (first ? (libSoon ? '/' : '/library') : '/my');
   if (L.soonBlocked(res.locals.soon || {}, to.split('?')[0].split('#')[0])) to = '/';
   res.redirect(to);
@@ -160,62 +160,85 @@ post('/onboard', async (req, res) => {
 /* ---------------- 커뮤니티 ---------------- */
 const PAGE = 15;
 
+// 커뮤니티는 세 칸만: 채팅 · 프롬프트 요청 · 인증
+const CTABS = ['chat', 'request', 'proof'];
 get('/community', async (req, res) => {
-  const cat = L.CATEGORIES[req.query.cat] ? req.query.cat : 'all';
+  const cat = CTABS.includes(req.query.cat) ? req.query.cat : 'chat';
   const page = Math.max(1, parseInt(req.query.page, 10) || 1);
-  const showPinned = cat === 'all' || cat === 'notice';
-  const params = [];
-  let where = `p.is_hidden=false`;
-  if (cat !== 'all') {
-    params.push(cat);
-    where += ` AND p.category=$${params.length}`;
+  let posts = [], total = 0, chat = [];
+  if (cat === 'chat') {
+    const r = await db.query(
+      `SELECT c.id, c.body, c.created_at, COALESCE(u.nickname,u.name) AS nick, u.role
+         FROM lounge_chat c JOIN users u ON u.id=c.user_id
+        WHERE c.is_hidden=false ORDER BY c.id DESC LIMIT 60`
+    );
+    chat = r.rows.reverse();
+  } else {
+    const { rows: cnt } = await db.query(`SELECT count(*)::int AS n FROM lounge_posts WHERE is_hidden=false AND category=$1`, [cat]);
+    total = cnt[0].n;
+    const r = await db.query(
+      `SELECT p.id, p.category, p.title, p.views, p.created_at, p.user_id, p.image_id, p.prompt_id,
+              COALESCE(u.nickname, u.name, p.guest_name, '손님') AS nick, u.role, p.user_id IS NULL AS guest,
+              (SELECT count(*) FROM lounge_likes l WHERE l.post_id=p.id)::int AS likes,
+              (SELECT count(*) FROM lounge_comments c WHERE c.post_id=p.id AND c.is_hidden=false)::int AS comments
+         FROM lounge_posts p LEFT JOIN users u ON u.id=p.user_id
+        WHERE p.is_hidden=false AND p.category=$1
+        ORDER BY p.created_at DESC LIMIT $2 OFFSET $3`,
+      [cat, PAGE, (page - 1) * PAGE]
+    );
+    posts = r.rows;
   }
-  // 고정 공지는 위에 따로 보여주므로 목록에서는 뺀다
-  if (showPinned) where += ` AND NOT (p.category='notice' AND p.is_pinned)`;
-  const { rows: cnt } = await db.query(`SELECT count(*)::int AS n FROM lounge_posts p WHERE ${where}`, params);
-  const { rows: pinned } = showPinned && page === 1
-    ? await db.query(
-        `SELECT p.id, p.category, p.title, p.views, p.created_at, COALESCE(u.nickname,u.name) AS nick, u.role,
-                (SELECT count(*) FROM lounge_likes l WHERE l.post_id=p.id)::int AS likes,
-                (SELECT count(*) FROM lounge_comments c WHERE c.post_id=p.id AND c.is_hidden=false)::int AS comments
-           FROM lounge_posts p LEFT JOIN users u ON u.id=p.user_id
-          WHERE p.is_hidden=false AND p.category='notice' AND p.is_pinned=true
-          ORDER BY p.created_at DESC LIMIT 5`)
-    : { rows: [] };
-  params.push(PAGE, (page - 1) * PAGE);
-  const { rows: posts } = await db.query(
-    `SELECT p.id, p.category, p.title, p.views, p.created_at, p.user_id, p.image_id, p.prompt_id,
-            COALESCE(u.nickname,u.name) AS nick, u.role,
-            (SELECT count(*) FROM lounge_likes l WHERE l.post_id=p.id)::int AS likes,
-            (SELECT count(*) FROM lounge_comments c WHERE c.post_id=p.id AND c.is_hidden=false)::int AS comments
-       FROM lounge_posts p LEFT JOIN users u ON u.id=p.user_id
-      WHERE ${where}
-      ORDER BY p.created_at DESC LIMIT $${params.length - 1} OFFSET $${params.length}`,
-    params
-  );
-  const { rows: chat } = await db.query(
-    `SELECT c.id, c.body, c.created_at, COALESCE(u.nickname,u.name) AS nick, u.role
-       FROM lounge_chat c JOIN users u ON u.id=c.user_id
-      WHERE c.is_hidden=false ORDER BY c.id DESC LIMIT 30`
-  );
-  const pt = req.user && req.user.nickname ? await P.summary(req.user.id) : null;
   res.render('lounge/community', {
-    title: '커뮤니티', active: 'community', cat, page, pt,
-    pages: Math.max(1, Math.ceil(cnt[0].n / PAGE)), total: cnt[0].n,
-    pinned, posts, chat: chat.reverse(), write: req.query.write === '1',
-    writeCat: L.CATEGORIES[req.query.wc] ? req.query.wc : (cat !== 'all' && cat !== 'notice' ? cat : 'hello'),
+    title: '커뮤니티', active: 'community', cat, page, posts, chat,
+    pages: Math.max(1, Math.ceil(total / PAGE)), total,
+    write: req.query.write === '1',
   });
 });
 
-post('/community', member, async (req, res) => {
-  let category = L.CATEGORIES[req.body.category] ? req.body.category : 'free';
-  if (category === 'notice' && !isAdmin(req)) category = 'free';
+// 프롬프트 요청은 로그인 없이도, 나머지는 회원만
+function memberOrGuestRequest(req, res, next) {
+  if (!req.user && req.body.category === 'request') return next();
+  return member(req, res, next);
+}
+
+post('/community', memberOrGuestRequest, async (req, res) => {
+  const category = req.body.category === 'request' ? 'request' : 'proof';
   const title = String(req.body.title || '').trim().slice(0, 120);
   const body = String(req.body.body || '').trim().slice(0, 5000);
+  const backTo = `/community?cat=${category}&write=1#write`;
   if (!title || !body) {
     flash(req, '제목과 내용을 모두 적어 주세요.');
-    return res.redirect(`/community?write=1&wc=${category}`);
+    return res.redirect(backTo);
   }
+
+  // 로그인 없이 남기는 프롬프트 요청
+  if (!req.user) {
+    if (req.body.website) return res.redirect('/community?cat=request'); // 자동 등록 봇 걸러내기 (보이지 않는 칸)
+    const ip = String(req.ip || '').slice(0, 64);
+    const { rows: rc } = await db.query(
+      `SELECT count(*) FILTER (WHERE created_at > now() - interval '10 minutes')::int AS m10,
+              count(*) FILTER (WHERE created_at > now() - interval '1 day')::int AS d1
+         FROM lounge_posts WHERE guest_ip=$1`,
+      [ip]
+    );
+    if (rc[0].m10 >= 3 || rc[0].d1 >= 10) {
+      flash(req, '요청을 너무 많이 남겼어요. 잠시 후 다시 남겨 주세요.');
+      return res.redirect('/community?cat=request');
+    }
+    const name = String(req.body.guest_name || '').trim().replace(/\s+/g, ' ').slice(0, 20) || null;
+    if (name && !L.checkNick(name.slice(0, 10)).ok) {
+      flash(req, '이름에 쓸 수 없는 단어가 있어요. 비워 두셔도 돼요.');
+      return res.redirect(backTo);
+    }
+    const { rows } = await db.query(
+      `INSERT INTO lounge_posts (user_id, category, title, body, guest_name, guest_ip)
+       VALUES (NULL, 'request', $1, $2, $3, $4) RETURNING id`,
+      [title, body, name, ip]
+    );
+    flash(req, '요청을 남겼어요! 프롬프트가 올라오면 이 글에서 확인할 수 있어요. 주소를 저장해 두세요 🙏');
+    return res.redirect(`/community/${rows[0].id}`);
+  }
+
   // 도배 방지: 1분에 3개까지
   const { rows: rc } = await db.query(
     `SELECT count(*)::int AS n FROM lounge_posts WHERE user_id=$1 AND created_at > now() - interval '1 minute'`,
@@ -223,29 +246,25 @@ post('/community', member, async (req, res) => {
   );
   if (rc[0].n >= 3 && !isAdmin(req)) {
     flash(req, '글을 너무 빨리 올리고 있어요. 잠시 후 다시 올려 주세요.');
-    return res.redirect('/community');
+    return res.redirect(`/community?cat=${category}`);
   }
   const imageId = req.body.image ? await L.saveImage(req.user.id, req.body.image) : null;
-  const pinned = category === 'notice' && req.body.pinned === '1';
   const { rows } = await db.query(
-    `INSERT INTO lounge_posts (user_id, category, title, body, image_id, is_pinned)
-     VALUES ($1,$2,$3,$4,$5,$6) RETURNING id`,
-    [req.user.id, category, title, body, imageId, pinned]
+    `INSERT INTO lounge_posts (user_id, category, title, body, image_id) VALUES ($1,$2,$3,$4,$5) RETURNING id`,
+    [req.user.id, category, title, body, imageId]
   );
   let got = 0;
   const r = await P.rules();
-  const earnable = category !== 'notice' && category !== 'secret';
-  if (earnable && body.length >= r.postMin) got = await P.earn(req.user.id, 'post', rows[0].id);
+  if (body.length >= r.postMin) got = await P.earn(req.user.id, 'post', rows[0].id);
   if (got) flash(req, `글을 올렸어요. +${got}P 적립! 💎`);
-  else if (earnable && body.length < r.postMin) flash(req, `글을 올렸어요. (내용이 ${r.postMin}자 이상이면 포인트가 쌓여요)`);
-  else if (earnable) flash(req, `글을 올렸어요. 오늘 글 포인트는 다 받았어요 (하루 ${r.postDaily}개까지).`);
-  else flash(req, '글을 올렸어요.');
+  else if (body.length < r.postMin) flash(req, `글을 올렸어요. (내용이 ${r.postMin}자 이상이면 포인트가 쌓여요)`);
+  else flash(req, `글을 올렸어요. 오늘 글 포인트는 다 받았어요 (하루 ${r.postDaily}개까지).`);
   res.redirect(`/community/${rows[0].id}`);
 });
 
 async function loadPost(id) {
   const { rows } = await db.query(
-    `SELECT p.*, COALESCE(u.nickname,u.name) AS nick, u.role,
+    `SELECT p.*, COALESCE(u.nickname, u.name, p.guest_name, '손님') AS nick, u.role,
             (SELECT count(*) FROM lounge_likes l WHERE l.post_id=p.id)::int AS likes
        FROM lounge_posts p LEFT JOIN users u ON u.id=p.user_id WHERE p.id=$1`,
     [id]

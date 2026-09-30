@@ -72,7 +72,7 @@
     <p class="lg-mypoints-bal"><b><%= P.fmt(pt.balance) %></b>P</p>
     <p class="lg-muted">오늘 글 <%= Math.min(pt.today.posts, pt.rules.postDaily) %>/<%= pt.rules.postDaily %> (+<%= pt.rules.post %>P씩) · 후기 <%= Math.min(pt.today.reviews, pt.rules.reviewDaily) %>/<%= pt.rules.reviewDaily %> (+<%= pt.rules.review %>P)</p>
     <div class="lg-bbtns">
-      <a href="/community?write=1#write" class="lg-btn sm">글 쓰고 모으기</a>
+      <a href="/community?cat=proof&write=1#write" class="lg-btn sm">글 쓰고 모으기</a>
       <a href="/reviews?write=1#write" class="lg-btn sm">후기 쓰고 모으기</a>
       <a href="/library" class="lg-btn sm primary">자료집 열기</a>
     </div>
@@ -136,7 +136,7 @@
         <% posts.forEach(function(p){ %><li><a href="/community/<%= p.id %>"><%= p.title %></a> <span class="lg-muted">· <%= L.ago(p.created_at) %></span></li><% }); %>
       </ul>
     <% } else { %>
-      <p class="lg-muted">아직 쓴 글이 없어요. <a href="/community?write=1&wc=hello#write">가입 인사</a>부터 남겨 볼까요?</p>
+      <p class="lg-muted">아직 쓴 글이 없어요. <a href="/community?cat=proof&write=1#write">오늘의 인증</a>부터 남겨 볼까요?</p>
     <% } %>
   </div>
 

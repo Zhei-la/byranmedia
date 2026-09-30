@@ -1,145 +1,104 @@
 <%- include('_top') %>
 <%
-  const CATS = L.CATEGORIES;
-  const qs = (o) => '?' + Object.entries(Object.assign({ cat: cat === 'all' ? '' : cat, page: '' }, o)).filter(e => e[1]).map(e => e[0] + '=' + encodeURIComponent(e[1])).join('&');
   const isAdmin = user && user.role === 'admin';
+  const isMember = !!(user && me);
+  const qs = (o) => '?' + Object.entries(Object.assign({ cat: cat, page: '' }, o)).filter(e => e[1]).map(e => e[0] + '=' + encodeURIComponent(e[1])).join('&');
+  const loginTo = (to) => '/login?next=' + encodeURIComponent(to);
 %>
-<section class="lg-wrap lg-pagehead">
-  <p class="lg-kicker">Community</p>
+<section class="lg-wrap narrow lg-pagehead lg-chead">
   <h1 class="lg-h1">커뮤니티</h1>
-  <p class="lg-muted">가입 인사, 오늘의 인증, 질문, 후기까지. 남길수록 포인트가 쌓여요.</p>
-  <% if (S.live_room_url) { %>
-    <a href="<%= S.live_room_url %>" target="_blank" rel="noopener" class="lg-liveroom">
-      💬 전체 카톡방 들어가기<% if (S.live_room_code) { %> · 참여코드 <b><%= S.live_room_code %></b><% } %> →
-    </a>
-  <% } %>
+  <p class="lg-muted">같이 이야기하고, 원하는 프롬프트를 요청하고, 오늘 한 걸 인증해요.</p>
+  <%- include('_cnav') %>
 </section>
 
-<section class="lg-wrap"><%- include('_ptbar') %></section>
+<section class="lg-wrap narrow lg-csec">
 
-<section class="lg-wrap lg-cols">
-  <div class="lg-col-main">
-    <% if (!user) { %>
-      <div class="lg-lockcard">
-        <span>🔒</span>
-        <div><b>가입하면 글쓰기·댓글·채팅을 할 수 있어요</b><p>카카오로 3초면 끝나요.</p></div>
-        <a href="/login?next=/community" class="lg-btn kakao sm">시작하기</a>
-      </div>
-    <% } else if (me) { %>
-      <details class="lg-card lg-write" <%= write ? 'open' : '' %> id="write">
-        <summary>
-          <span class="lg-ava"><%= nick.slice(0,1) %></span>
-          <span class="lg-write-ph">오늘 한 일을 남겨 보세요…</span>
-          <span class="lg-btn primary sm">글쓰기</span>
-        </summary>
-        <form method="post" action="/community" data-image-form class="lg-write-form">
-          <div class="lg-chips" role="radiogroup" aria-label="분류">
-            <% Object.keys(CATS).forEach(function(k){ if (k === 'notice' && !isAdmin) return; %>
-              <label class="lg-chip"><input type="radio" name="category" value="<%= k %>" <%= writeCat === k ? 'checked' : '' %> data-cat-radio><span><%= CATS[k].label %></span></label>
-            <% }); %>
-          </div>
-          <div class="lg-reqguide" data-reqguide <%= writeCat === 'request' ? '' : 'hidden' %>>
-            <b>🎨 이런 프롬프트가 있으면 좋겠다!</b>
-            <span>원하는 느낌을 적어 주시면 바이란이 프롬프트로 만들어 AI 프롬프트에 올려 드려요. 참고 사진이 있으면 같이 올려 주세요.</span>
-          </div>
-          <input name="title" class="lg-in" maxlength="120" required placeholder="제목" data-ph-title="제목" data-ph-title-req="예: 벚꽃 아래 한복 입은 인물 화보">
-          <textarea name="body" class="lg-in" rows="6" maxlength="5000" required placeholder="오늘의 인증 예시)&#10;- 블로그 글 1개 발행 (링크)&#10;- 제목을 3번 고쳐 봤어요&#10;- 내일은 키워드 찾기!" data-ph-body-req="원하는 컨셉을 자유롭게 적어 주세요.&#10;- 누가/무엇이: 20대 여성, 강아지, 제품 사진 등&#10;- 분위기·스타일: 실사, 애니, 파스텔, 필름 느낌 등&#10;- 장소·배경, 옷, 색감, 구도&#10;- 어디에 쓸지: 스레드 프로필, 블로그 썸네일 등"></textarea>
-          <div class="lg-write-foot">
-            <label class="lg-btn sm ghost lg-filebtn">📷 사진<input type="file" accept="image/*" data-file hidden></label>
-            <img alt="" data-preview hidden class="lg-thumb">
-            <input type="hidden" name="image" data-image>
-            <% if (isAdmin) { %><label class="lg-check"><input type="checkbox" name="pinned" value="1"> 공지 고정</label><% } %>
-            <span class="lg-grow"></span>
-            <button type="submit" class="lg-btn primary">올리기</button>
-          </div>
-          <p class="lg-hint">💎 내용이 20자 이상인 글은 +<%= S.pt_post %>P (하루 <%= S.pt_post_daily %>개까지). 1:1 문의·공지는 포인트가 없고, 글을 지우면 받은 포인트도 빠져요. 1:1 문의는 쓴 사람과 운영자만 볼 수 있어요.</p>
-          <p class="lg-hint">후기를 남기고 싶다면 → <a href="/reviews?write=1#write">후기 쓰기 (+<%= S.pt_review %>P)</a></p>
-        </form>
-      </details>
-    <% } %>
-
-    <%- include('_cnav') %>
-
-    <% if (cat === 'request') { %>
-      <div class="lg-reqbox">
-        <div>
-          <b>🎨 요청하고 싶은 프롬프트가 있나요?</b>
-          <p>원하는 컨셉을 남겨 주시면 바이란이 프롬프트로 만들어 <a href="/prompts">AI 프롬프트</a>에 올려 드려요. 올라가면 글에 <i class="lg-reqstate done">완료</i>로 바뀌고 댓글로 알려 드려요.</p>
-        </div>
-        <% if (user && me) { %>
-          <a href="/community?cat=request&write=1&wc=request#write" class="lg-btn primary sm">요청하기</a>
-        <% } else { %>
-          <a href="/login?next=<%= encodeURIComponent('/community?cat=request&write=1&wc=request') %>" class="lg-btn kakao sm">가입하고 요청하기</a>
-        <% } %>
-      </div>
-    <% } %>
-
-    <div class="lg-card flush">
-      <ul class="lg-board">
-        <% pinned.forEach(function(p){ %>
-          <li class="notice">
-            <a href="/community/<%= p.id %>">
-              <span class="lg-cat c-notice">공지</span>
-              <span class="t"><%= p.title %><% if (p.comments) { %> <em>[<%= p.comments %>]</em><% } %></span>
-              <span class="m"><%= p.nick %> · <%= L.ago(p.created_at) %> · 조회 <%= p.views %></span>
-            </a>
-          </li>
-        <% }); %>
-        <% posts.forEach(function(p){ var c = CATS[p.category] || {label:'자유'}; var mine = user && (user.id === p.user_id || isAdmin); %>
-          <li>
-            <a href="/community/<%= p.id %>">
-              <span class="lg-cat c-<%= p.category %>"><%= c.label %></span>
-              <span class="t">
-                <% if (p.category === 'request') { %><i class="lg-reqstate <%= p.prompt_id ? 'done' : '' %>"><%= p.prompt_id ? '완료' : '접수' %></i><% } %>
-                <% if (p.category === 'secret' && !mine) { %>🔒 비밀글입니다<% } else { %><%= p.category === 'secret' ? '🔒 ' : '' %><%= p.title %><% } %>
-                <% if (p.image_id) { %> <span class="lg-muted" title="사진 있음">📷</span><% } %>
-                <% if (p.comments) { %> <em>[<%= p.comments %>]</em><% } %>
-              </span>
-              <span class="m"><%= p.nick %><%= p.role === 'admin' ? ' 👑' : '' %> · <%= L.ago(p.created_at) %> · ♥ <%= p.likes %></span>
-            </a>
-          </li>
-        <% }); %>
-        <% if (!pinned.length && !posts.length) { %>
-          <li class="lg-empty-row">아직 글이 없어요. 첫 글을 남겨 주세요!</li>
-        <% } %>
-      </ul>
+<% if (cat === 'chat') { %>
+  <div class="lg-card lg-chat tall" data-chat data-after="<%= chat.length ? chat[chat.length-1].id : 0 %>" data-login="<%= isMember ? '1' : '' %>">
+    <div class="lg-card-h">
+      <h3># 실시간 수다방</h3>
+      <span class="lg-live"><i></i> <span data-online>지금</span></span>
     </div>
-
-    <% if (pages > 1) { %>
-      <nav class="lg-pager" aria-label="페이지">
-        <% for (let i = 1; i <= pages; i++) { if (pages > 9 && Math.abs(i - page) > 3 && i !== 1 && i !== pages) continue; %>
-          <a href="/community<%= qs({ page: i > 1 ? String(i) : '' }) %>" class="<%= i === page ? 'on' : '' %>"><%= i %></a>
-        <% } %>
-      </nav>
+    <ul class="lg-chat-list" data-list>
+      <% chat.forEach(function(m){ %>
+        <li><b class="<%= m.role === 'admin' ? 'admin' : '' %>"><%= m.nick %></b><span><%= m.body %></span></li>
+      <% }); %>
+      <% if (!chat.length) { %><li class="lg-muted" data-emptyrow>아직 조용해요. 첫 인사를 남겨 주세요!</li><% } %>
+    </ul>
+    <% if (isMember) { %>
+      <form class="lg-chat-form" data-chatform>
+        <input name="body" maxlength="300" placeholder="메시지 보내기" autocomplete="off" aria-label="채팅 메시지">
+        <button class="lg-btn primary sm">전송</button>
+      </form>
+    <% } else { %>
+      <a href="<%= loginTo('/community') %>" class="lg-chat-lock">💬 카카오로 가입하고 같이 이야기하기</a>
     <% } %>
   </div>
 
-  <aside class="lg-col-side">
-    <div class="lg-card lg-chat tall" data-chat data-after="<%= chat.length ? chat[chat.length-1].id : 0 %>" data-login="<%= user && me ? '1' : '' %>">
-      <div class="lg-card-h">
-        <h3># 실시간 수다방</h3>
-        <span class="lg-live"><i></i> <span data-online>지금</span></span>
-      </div>
-      <ul class="lg-chat-list" data-list>
-        <% chat.forEach(function(m){ %>
-          <li><b class="<%= m.role === 'admin' ? 'admin' : '' %>"><%= m.nick %></b><span><%= m.body %></span></li>
-        <% }); %>
-        <% if (!chat.length) { %><li class="lg-muted" data-emptyrow>아직 조용해요. 첫 인사를 남겨 주세요!</li><% } %>
-      </ul>
-      <% if (user && me) { %>
-        <form class="lg-chat-form" data-chatform>
-          <input name="body" maxlength="300" placeholder="메시지 보내기" autocomplete="off" aria-label="채팅 메시지">
-          <button class="lg-btn primary sm">전송</button>
-        </form>
-      <% } else { %>
-        <a href="/login?next=/community" class="lg-chat-lock">🔒 가입하면 같이 이야기할 수 있어요</a>
+<% } else { %>
+  <% const isReq = cat === 'request'; const canWrite = isReq || isMember; %>
+  <div class="lg-cintro <%= isReq ? 'req' : 'proof' %>">
+    <div>
+      <b><%= isReq ? '🎨 이런 프롬프트가 있으면 좋겠다!' : '✅ 오늘 한 걸 인증해요' %></b>
+      <p><%= isReq ? '원하는 컨셉을 적어 주시면 바이란이 프롬프트로 만들어 AI 프롬프트에 올려 드려요. 로그인 없이도 남길 수 있어요.' : '블로그 글 발행, 스레드 업로드, 첫 수익까지. 작은 것도 좋아요. 인증하면 포인트가 쌓여요.' %></p>
+    </div>
+    <% if (canWrite) { %>
+      <a href="<%= qs({ write: '1' }) %>#write" class="lg-btn primary sm" data-openwrite><%= isReq ? '요청하기' : '인증하기' %></a>
+    <% } else { %>
+      <a href="<%= loginTo('/community?cat=proof&write=1') %>" class="lg-btn kakao sm">가입하고 인증하기</a>
+    <% } %>
+  </div>
+
+  <% if (canWrite) { %>
+    <form method="post" action="/community" id="write" class="lg-card lg-cwrite" data-image-form <%= write ? '' : 'hidden' %>>
+      <input type="hidden" name="category" value="<%= cat %>">
+      <% if (!isMember) { %>
+        <input name="guest_name" class="lg-in" maxlength="20" placeholder="이름 (선택 · 비워도 돼요)" autocomplete="nickname">
+        <input name="website" tabindex="-1" autocomplete="off" class="lg-hp" aria-hidden="true">
       <% } %>
-    </div>
-    <div class="lg-card lg-mini-me">
-      <h3 class="lg-h3">처음 오셨나요?</h3>
-      <p class="lg-muted">가입 인사로 어떤 걸 해보고 싶은지 남겨 주세요. 비슷한 분들이 먼저 말 걸어 줄 거예요.</p>
-      <a href="<%= user ? '/community?write=1&wc=hello#write' : '/login?next=/community' %>" class="lg-btn block sm">가입 인사 쓰기</a>
-    </div>
-  </aside>
+      <input name="title" class="lg-in" maxlength="120" required placeholder="<%= isReq ? '예: 벚꽃 아래 한복 입은 인물 화보' : '예: 블로그 글 1개 발행!' %>">
+      <textarea name="body" class="lg-in" rows="6" maxlength="5000" required placeholder="<%= isReq ? '원하는 컨셉을 자유롭게 적어 주세요.\n- 누가/무엇이: 20대 여성, 강아지, 제품 사진 등\n- 분위기·스타일: 실사, 애니, 파스텔, 필름 느낌 등\n- 장소·배경, 옷, 색감, 구도\n- 어디에 쓸지: 스레드 프로필, 블로그 썸네일 등' : '오늘 한 일을 적어 주세요.\n- 블로그 글 1개 발행 (링크)\n- 제목을 3번 고쳐 봤어요\n- 내일은 키워드 찾기!' %>"></textarea>
+      <div class="lg-write-foot">
+        <% if (isMember) { %>
+          <label class="lg-btn sm ghost lg-filebtn">📷 사진<input type="file" accept="image/*" data-file hidden></label>
+          <img alt="" data-preview hidden class="lg-thumb">
+          <input type="hidden" name="image" data-image>
+        <% } %>
+        <span class="lg-grow"></span>
+        <button type="submit" class="lg-btn primary"><%= isReq ? '요청 남기기' : '올리기' %></button>
+      </div>
+      <% if (!isMember) { %><p class="lg-hint">로그인 없이 남긴 글은 지울 수 없어요. 프롬프트가 올라오면 이 글에 표시돼요.</p><% } else { %><p class="lg-hint">💎 20자 이상 쓰면 +<%= S.pt_post %>P (하루 <%= S.pt_post_daily %>개까지)</p><% } %>
+    </form>
+  <% } %>
+
+  <div class="lg-card flush">
+    <ul class="lg-board">
+      <% posts.forEach(function(p){ %>
+        <li>
+          <a href="/community/<%= p.id %>">
+            <span class="t">
+              <% if (isReq) { %><i class="lg-reqstate <%= p.prompt_id ? 'done' : '' %>"><%= p.prompt_id ? '완료' : '접수' %></i><% } %>
+              <%= p.title %>
+              <% if (p.image_id) { %> <span class="lg-muted" title="사진 있음">📷</span><% } %>
+              <% if (p.comments) { %> <em>[<%= p.comments %>]</em><% } %>
+            </span>
+            <span class="m"><%= p.nick %><%= p.role === 'admin' ? ' 👑' : '' %> · <%= L.ago(p.created_at) %><% if (!isReq) { %> · ♥ <%= p.likes %><% } %></span>
+          </a>
+        </li>
+      <% }); %>
+      <% if (!posts.length) { %>
+        <li class="lg-empty-row"><%= isReq ? '아직 요청이 없어요. 첫 요청을 남겨 주세요!' : '아직 인증이 없어요. 오늘 한 것부터 남겨 주세요!' %></li>
+      <% } %>
+    </ul>
+  </div>
+
+  <% if (pages > 1) { %>
+    <nav class="lg-pager" aria-label="페이지">
+      <% for (let i = 1; i <= pages; i++) { if (pages > 9 && Math.abs(i - page) > 3 && i !== 1 && i !== pages) continue; %>
+        <a href="/community<%= qs({ page: i > 1 ? String(i) : '' }) %>" class="<%= i === page ? 'on' : '' %>"><%= i %></a>
+      <% } %>
+    </nav>
+  <% } %>
+<% } %>
 </section>
 <%- include('_bottom') %>
