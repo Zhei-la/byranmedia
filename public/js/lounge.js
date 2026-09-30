@@ -34,6 +34,57 @@
     });
   });
 
+  /* 날짜별 막대 그래프: 숫자 바꾸기 · 눌러 보기(툴팁) */
+  $$('[data-dchart]').forEach(function (ch) {
+    var bars = $$('.lg-dbar', ch), tip = $('.lg-dchart-tip', ch), k = ch.getAttribute('data-k') || 'people';
+    var NAMES = { people: '방문한 사람', visits: '방문 횟수', views: '화면', joins: '가입' };
+    var UNIT = { people: '명', visits: '회', views: '회', joins: '명' };
+    function nice(n) { if (n <= 4) return 4; var p = Math.pow(10, Math.floor(Math.log10(n))); var f = n / p; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * p; }
+    function draw() {
+      var vals = bars.map(function (b) { return +b.getAttribute('data-' + k) || 0; });
+      var max = nice(Math.max.apply(null, vals.concat([1])));
+      var top = Math.max.apply(null, vals);
+      $('[data-y="2"]', ch).textContent = max.toLocaleString('ko-KR');
+      $('[data-y="1"]', ch).textContent = (max / 2).toLocaleString('ko-KR');
+      bars.forEach(function (b, i) {
+        var v = vals[i];
+        $('.lg-dbar-b', b).style.height = (v ? Math.max(2, v / max * 100) : 0) + '%';
+        var lab = $('.lg-dbar-v', b);
+        // 값 글자는 오늘과 제일 높은 날에만 (나머지는 눌러서 보기)
+        var show = v > 0 && (b.classList.contains('today') || v === top);
+        lab.textContent = show ? v.toLocaleString('ko-KR') : '';
+        lab.style.bottom = (v / max * 100) + '%';
+        b.setAttribute('aria-label', b.getAttribute('data-label') + ' ' + NAMES[k] + ' ' + v + UNIT[k]);
+      });
+      $$('.lg-dchart-tabs button', ch).forEach(function (t) { var on = t.getAttribute('data-k') === k; t.classList.toggle('on', on); t.setAttribute('aria-selected', on ? 'true' : 'false'); });
+    }
+    function show(b) {
+      tip.textContent = '';
+      var d = document.createElement('small'); d.textContent = b.getAttribute('data-label'); tip.appendChild(d);
+      ['people', 'visits', 'views', 'joins'].forEach(function (x) {
+        var row = document.createElement('div'); if (x === k) row.className = 'on';
+        var v = document.createElement('b'); v.textContent = (+b.getAttribute('data-' + x)).toLocaleString('ko-KR') + UNIT[x];
+        var n = document.createElement('span'); n.textContent = NAMES[x];
+        row.appendChild(v); row.appendChild(n); tip.appendChild(row);
+      });
+      tip.hidden = false;
+      var r = b.getBoundingClientRect(), cr = ch.getBoundingClientRect();
+      var left = r.left - cr.left + r.width / 2;
+      tip.style.left = Math.min(Math.max(left, 70), cr.width - 70) + 'px';
+      bars.forEach(function (x) { x.classList.toggle('hover', x === b); });
+    }
+    function hide() { tip.hidden = true; bars.forEach(function (x) { x.classList.remove('hover'); }); }
+    bars.forEach(function (b) {
+      b.addEventListener('pointerenter', function () { show(b); });
+      b.addEventListener('focus', function () { show(b); });
+      b.addEventListener('click', function () { show(b); });
+    });
+    ch.addEventListener('pointerleave', hide);
+    ch.addEventListener('focusout', function (e) { if (!ch.contains(e.relatedTarget)) hide(); });
+    $$('.lg-dchart-tabs button', ch).forEach(function (t) { t.addEventListener('click', function () { k = t.getAttribute('data-k'); draw(); hide(); }); });
+    draw();
+  });
+
   /* 준비중인 곳: 눌러도 들어가지 않고 알림만 */
   var soon = (document.body.getAttribute('data-soon') || '').split(' ');
   function isSoon(p) {

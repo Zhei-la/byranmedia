@@ -76,15 +76,9 @@
 
   <div class="lg-two mt">
     <div class="lg-card">
-      <h2 class="lg-h3">최근 14일</h2>
-      <table class="lg-daytable">
-        <thead><tr><th>날짜</th><th>사람</th><th>방문</th><th>화면</th><th>가입</th></tr></thead>
-        <tbody>
-          <% stats.daily.forEach(function(r, i){ %>
-            <tr class="<%= i === 0 ? 'today' : '' %>"><td><%= r.label %> <small class="lg-muted">(<%= '월화수목금토일'[r.dow - 1] %>)</small><%= i === 0 ? ' 오늘' : '' %></td><td><%= r.v %></td><td><%= r.vc %></td><td><%= r.pv %></td><td><%= r.j %></td></tr>
-          <% }); %>
-        </tbody>
-      </table>
+      <div class="lg-card-h"><h2 class="lg-h3">📈 날짜별 <small class="lg-muted">최근 14일</small></h2><a href="/admin/lounge/calendar" class="lg-btn sm">📅 전체보기 (달력)</a></div>
+      <%- include('_daychart', { rows: chart }) %>
+      <p class="lg-hint">막대를 누르면 그날 숫자가 다 나와요. 진한 막대가 오늘이에요.</p>
     </div>
     <div>
       <div class="lg-card">

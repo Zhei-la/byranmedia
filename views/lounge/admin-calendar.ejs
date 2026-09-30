@@ -1,0 +1,86 @@
+<%- include('_top') %>
+<%
+  const W = ['월','화','수','목','금','토','일'];
+  const NAMES = { people: '방문한 사람', visits: '방문 횟수', views: '화면', joins: '가입' };
+  const UNIT = { people: '명', visits: '회', views: '회', joins: '명' };
+  const max = Math.max(1, ...days.map((d) => d[metric]));
+  // 칸 색: 한 가지 파랑, 많을수록 진하게 (0은 색 없음)
+  const STEPS = ['#cde2fb', '#9ec5f4', '#6da7ec', '#3987e5', '#256abf'];
+  const tint = (v) => (v ? STEPS[Math.min(4, Math.floor((v / max) * 4.999))] : '');
+  const dark = (v) => v && (v / max) * 4.999 >= 3;
+  const lead = days.length ? days[0].dow - 1 : 0;
+  const url = (o) => '/admin/lounge/calendar?' + Object.entries(Object.assign({ m: m, k: metric === 'people' ? '' : metric }, o)).filter((e) => e[1]).map((e) => e[0] + '=' + e[1]).join('&');
+  const D = detail && detail.day;
+%>
+<section class="lg-wrap wide lg-pagehead">
+  <a href="/admin/lounge?tab=stats" class="lg-back">← 방문·가입</a>
+  <h1 class="lg-h1">📅 방문 달력</h1>
+  <p class="lg-muted">날짜를 누르면 그날 어디서 들어왔는지까지 볼 수 있어요. 방문한 사람은 기기 1대당 1명이에요.</p>
+</section>
+
+<section class="lg-wrap wide lg-sec lg-admin">
+  <div class="lg-calhead">
+    <a href="<%= url({ m: prev, d: '' }) %>" class="lg-btn sm ghost" aria-label="이전 달">‹</a>
+    <h2 class="lg-h2"><%= y %>년 <%= mo %>월</h2>
+    <% if (next) { %><a href="<%= url({ m: next, d: '' }) %>" class="lg-btn sm ghost" aria-label="다음 달">›</a><% } else { %><span class="lg-btn sm ghost disabled" aria-hidden="true">›</span><% } %>
+    <span class="lg-grow"></span>
+    <nav class="lg-sortnav" aria-label="보여줄 숫자">
+      <% Object.keys(NAMES).forEach(function(k){ %><a href="<%= url({ k: k === 'people' ? '' : k, d: sel || '' }) %>" class="<%= metric === k ? 'on' : '' %>"><%= NAMES[k] %></a><% }); %>
+    </nav>
+  </div>
+
+  <div class="lg-statlist lg-calsum">
+    <div class="lg-stat"><small><%= mo %>월 방문한 사람</small><p><b><%= total.people %></b><span>명</span></p></div>
+    <div class="lg-stat"><small><%= mo %>월 방문 횟수</small><p><b><%= total.visits %></b><span>회</span></p></div>
+    <div class="lg-stat"><small><%= mo %>월 화면</small><p><b><%= total.views %></b><span>회</span></p></div>
+    <div class="lg-stat"><small><%= mo %>월 가입</small><p><b><%= total.joins %></b><span>명</span></p></div>
+  </div>
+
+  <div class="lg-card lg-calcard">
+    <%- include('_daychart', { rows: days, k: metric, tabs: false }) %>
+  </div>
+
+  <div class="lg-cal" role="grid" aria-label="<%= y %>년 <%= mo %>월 <%= NAMES[metric] %>">
+    <% W.forEach(function(w, i){ %><div class="lg-cal-w <%= i >= 5 ? 'we' : '' %>" role="columnheader"><%= w %></div><% }); %>
+    <% for (let i = 0; i < lead; i++) { %><div class="lg-cal-e"></div><% } %>
+    <% days.forEach(function(d){ var v = d[metric]; %>
+      <% if (d.future) { %>
+        <div class="lg-cal-d future"><span class="n"><%= d.dnum %></span></div>
+      <% } else { %>
+        <a href="<%= url({ d: d.day }) %>" role="gridcell" class="lg-cal-d <%= d.today ? 'today' : '' %> <%= sel === d.day ? 'sel' : '' %> <%= dark(v) ? 'dark' : '' %>" style="<%= tint(v) ? 'background:' + tint(v) : '' %>" aria-label="<%= d.day %> <%= NAMES[metric] %> <%= v %><%= UNIT[metric] %>">
+          <span class="n <%= d.dow >= 6 ? 'we' : '' %>"><%= d.dnum %><%= d.today ? ' 오늘' : '' %></span>
+          <b><%= v %></b>
+          <small><%= metric === 'people' ? '방문 ' + d.visits : '사람 ' + d.people %><%= d.joins ? ' · 가입 ' + d.joins : '' %></small>
+        </a>
+      <% } %>
+    <% }); %>
+  </div>
+  <p class="lg-hint">칸 숫자 = <%= NAMES[metric] %>. 색이 진할수록 많이 온 날이에요 (이번 달 가장 많은 날 <%= max %><%= UNIT[metric] %> 기준).</p>
+
+  <% if (D) { %>
+    <div class="lg-card mt" id="day">
+      <h2 class="lg-h3"><%= D.day.replace(/-/g, '.') %> (<%= W[D.dow - 1] %>)<%= D.today ? ' 오늘' : '' %></h2>
+      <div class="lg-daynums">
+        <span><small>방문한 사람</small><b><%= D.people %>명</b></span>
+        <span><small>방문 횟수</small><b><%= D.visits %>회</b></span>
+        <span><small>화면</small><b><%= D.views %>회</b></span>
+        <span><small>가입</small><b><%= D.joins %>명</b></span>
+      </div>
+      <div class="lg-two mt">
+        <div>
+          <h3 class="lg-h3">📱 플랫폼</h3>
+          <% if (detail.platforms.length) { %><ul class="lg-refs"><% detail.platforms.forEach(function(x){ %><li><span><%= SOURCES[x.src] || x.src %></span><b><%= x.people %>명 · <%= x.visits %>회</b></li><% }); %></ul><% } else { %><p class="lg-muted">기록이 없어요.</p><% } %>
+          <% if (detail.joins.length) { %>
+            <h3 class="lg-h3 mt">🙋 이날 가입</h3>
+            <ul class="lg-refs"><% detail.joins.forEach(function(u){ %><li><span><a href="/admin/lounge/members/<%= u.id %>"><%= u.nick %></a> <small class="lg-muted"><%= SOURCES[u.source] || '' %></small></span><small class="lg-muted"><%= u.at %></small></li><% }); %></ul>
+          <% } %>
+        </div>
+        <div>
+          <h3 class="lg-h3">🚪 처음 들어온 화면</h3>
+          <% if (detail.pages.length) { %><ul class="lg-refs"><% detail.pages.forEach(function(x){ %><li><span><%= x.path %></span><b><%= x.n %>명</b></li><% }); %></ul><% } else { %><p class="lg-muted">기록이 없어요.</p><% } %>
+        </div>
+      </div>
+    </div>
+  <% } %>
+</section>
+<%- include('_bottom') %>

@@ -1,0 +1,26 @@
+<%# 날짜별 막대 그래프 (블로그 통계처럼) — rows: byDay 결과, k: 처음 보여줄 숫자 %>
+<% const _k = typeof k !== 'undefined' ? k : 'people'; const _W = '월화수목금토일'; const _tabs = typeof tabs === 'undefined' || tabs; %>
+<div class="lg-dchart" data-dchart data-k="<%= _k %>">
+  <div class="lg-dchart-tabs" role="tablist" aria-label="보여줄 숫자" <%= _tabs ? '' : 'hidden' %>>
+    <% [['people','방문한 사람'],['visits','방문 횟수'],['views','화면'],['joins','가입']].forEach(function(t){ %>
+      <button type="button" role="tab" data-k="<%= t[0] %>" class="<%= _k === t[0] ? 'on' : '' %>" aria-selected="<%= _k === t[0] %>"><%= t[1] %></button>
+    <% }); %>
+  </div>
+  <div class="lg-dchart-plot">
+    <div class="lg-dchart-y" aria-hidden="true"><span data-y="2"></span><span data-y="1"></span><span data-y="0">0</span></div>
+    <div class="lg-dchart-area">
+      <div class="lg-dchart-grid" aria-hidden="true"><i></i><i></i><i></i></div>
+      <div class="lg-dchart-bars">
+        <% rows.forEach(function(r){ var md = r.day.slice(5).replace('-', '.'); %>
+          <button type="button" class="lg-dbar <%= r.today ? 'today' : '' %> <%= r.future ? 'future' : '' %>"
+            data-people="<%= r.people %>" data-visits="<%= r.visits %>" data-views="<%= r.views %>" data-joins="<%= r.joins %>"
+            data-label="<%= md %> (<%= _W[r.dow - 1] %>)<%= r.today ? ' 오늘' : '' %>">
+            <span class="lg-dbar-in"><span class="lg-dbar-b"></span><span class="lg-dbar-v"></span></span>
+            <small class="lg-dbar-x <%= r.dow >= 6 ? 'we' : '' %> <%= rows.length > 20 && !(r.dnum === 1 || r.dnum % 5 === 0 || r.today) ? 'minor' : '' %>"><% if (rows.length > 20) { %><%= r.dnum %><% } else { %><span class="full"><%= md %></span><span class="short"><%= r.dnum %></span><% } %></small>
+          </button>
+        <% }); %>
+      </div>
+    </div>
+  </div>
+  <div class="lg-dchart-tip" role="status" hidden></div>
+</div>

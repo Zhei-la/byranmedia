@@ -210,10 +210,53 @@ async function publicToday() {
   return pubCache.n;
 }
 
+/** 날짜별 숫자 (from~to, 'YYYY-MM-DD') — 사람(기기)·방문 횟수·화면·가입 */
+async function byDay(from, to) {
+  const { rows } = await db.query(
+    `WITH d AS (SELECT generate_series($1::date, $2::date, interval '1 day')::date AS day),
+          v AS (SELECT day, count(DISTINCT vid)::int AS people, COALESCE(sum(visits),0)::int AS visits, COALESCE(sum(views),0)::int AS views
+                  FROM lounge_visits WHERE day BETWEEN $1::date AND $2::date GROUP BY day),
+          j AS (SELECT ${KDATE('created_at')} AS day, count(*)::int AS joins FROM users
+                 WHERE role <> 'admin' AND ${KDATE('created_at')} BETWEEN $1::date AND $2::date GROUP BY 1)
+     SELECT d.day::text AS day, extract(isodow FROM d.day)::int AS dow, extract(day FROM d.day)::int AS dnum,
+            COALESCE(v.people,0) AS people, COALESCE(v.visits,0) AS visits, COALESCE(v.views,0) AS views, COALESCE(j.joins,0) AS joins,
+            d.day = ${DAY} AS today, d.day > ${DAY} AS future
+       FROM d LEFT JOIN v ON v.day = d.day LEFT JOIN j ON j.day = d.day ORDER BY d.day`,
+    [from, to]
+  );
+  return rows;
+}
+/** 기간 합계 (사람은 기간 안에서 기기 1대당 1명) */
+async function periodTotal(from, to) {
+  const { rows } = await db.query(
+    `SELECT count(DISTINCT vid)::int AS people, COALESCE(sum(visits),0)::int AS visits, COALESCE(sum(views),0)::int AS views,
+            (SELECT count(*) FROM users WHERE role <> 'admin' AND ${KDATE('created_at')} BETWEEN $1::date AND $2::date)::int AS joins
+       FROM lounge_visits WHERE day BETWEEN $1::date AND $2::date`,
+    [from, to]
+  );
+  return rows[0];
+}
+/** 하루 자세히: 플랫폼 · 처음 들어온 화면 */
+async function dayDetail(day) {
+  const q = (sql) => db.query(sql, [day]).then((x) => x.rows);
+  const [platforms, pages, joins] = await Promise.all([
+    q(`SELECT COALESCE(source,'direct') AS src, count(DISTINCT vid)::int AS people, COALESCE(sum(visits),0)::int AS visits
+         FROM lounge_visits WHERE day=$1::date GROUP BY 1 ORDER BY people DESC`),
+    q(`SELECT first_path AS path, count(DISTINCT vid)::int AS n FROM lounge_visits WHERE day=$1::date GROUP BY 1 ORDER BY n DESC LIMIT 8`),
+    q(`SELECT id, COALESCE(nickname, name) AS nick, source, to_char(created_at AT TIME ZONE 'Asia/Seoul', 'HH24:MI') AS at
+         FROM users WHERE role <> 'admin' AND ${KDATE('created_at')} = $1::date ORDER BY created_at`),
+  ]);
+  return { platforms, pages, joins };
+}
+async function todayStr() {
+  const { rows } = await db.query(`SELECT ${DAY}::text AS d`);
+  return rows[0].d;
+}
+
 /** 이 기기의 이름표 (방문 쿠키). 없으면 null */
 function deviceId(req) {
   const v = readCookie(req, 'bv');
   return /^[a-f0-9]{16,40}$/.test(v) ? v : null;
 }
 
-module.exports = { track, stats, todayBrief, publicToday, deviceId, SOURCES, readCookie };
+module.exports = { track, stats, byDay, periodTotal, dayDetail, todayStr, todayBrief, publicToday, deviceId, SOURCES, readCookie };

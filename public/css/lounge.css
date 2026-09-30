@@ -1204,3 +1204,81 @@ a.lg-msg-who{text-decoration:none !important;color:#4A4A4F}
 .lg-pfilter-tabs .lg-sortnav a{border:0 !important;box-shadow:none;padding:6px 11px}
 .lg-pfilter-tabs .lg-sortnav a.on{box-shadow:0 1px 2px rgba(0,0,0,.08)}
 .lg-qsearch .lg-in{flex:1;width:auto;min-width:0;max-width:none}
+
+/* 날짜별 막대 그래프 */
+.lg-dchart{position:relative}
+.lg-dchart-tabs{display:inline-flex;gap:2px;background:#F4F4F6;border-radius:10px;padding:3px;margin-bottom:14px;flex-wrap:wrap}
+.lg-dchart-tabs button{border:0;background:transparent;padding:6px 12px;border-radius:8px;font-weight:700;font-size:13px;color:#6B6B70;cursor:pointer}
+.lg-dchart-tabs button.on{background:#fff;color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.lg-dchart-plot{display:flex;gap:6px;height:200px}
+.lg-dchart-y{display:flex;flex-direction:column;justify-content:space-between;font-size:11px;color:#9A9AA0;text-align:right;min-width:26px;padding-bottom:22px;font-variant-numeric:tabular-nums}
+.lg-dchart-y span{line-height:1;transform:translateY(-50%)}
+.lg-dchart-y span:last-child{transform:translateY(50%)}
+.lg-dchart-area{position:relative;flex:1;min-width:0}
+.lg-dchart-grid{position:absolute;inset:0 0 22px 0;display:flex;flex-direction:column;justify-content:space-between;pointer-events:none}
+.lg-dchart-grid i{height:1px;background:#EBEBEE}
+.lg-dchart-bars{position:absolute;inset:0;display:flex;align-items:stretch}
+.lg-dbar{position:relative;flex:1;min-width:0;border:0;background:transparent;padding:0 0 22px;cursor:pointer;display:flex;justify-content:center}
+.lg-dbar-b{position:absolute;bottom:22px;width:min(24px,62%);background:#86b6ef;border-radius:4px 4px 0 0;transition:height .25s}
+.lg-dbar.today .lg-dbar-b{background:#2a78d6}
+.lg-dbar.hover .lg-dbar-b,.lg-dbar:focus-visible .lg-dbar-b{background:#1c5cab}
+.lg-dbar:focus-visible{outline:2px solid #2a78d6;outline-offset:-2px;border-radius:6px}
+.lg-dbar-v{position:absolute;margin-bottom:26px;font-size:11.5px;font-weight:800;color:var(--ink);white-space:nowrap;font-variant-numeric:tabular-nums}
+.lg-dbar-x{position:absolute;bottom:0;font-size:10.5px;color:#8A8A8E;white-space:nowrap;line-height:22px}
+.lg-dbar-x.we{color:#C0392B}
+.lg-dbar.today .lg-dbar-x{color:var(--ink);font-weight:800}
+.lg-dchart-tip{position:absolute;top:44px;transform:translateX(-50%);background:#171717;color:#fff;border-radius:10px;padding:8px 12px;font-size:12.5px;pointer-events:none;z-index:3;min-width:130px;box-shadow:0 6px 20px rgba(0,0,0,.18)}
+.lg-dchart-tip small{display:block;color:#C8C8CC;margin-bottom:3px}
+.lg-dchart-tip div{display:flex;gap:8px;align-items:baseline;opacity:.75}
+.lg-dchart-tip div.on{opacity:1}
+.lg-dchart-tip b{font-variant-numeric:tabular-nums;min-width:44px}
+@media (max-width:600px){.lg-dbar-x{font-size:9.5px}.lg-dchart-plot{height:180px}}
+.lg-dbar-in{position:absolute;left:0;right:0;top:0;bottom:22px;display:flex;justify-content:center}
+.lg-dbar-in .lg-dbar-b{bottom:0}
+.lg-dbar-in .lg-dbar-v{margin-bottom:4px}
+/* 방문 달력 */
+.lg-calhead{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.lg-calhead .lg-h2{margin:0}
+.lg-btn.disabled{opacity:.3;pointer-events:none}
+.lg-calsum{margin-bottom:16px}
+.lg-calcard{margin-bottom:16px}
+.lg-cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.lg-cal-w{text-align:center;font-size:12.5px;font-weight:700;color:#6B6B70;padding:4px 0}
+.lg-cal-w.we{color:#C0392B}
+.lg-cal-d{display:flex;flex-direction:column;gap:1px;min-height:84px;padding:8px;border-radius:10px;border:1px solid var(--line,#E8E8EA);background:#fff;color:var(--ink);text-decoration:none !important}
+.lg-cal-d .n{font-size:12px;color:#6B6B70;font-weight:600}
+.lg-cal-d .n.we{color:#C0392B}
+.lg-cal-d b{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.2;margin-top:auto}
+.lg-cal-d small{font-size:10.5px;color:#6B6B70;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lg-cal-d.dark,.lg-cal-d.dark .n,.lg-cal-d.dark small{color:#fff}
+.lg-cal-d.today{box-shadow:inset 0 0 0 2px #171717}
+.lg-cal-d.sel{outline:3px solid #171717;outline-offset:1px}
+.lg-cal-d.future{background:#FAFAFB;border-style:dashed;opacity:.6}
+.lg-cal-e{min-height:84px}
+.lg-daynums{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.lg-daynums span{display:flex;flex-direction:column;background:#F7F7F8;border-radius:10px;padding:10px 12px}
+.lg-daynums small{color:#6B6B70;font-size:12px}
+.lg-daynums b{font-size:20px;font-variant-numeric:tabular-nums}
+@media (max-width:600px){
+  .lg-cal{gap:3px}
+  .lg-cal-d{min-height:58px;padding:5px 4px;border-radius:8px}
+  .lg-cal-d b{font-size:15px}
+  .lg-cal-d small{display:none}
+  .lg-cal-e{min-height:58px}
+  .lg-daynums{grid-template-columns:repeat(2,1fr)}
+}
+.lg-dchart-tip{min-width:150px;white-space:nowrap}
+.lg-dchart-tip span{white-space:nowrap}
+@media (max-width:900px){.lg-dbar-x.minor{visibility:hidden}}
+@media (max-width:600px){
+  .lg-dchart-bars .lg-dbar-x{font-size:9px}
+  .lg-calsum{grid-template-columns:1fr 1fr}
+  .lg-calsum .lg-stat{border-right:1px solid var(--line,#EEE)}
+  .lg-calsum .lg-stat:nth-child(2n){border-right:0}
+  .lg-calsum .lg-stat:nth-child(-n+2){border-bottom:1px solid var(--line,#EEE)}
+  .lg-calsum .lg-stat:nth-last-child(-n+2){border-bottom:0}
+  .lg-calsum .lg-stat p b{font-size:28px}
+}
+.lg-dchart-tabs[hidden]{display:none}
+.lg-dbar-x .short{display:none}
+@media (max-width:700px){.lg-dbar-x .full{display:none}.lg-dbar-x .short{display:inline}}

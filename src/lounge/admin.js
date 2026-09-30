@@ -51,6 +51,9 @@ router.get('/admin/lounge', async (req, res) => {
     data.range = ['7d', 'all'].includes(req.query.r) ? req.query.r : 'today';
     data.stats = await V.stats(data.range, 14);
     data.SOURCES = V.SOURCES;
+    const t = await V.todayStr();
+    const from = new Date(t + 'T00:00:00Z'); from.setUTCDate(from.getUTCDate() - 13);
+    data.chart = await V.byDay(from.toISOString().slice(0, 10), t);
   }
 
   if (tab === 'board') {
@@ -238,6 +241,26 @@ router.post('/admin/lounge/members/:id/points', async (req, res) => {
   if (!uid || !amount || Math.abs(amount) > 1000000) return goRet(req, res, 'members', '더하거나 뺄 포인트를 숫자로 넣어 주세요. (빼려면 -100 처럼)');
   await P.adjust(uid, amount, txt(req.body.note, 100) || '운영자 조정');
   goRet(req, res, 'members', `${amount > 0 ? '+' : ''}${amount}P 반영했어요.`, req.body.s ? '&s=' + encodeURIComponent(txt(req.body.s, 40)) : '');
+});
+
+/* ---------------- 방문 달력 (블로그 통계처럼) ---------------- */
+router.get('/admin/lounge/calendar', async (req, res) => {
+  const today = await V.todayStr();
+  const m = /^\d{4}-\d{2}$/.test(req.query.m || '') ? req.query.m : today.slice(0, 7);
+  const [y, mo] = m.split('-').map(Number);
+  const first = `${m}-01`;
+  const last = new Date(Date.UTC(y, mo, 0)).toISOString().slice(0, 10);
+  const shift = (k) => { const d = new Date(Date.UTC(y, mo - 1 + k, 1)); return d.toISOString().slice(0, 7); };
+  const days = await V.byDay(first, last);
+  const total = await V.periodTotal(first, last);
+  const sel = /^\d{4}-\d{2}-\d{2}$/.test(req.query.d || '') && req.query.d.startsWith(m) ? req.query.d : (today.startsWith(m) ? today : null);
+  const detail = sel ? { day: days.find((x) => x.day === sel), ...(await V.dayDetail(sel)) } : null;
+  const nk = req.user.nickname || req.user.name;
+  res.render('lounge/admin-calendar', {
+    title: '방문 달력 · 라운지 관리', active: '', flash: null, me: { nick: nk }, nick: nk, P, pts: null, L, S: await L.settings(),
+    m, y, mo, days, total, prev: shift(-1), next: m < today.slice(0, 7) ? shift(1) : null, today, sel, detail,
+    metric: ['visits', 'views', 'joins'].includes(req.query.k) ? req.query.k : 'people', SOURCES: V.SOURCES,
+  });
 });
 
 /* ---------------- 회원 관리 ---------------- */
