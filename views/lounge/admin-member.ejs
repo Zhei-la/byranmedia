@@ -40,6 +40,7 @@
         <dt>가입</dt><dd><%= kst(m.created_at, true) %> · <%= m.provider === 'kakao' ? '카카오' : '이메일' %></dd>
         <dt>프로필 완료</dt><dd><%= m.lounge_at ? kst(m.lounge_at, true) : '아직 (닉네임 안 정함)' %></dd>
         <dt>최근 방문</dt><dd><%= kst(m.seen_at, true) %></dd>
+        <dt>방문</dt><dd><%= m.vdays %>일 · 총 <%= m.vcount %>회 <small class="lg-muted">(로그인하고 들어온 것만)</small></dd>
         <dt>나라</dt><dd><%= m.country ? L.countryLabel(m.country) : '— (아직 안 고름)' %></dd>
         <dt>관심</dt><dd><%= m.interest || '—' %></dd>
         <dt>이메일</dt><dd><%= m.email || '—' %></dd>

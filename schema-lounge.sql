@@ -364,6 +364,8 @@ CREATE TABLE IF NOT EXISTS lounge_owner_devices (
   user_id    INT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+-- 회원 최근 방문 시각 (화면 열 때마다 갱신)
+ALTER TABLE users ADD COLUMN IF NOT EXISTS last_seen_at TIMESTAMPTZ;
 -- 조회수: 같은 글·프롬프트는 하루에 기기 1대당 1번만 (새로고침·재방문은 안 셈). 며칠 지난 기록은 지움
 CREATE TABLE IF NOT EXISTS lounge_view_log (
   kind    CHAR(1)     NOT NULL,           -- p=프롬프트, c=커뮤니티 글

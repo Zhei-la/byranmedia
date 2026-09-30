@@ -105,6 +105,11 @@ function track(req, res, next) {
   res.on('finish', () => {
     if (res.statusCode >= 400) return;
     if (!/text\/html/.test(String(res.get('content-type') || ''))) return;
+    // 회원이 화면을 열 때마다 '최근 방문' 시각 갱신 (5분에 한 번만 저장)
+    if (req.user) {
+      db.query(`UPDATE users SET last_seen_at = now() WHERE id = $1 AND (last_seen_at IS NULL OR last_seen_at < now() - interval '5 minutes')`, [req.user.id])
+        .catch((e) => console.error('[최근 방문]', e.message));
+    }
     db.query(
       `INSERT INTO lounge_visits (day, vid, user_id, first_path, ref_host, ip, last_at, source) VALUES (${DAY}, $1, $2, $3, $4, $5, now(), $6)
        ON CONFLICT (day, vid) DO UPDATE SET views = lounge_visits.views + 1,

@@ -24,13 +24,14 @@ const BASE = `
      WHERE e.status <> 'refunded'
      GROUP BY e.user_id
   ), lv AS (
-    SELECT user_id, max(day) AS day FROM lounge_visits WHERE user_id IS NOT NULL GROUP BY user_id
+    SELECT user_id, max(COALESCE(last_at, created_at)) AS at, count(DISTINCT day)::int AS vdays, COALESCE(sum(visits),0)::int AS vcount
+      FROM lounge_visits WHERE user_id IS NOT NULL GROUP BY user_id
   ), m AS (
     SELECT u.id, u.name, u.nickname, u.email, u.phone, u.provider, u.role, u.status, u.interest,
            u.memo, u.admin_tags, u.country, u.created_at, u.chat_ban_until, u.write_ban_until, u.ban_note,
            (u.chat_ban_until > now()) AS chat_banned, (u.write_ban_until > now()) AS write_banned, u.lounge_at, u.last_login_at, u.referred_by, u.is_student,
            COALESCE(en.ebook, false) AS has_ebook, COALESCE(en.stu, false) AS has_course,
-           GREATEST(u.last_login_at, lv.day::timestamptz) AS seen_at,
+           GREATEST(u.last_seen_at, u.last_login_at, lv.at) AS seen_at, COALESCE(lv.vdays, 0) AS vdays, COALESCE(lv.vcount, 0) AS vcount,
            en.courses, COALESCE(en.n, 0) AS enroll_n,
            CASE WHEN u.role='admin' THEN 'admin'
                 WHEN u.status='suspended' THEN 'suspended'
