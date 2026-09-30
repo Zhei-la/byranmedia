@@ -132,7 +132,7 @@ get('/onboard', (req, res) => {
   if (req.user.nickname && !req.query.edit) return res.redirect(safeNext(req.query.next) || '/');
   res.render('lounge/onboard', {
     title: '프로필 설정', error: null,
-    form: { nickname: req.user.nickname || '', interest: req.user.interest || '' },
+    form: { nickname: req.user.nickname || '', interest: req.user.interest || '', country: req.user.country || L.guessCountry(req.get('accept-language')) },
     next: safeNext(req.query.next) || '',
   });
 });
@@ -140,17 +140,18 @@ get('/onboard', (req, res) => {
 post('/onboard', async (req, res) => {
   if (!req.user) return res.redirect('/login');
   const nextUrl = safeNext(req.body.next) || '';
-  const form = { nickname: String(req.body.nickname || ''), interest: String(req.body.interest || '') };
+  const form = { nickname: String(req.body.nickname || ''), interest: String(req.body.interest || ''), country: String(req.body.country || '').toUpperCase() };
   const fail = (msg) => res.status(400).render('lounge/onboard', { title: '프로필 설정', error: msg, form, next: nextUrl });
 
   const chk = L.checkNick(form.nickname, { admin: isAdmin(req) });
   if (!chk.ok) return fail(chk.msg);
   const interest = L.INTERESTS.includes(form.interest) ? form.interest : null;
+  if (!L.COUNTRY[form.country]) return fail('나라를 골라 주세요. (Please choose your country)');
   const first = !req.user.nickname;
   try {
     await db.query(
-      `UPDATE users SET nickname=$1, interest=$2, lounge_at=COALESCE(lounge_at, now()) WHERE id=$3`,
-      [chk.value, interest, req.user.id]
+      `UPDATE users SET nickname=$1, interest=$2, country=$3, lounge_at=COALESCE(lounge_at, now()) WHERE id=$4`,
+      [chk.value, interest, form.country, req.user.id]
     );
   } catch (e) {
     if (e.code === '23505') return fail('이미 누가 쓰고 있는 닉네임이에요.');
@@ -287,7 +288,7 @@ get('/community/:id(\\d+)', async (req, res) => {
   const locked = !canSee(req, p) && !isAdmin(req);
   if (!locked) db.query(`UPDATE lounge_posts SET views=views+1 WHERE id=$1`, [p.id]).catch(() => {});
   const { rows: comments } = locked ? { rows: [] } : await db.query(
-    `SELECT c.id, c.body, c.created_at, c.user_id, COALESCE(u.nickname,u.name) AS nick, u.role
+    `SELECT c.id, c.body, c.created_at, c.user_id, COALESCE(u.nickname,u.name) AS nick, u.country, u.role
        FROM lounge_comments c LEFT JOIN users u ON u.id=c.user_id
       WHERE c.post_id=$1 AND c.is_hidden=false ORDER BY c.created_at`,
     [p.id]
@@ -398,7 +399,7 @@ get('/chat/messages', async (req, res) => {
   const after = parseInt(req.query.after, 10) || 0;
   // badge: 운영자 👑 / 수강생 🎓 (직접 표시했거나 피드백 과정 수강 중)
   const { rows } = await db.query(
-    `SELECT c.id, c.body, c.created_at, c.user_id, COALESCE(u.nickname,u.name) AS nick,
+    `SELECT c.id, c.body, c.created_at, c.user_id, COALESCE(u.nickname,u.name) AS nick, u.country,
             CASE WHEN u.role='admin' THEN 'admin'
                  WHEN u.is_student OR EXISTS (
                    SELECT 1 FROM lounge_enrollments e LEFT JOIN lounge_products p ON p.id=e.product_id
@@ -413,7 +414,7 @@ get('/chat/messages', async (req, res) => {
   );
   res.json({
     online: on[0].n,
-    items: rows.reverse().map((m) => ({ id: m.id, uid: m.user_id, nick: m.nick, badge: m.badge, admin: m.badge === 'admin', body: m.body, at: m.created_at })),
+    items: rows.reverse().map((m) => ({ id: m.id, uid: m.user_id, nick: m.nick, badge: m.badge, flag: m.country && m.country !== 'KR' ? L.flag(m.country) : '', admin: m.badge === 'admin', body: m.body, at: m.created_at })),
   });
 });
 

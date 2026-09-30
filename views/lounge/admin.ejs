@@ -83,6 +83,12 @@
         <% } else { %><p class="lg-muted">아직 기록이 없어요.</p><% } %>
       </div>
       <div class="lg-card mt">
+        <h2 class="lg-h3">🌏 나라별 회원</h2>
+        <% if (stats.countries.length) { %>
+          <ul class="lg-refs"><% stats.countries.forEach(function(c){ %><li><span><%= c.code ? L.countryLabel(c.code) : '아직 안 고름' %></span><b><%= c.n %>명</b></li><% }); %></ul>
+        <% } else { %><p class="lg-muted">아직 회원이 없어요.</p><% } %>
+      </div>
+      <div class="lg-card mt">
         <h2 class="lg-h3">최근 가입</h2>
         <ul class="lg-refs"><% stats.joins.forEach(function(u){ %><li><span><%= u.nick %><%= u.done ? '' : ' · 프로필 전' %></span><small class="lg-muted"><%= u.at %></small></li><% }); %></ul>
       </div>
@@ -537,7 +543,7 @@
         <span class="lg-ava"><%= (m.nickname || m.name || '?').slice(0,1) %></span>
         <span class="lg-mrow-main">
           <span class="lg-mrow-top">
-            <b><%= m.nickname || '(닉네임 없음)' %></b><small class="lg-muted"><%= m.name %></small>
+            <b><%= m.nickname || '(닉네임 없음)' %></b><% if (m.country) { %><span title="<%= L.countryLabel(m.country) %>"><%= L.flag(m.country) %></span><% } %><small class="lg-muted"><%= m.name %></small>
             <i class="lg-kind <%= K.cls %>"><%= K.label %></i>
             <% if (m.has_ebook) { %><i class="lg-mtag">📖 전자책</i><% } %>
             <% if (!m.nickname) { %><i class="lg-mtag gray">프로필 전</i><% } %>

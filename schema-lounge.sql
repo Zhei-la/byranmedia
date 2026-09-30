@@ -309,3 +309,6 @@ CREATE INDEX IF NOT EXISTS idx_prompts_user ON lounge_prompts (user_id, created_
 ALTER TABLE lounge_visits ADD COLUMN IF NOT EXISTS visits  INT NOT NULL DEFAULT 1;
 ALTER TABLE lounge_visits ADD COLUMN IF NOT EXISTS last_at TIMESTAMPTZ;
 CREATE INDEX IF NOT EXISTS idx_visits_ip ON lounge_visits (day, ip);
+
+-- 회원 국가 (ISO 두 글자, ZZ = 기타)
+ALTER TABLE users ADD COLUMN IF NOT EXISTS country VARCHAR(2);

@@ -26,7 +26,7 @@ const BASE = `
     SELECT user_id, max(day) AS day FROM lounge_visits WHERE user_id IS NOT NULL GROUP BY user_id
   ), m AS (
     SELECT u.id, u.name, u.nickname, u.email, u.phone, u.provider, u.role, u.status, u.interest,
-           u.memo, u.admin_tags, u.created_at, u.lounge_at, u.last_login_at, u.referred_by, u.is_student,
+           u.memo, u.admin_tags, u.country, u.created_at, u.lounge_at, u.last_login_at, u.referred_by, u.is_student,
            COALESCE(en.ebook, false) AS has_ebook, COALESCE(en.stu, false) AS has_course,
            GREATEST(u.last_login_at, lv.day::timestamptz) AS seen_at,
            en.courses, COALESCE(en.n, 0) AS enroll_n,
@@ -115,9 +115,10 @@ const csvCell = (v) => {
 async function csv({ kind, s }) {
   const rows = await list({ kind, s, limit: 5000 });
   const kst = (d) => (d ? new Date(d).toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul' }) : '');
-  const head = ['번호', '닉네임', '카카오 이름', '구분', '수강 중', '이메일', '전화', '가입일', '최근 방문', '관심', '글', '포인트', '태그', '메모'];
+  const L = require('./core');
+  const head = ['번호', '닉네임', '카카오 이름', '나라', '구분', '수강 중', '이메일', '전화', '가입일', '최근 방문', '관심', '글', '포인트', '태그', '메모'];
   const lines = [head.join(',')].concat(rows.map((r) => [
-    r.id, r.nickname, r.name, (KINDS[r.kind] || {}).label, r.courses, r.email, r.phone,
+    r.id, r.nickname, r.name, (L.COUNTRY[r.country] || {}).ko || '', (KINDS[r.kind] || {}).label, r.courses, r.email, r.phone,
     kst(r.created_at), kst(r.seen_at), r.interest, r.posts, r.points, r.admin_tags, r.memo,
   ].map(csvCell).join(',')));
   return '﻿' + lines.join('\r\n');

@@ -1109,3 +1109,4 @@ body.lg{background:#fff;color:var(--ink)}
 .lg-daytable td.left,.lg-daytable th:last-child{text-align:left}
 #ips .lg-card-h{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
 #ips .lg-mfilter{margin:0}
+.lg-msg-flag{font-size:13px;line-height:1}

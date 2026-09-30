@@ -253,6 +253,7 @@
         var who = document.createElement('div'); who.className = 'lg-msg-who';
         if (BADGE[m.badge]) { var e = document.createElement('span'); e.className = 'lg-msg-badge ' + m.badge; e.textContent = BADGE[m.badge]; who.appendChild(e); }
         var n = document.createElement('b'); n.textContent = m.nick; who.appendChild(n);
+        if (m.flag) { var f = document.createElement('span'); f.className = 'lg-msg-flag'; f.textContent = m.flag; who.appendChild(f); }
         li.appendChild(who);
       }
       var row = document.createElement('div'); row.className = 'lg-msg-row';

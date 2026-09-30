@@ -104,7 +104,10 @@ async function stats(days = 14) {
             to_char(created_at AT TIME ZONE 'Asia/Seoul', 'MM.DD HH24:MI') AS at
        FROM users ORDER BY created_at DESC LIMIT 10`
   );
-  return { today, daily, refs, pages, joins };
+  const countries = await q(
+    `SELECT COALESCE(country, '') AS code, count(*)::int AS n FROM users WHERE role <> 'admin' GROUP BY 1 ORDER BY n DESC LIMIT 15`
+  );
+  return { today, daily, refs, pages, joins, countries };
 }
 
 /** IP별: 몇 번 들어왔는지(방문 횟수)·본 화면 수·처음/마지막 시간·회원이면 닉네임

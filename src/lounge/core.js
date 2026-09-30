@@ -402,15 +402,39 @@ async function saveImage(userId, dataUrl) {
 }
 
 /* ---------------- 닉네임 ---------------- */
-const NICK_RE = /^[가-힣a-zA-Z0-9_ ]{2,10}$/;
+const NICK_RE = /^[\p{L}\p{M}\p{N}_ ]{2,10}$/u; // 한글·영문 + 일본어·중국어·태국어 등 모든 글자
 const NICK_BAN = ['관리자', '운영자', '바이란', 'admin', '어드민', '제일라', '이안', '씨발', '시발', '병신', '섹스'];
 // 운영자(관리자)는 막아 둔 이름(이안·바이란 등)도 쓸 수 있다 — 남이 운영자 행세하는 것만 막는 장치
 function checkNick(n, opts = {}) {
   const s = String(n || '').trim().replace(/\s+/g, ' ');
-  if (!NICK_RE.test(s)) return { ok: false, msg: '닉네임은 2~10자, 한글·영문·숫자만 쓸 수 있어요.' };
+  if (!NICK_RE.test(s)) return { ok: false, msg: '닉네임은 2~10자, 글자·숫자만 쓸 수 있어요. (Nickname: 2–10 letters or numbers)' };
   const low = s.toLowerCase().replace(/\s/g, '');
   if (!opts.admin && NICK_BAN.some((w) => low.includes(w))) return { ok: false, msg: '쓸 수 없는 단어가 들어 있어요.' };
   return { ok: true, value: s };
+}
+
+/* ---------------- 국가 ---------------- */
+const COUNTRIES = [
+  ['KR', '대한민국', 'South Korea'], ['JP', '일본', 'Japan'], ['US', '미국', 'United States'], ['CN', '중국', 'China'],
+  ['TW', '대만', 'Taiwan'], ['HK', '홍콩', 'Hong Kong'], ['VN', '베트남', 'Vietnam'], ['TH', '태국', 'Thailand'],
+  ['PH', '필리핀', 'Philippines'], ['ID', '인도네시아', 'Indonesia'], ['MY', '말레이시아', 'Malaysia'], ['SG', '싱가포르', 'Singapore'],
+  ['IN', '인도', 'India'], ['MN', '몽골', 'Mongolia'], ['KZ', '카자흐스탄', 'Kazakhstan'], ['UZ', '우즈베키스탄', 'Uzbekistan'],
+  ['RU', '러시아', 'Russia'], ['CA', '캐나다', 'Canada'], ['MX', '멕시코', 'Mexico'], ['BR', '브라질', 'Brazil'],
+  ['GB', '영국', 'United Kingdom'], ['DE', '독일', 'Germany'], ['FR', '프랑스', 'France'], ['ES', '스페인', 'Spain'],
+  ['IT', '이탈리아', 'Italy'], ['NL', '네덜란드', 'Netherlands'], ['TR', '튀르키예', 'Türkiye'], ['AE', '아랍에미리트', 'UAE'],
+  ['SA', '사우디아라비아', 'Saudi Arabia'], ['AU', '호주', 'Australia'], ['NZ', '뉴질랜드', 'New Zealand'], ['ZZ', '기타', 'Other'],
+];
+const COUNTRY = Object.fromEntries(COUNTRIES.map((c) => [c[0], { code: c[0], ko: c[1], en: c[2] }]));
+const flag = (code) => (!code ? '' : code === 'ZZ' ? '🌐' : String.fromCodePoint(...code.toUpperCase().split('').map((c) => 0x1f1e6 + c.charCodeAt(0) - 65)));
+const countryLabel = (code) => (COUNTRY[code] ? `${flag(code)} ${COUNTRY[code].ko}` : '');
+/** 브라우저 언어(Accept-Language)로 나라 짐작 — 기본 선택용 */
+function guessCountry(acceptLang) {
+  const LANG = { ko: 'KR', ja: 'JP', zh: 'CN', vi: 'VN', th: 'TH', id: 'ID', ms: 'MY', tl: 'PH', fil: 'PH', ru: 'RU', mn: 'MN', kk: 'KZ', uz: 'UZ',
+    de: 'DE', fr: 'FR', es: 'ES', it: 'IT', nl: 'NL', tr: 'TR', ar: 'SA', hi: 'IN', pt: 'BR', en: 'US' };
+  const first = String(acceptLang || '').split(',')[0].trim();
+  const [lang, region] = first.split(/[-_]/);
+  if (region && COUNTRY[region.toUpperCase()]) return region.toUpperCase();
+  return LANG[(lang || '').toLowerCase()] || 'KR';
 }
 
 const INTERESTS = ['블로그 부업', '스레드·SNS', 'AI 활용', '사주·타로', '쿠팡파트너스', 'AI 이미지', '1인 창업', '기타'];
@@ -439,5 +463,5 @@ const PROMPT_CATS = ['인물/화보', '셀카/일상', '뷰티/클로즈업', '�
 
 module.exports = {
   migrate, claimOwner, safeLink, settings, saveSettings, soonOf, soonBlocked, SETTING_DEFAULTS, esc, linkify, ago, safeUrl, saveImage,
-  checkNick, INTERESTS, CATEGORIES, RESULT_KINDS, SECTIONS, PROMPT_CATS, kstToday, priceNum, won,
+  checkNick, INTERESTS, COUNTRIES, COUNTRY, flag, countryLabel, guessCountry, CATEGORIES, RESULT_KINDS, SECTIONS, PROMPT_CATS, kstToday, priceNum, won,
 };
