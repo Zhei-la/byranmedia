@@ -527,7 +527,7 @@ textarea.lg-in{resize:vertical;line-height:1.6}
   .lg-col-side,.lg-pdetail-body{position:static}
   .lg-reviews{grid-template-columns:1fr 1fr}
   .lg-banner{flex-direction:column;align-items:flex-start}
-  .lg-tabbar{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;left:0;right:0;bottom:0;z-index:45;background:rgba(255,255,255,.96);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-top:1px solid var(--line);padding:6px 4px calc(6px + env(safe-area-inset-bottom))}
+  .lg-tabbar{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;left:0;right:0;bottom:0;z-index:45;background:rgba(255,255,255,.96);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-top:1px solid var(--line);padding:6px 4px calc(6px + min(env(safe-area-inset-bottom, 0px), 34px))}
   .lg-tabbar a{display:flex;flex-direction:column;align-items:center;gap:1px;font-size:11px;font-weight:650;color:var(--ink-3);text-decoration:none !important;padding:4px 0}
   .lg-tabbar a .i{font-size:19px;line-height:1.2;filter:grayscale(1);opacity:.7}
   .lg-tabbar a.on{color:var(--ink)}
@@ -908,7 +908,7 @@ body.lg{background:#fff;color:var(--ink)}
 @media (max-width:960px){
   .lg-svc{grid-template-columns:1fr}
   .lg-svc-side{display:none}
-  .lg-svc-bar{display:flex;align-items:center;gap:8px;position:fixed;left:0;right:0;bottom:calc(58px + env(safe-area-inset-bottom));z-index:44;background:rgba(255,255,255,.97);border-top:1px solid var(--line);padding:10px 16px}
+  .lg-svc-bar{display:flex;align-items:center;gap:8px;position:fixed;left:0;right:0;bottom:calc(58px + min(env(safe-area-inset-bottom, 0px), 34px));z-index:44;background:rgba(255,255,255,.97);border-top:1px solid var(--line);padding:10px 16px}
   .lg-svc-bar span{flex:1;font-size:14px}
   body.lg:has(.lg-svc-bar) .lg-foot{padding-bottom:140px}
 }
@@ -1103,3 +1103,4 @@ body.lg{background:#fff;color:var(--ink)}
 .lg-openchat small{font-size:13px;color:#6B6B70}
 .lg-openchat em{font-style:normal;font-weight:700;font-size:13.5px;white-space:nowrap}
 .lg-openchat-btn{display:inline-flex;align-items:center;gap:6px;margin-top:12px;padding:9px 14px;border-radius:999px;background:#FEE500;color:#191600;font-weight:700;font-size:13.5px;text-decoration:none !important}
+.lg-openchat-wrap{margin-top:14px}.lg-openchat-wrap:empty{display:none}

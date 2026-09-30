@@ -153,7 +153,7 @@
 <% } %>
 
 <!-- 채팅 + 게시판 -->
-<section class="lg-wrap lg-sec lg-two">
+<section class="lg-wrap lg-sec">
   <div class="lg-card lg-chat" data-chat data-after="0" data-me="<%= user && me ? user.id : '' %>" data-login="<%= user && me ? '1' : '' %>">
     <div class="lg-card-h">
       <h3># 실시간 수다방</h3>
@@ -172,27 +172,6 @@
     <% } %>
   </div>
 
-  <div class="lg-card flush">
-    <div class="lg-card-h pad">
-      <h3>라운지 게시판</h3>
-      <a href="/community" class="lg-more">전체 →</a>
-    </div>
-    <% if (board.length) { %>
-      <ul class="lg-board">
-        <% board.forEach(function(p){ var c = L.CATEGORIES[p.category] || {label:'자유'}; %>
-          <li class="<%= p.category === 'notice' ? 'notice' : '' %>">
-            <a href="/community/<%= p.id %>">
-              <span class="lg-cat c-<%= p.category %>"><%= c.label %></span>
-              <span class="t"><%= p.category === 'secret' ? '🔒 비밀글입니다' : p.title %><% if (p.comments) { %> <em>[<%= p.comments %>]</em><% } %></span>
-              <span class="m"><%= p.nick %> · <%= L.ago(p.created_at) %></span>
-            </a>
-          </li>
-        <% }); %>
-      </ul>
-    <% } else { %>
-      <div class="lg-empty"><p>첫 글을 기다리고 있어요. 가입 인사부터 남겨 주세요!</p></div>
-    <% } %>
-  </div>
 </section>
 
 <% if (courses.length && !SOONH.course) { %>
@@ -252,7 +231,7 @@
 <% if (!user) { %>
   <section class="lg-wrap lg-sec">
     <div class="lg-final">
-      <h2 class="lg-display sm"><% if (SOONH.library) { %>가입하고<br>원하는 프롬프트를 요청해 보세요<% } else { %>가입하면<br>쿠팡파트너스 자료집부터 바로<% } %></h2>
+      <h2 class="lg-display sm"><% if (SOONH.library) { %>가입하고 원하는 프롬프트<br>요청도 하고, 공유도 해 보세요<% } else { %>가입하면<br>쿠팡파트너스 자료집부터 바로<% } %></h2>
       <a href="<%= kakaoStart %>" class="lg-btn kakao lg">카카오로 3초 시작</a>
     </div>
   </section>
