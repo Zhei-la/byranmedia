@@ -43,7 +43,8 @@
 
   <div class="lg-statlist">
     <div class="lg-stat"><small>방문한 사람</small><p><b><%= X.people %></b><span>명</span><%- up(X.people, X.prev && X.prev.people) %></p></div>
-    <div class="lg-stat"><small>총 방문 횟수</small><p><b><%= X.visits %></b><span>회</span><%- up(X.visits, X.prev && X.prev.visits) %></p></div>
+    <div class="lg-stat lg-stat-side"><small>총 방문 횟수 <em>들락날락 전부</em></small><p><b><%= X.visits %></b><span>회</span><%- up(X.visits, X.prev && X.prev.visits) %></p>
+      <div class="lg-stat-aside"><span>총 방문 인원</span><b><%= X.people %>명</b><small>기기 기준</small><b class="sub"><%= X.ips %>개</b><small>IP 기준</small></div></div>
     <div class="lg-stat"><small>화면을 연 횟수</small><p><b><%= X.views %></b><span>회</span></p></div>
     <div class="lg-stat"><small>가입</small><p><b><%= X.joins %></b><span>명</span><%- up(X.joins, X.joinsPrev) %></p></div>
     <div class="lg-stat"><small>프롬프트 요청</small><p><b><%= X.reqs %></b><span>건</span></p></div>

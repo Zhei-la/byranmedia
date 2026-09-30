@@ -123,7 +123,8 @@ async function summary(r) {
   const one = async (cond) => {
     if (!cond) return null;
     const { rows } = await db.query(
-      `SELECT count(DISTINCT vid)::int AS people, COALESCE(sum(visits),0)::int AS visits, COALESCE(sum(views),0)::int AS views
+      `SELECT count(DISTINCT vid)::int AS people, count(DISTINCT ip)::int AS ips,
+              COALESCE(sum(visits),0)::int AS visits, COALESCE(sum(views),0)::int AS views
          FROM lounge_visits WHERE ${cond}`
     );
     return rows[0];
