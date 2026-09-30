@@ -49,6 +49,7 @@
       <% TABS.forEach(function(t){ %>
         <a href="<%= t[1] %>" class="<%= active === t[0] ? 'on' : '' %>"><%= t[2] %><% if (t[0] === 'library' && SOON.library) { %><i class="lg-soonchip">준비중</i><% } %></a>
       <% }); %>
+      <% if (user && user.status === 'active' && typeof S !== 'undefined' && S.show_tools === '1') { %><a href="/hub" class="lg-nav-tool">도구</a><% } %>
       <% if (user && user.role === 'admin') { %><a href="/admin/lounge" class="lg-nav-admin">관리</a><% } %>
     </nav>
     <div class="lg-head-r">
@@ -74,6 +75,7 @@
       <a href="<%= t[1] %>" class="<%= active === t[0] ? 'on' : '' %>"><%= t[2] %><% if (t[0] === 'library' && SOON.library) { %><i class="lg-soonchip">준비중</i><% } %></a>
     <% }); %>
     <a href="/consult" class="<%= active === 'consult' ? 'on' : '' %>">1:1 상담<% if (SOON.consult) { %><i class="lg-soonchip">준비중</i><% } %></a>
+    <% if (user && user.status === 'active' && typeof S !== 'undefined' && S.show_tools === '1') { %><a href="/hub">도구</a><% } %>
     <% if (user && user.role === 'admin') { %><a href="/admin/lounge">관리</a><% } %>
   </nav>
 </header>

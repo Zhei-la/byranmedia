@@ -6,6 +6,13 @@
     <p>AI로 시작하는 1인 창업 · 바이란 라운지</p>
     <p class="lg-foot-mail">협업 문의 <a href="mailto:byranmedia@gmail.com">byranmedia@gmail.com</a></p>
     <p class="lg-foot-links">
+      <% if (typeof S !== 'undefined' && S.soon_library !== '1' && S.soon_course !== '1' && S.soon_consult !== '1') { %>
+        <a href="/about">바이란미디어 소개</a>
+        <a href="/library#course">수강 · 전자책</a>
+        <a href="/library#agency">대행 문의</a>
+        <a href="/challenge">챌린지</a>
+        <a href="/consult">1:1 상담</a>
+      <% } %>
       <a href="/community?cat=request">프롬프트 요청</a>
       <% if (user) { %>
         <form method="post" action="/logout" class="inline"><button type="submit" class="lg-linkbtn">로그아웃</button></form>

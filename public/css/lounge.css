@@ -1029,3 +1029,6 @@ body.lg{background:#fff;color:var(--ink)}
 .lg-refs li a{color:inherit}
 @media (max-width:820px){.lg-mgrid{grid-template-columns:1fr}.lg-menr-f{grid-template-columns:1fr 1fr}}
 .lg-mrow,.lg-mrow:hover,.lg-mrow *{text-decoration:none !important}
+.lg-openlist{background:#F7F7F8;border-radius:12px;padding:12px 14px;margin:8px 0 4px;font-size:13.5px;line-height:1.65}
+.lg-openlist ul{margin:6px 0;padding-left:18px}
+.lg-openlist small{color:#77777C}

@@ -277,6 +277,7 @@ const SETTING_DEFAULTS = {
   soon_library: '1',                            // 1이면 자료실·자료집을 '준비중'으로 막기
   soon_course: '1',                             // 1이면 수강·전자책 안내를 '준비중'으로 막고 홈에서 숨기기
   soon_consult: '1',                            // 1이면 1:1 상담을 '준비중'으로 막기
+  show_tools: '0',                              // 1이면 마이페이지·메뉴에 블로그 대행 도구 보이기
 };
 
 let settingsCache = null;

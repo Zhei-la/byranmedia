@@ -88,6 +88,23 @@
     <% } %>
   </div>
 
+  <% if (S.show_tools === '1') { %>
+  <div class="lg-card">
+    <h2 class="lg-h3">🛠 블로그 대행 도구</h2>
+    <% if (acct.status === 'active') { %>
+      <p class="lg-muted">수강생 도구를 쓰실 수 있어요.</p>
+      <a href="/hub" class="lg-btn primary block">도구 열기</a>
+    <% } else if (acct.status === 'suspended') { %>
+      <p class="lg-muted">도구 이용이 중지된 계정이에요. 1:1 상담으로 문의해 주세요.</p>
+    <% } else if (acct.referred_by) { %>
+      <p class="lg-muted">⏳ 도구 이용 승인을 기다리고 있어요.</p>
+    <% } else { %>
+      <p class="lg-muted">바이란 수강생이시면 추천인 코드를 넣고 도구 이용을 신청해 주세요.</p>
+      <a href="/welcome" class="lg-btn block">추천인 코드 넣기</a>
+    <% } %>
+  </div>
+  <% } %>
+
   <% if (!SOONM.library) { %>
   <div class="lg-card" id="box">
     <h2 class="lg-h3">📚 내가 본 자료</h2>
