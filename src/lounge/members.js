@@ -170,7 +170,7 @@ async function create({ email, password, nickname, kind, memo }) {
     `INSERT INTO users (email, password_hash, name, nickname, provider, role, status, is_student, memo, country)
      VALUES ($1,$2,$3,$4,'local',$5,'active',$6,$7,$8) RETURNING id`,
     [email, hash, (nickname || email.split('@')[0]).slice(0, 100), nickname || null,
-     kind === 'admin' ? 'admin' : 'member', kind === 'student', String(memo || '').trim().slice(0, 3000) || null, nickname ? 'KR' : null]
+     'admin', false, String(memo || '').trim().slice(0, 3000) || null, nickname ? 'KR' : null]
   );
   return rows[0].id;
 }

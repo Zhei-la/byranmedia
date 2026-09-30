@@ -63,7 +63,7 @@ router.post('/login', async (req, res) => {
     }
 
     const { rows } = await db.query(
-      `SELECT id, password_hash, status FROM users WHERE email = $1`,
+      `SELECT id, password_hash, status, role FROM users WHERE email = $1`,
       [email]
     );
 
@@ -78,6 +78,8 @@ router.post('/login', async (req, res) => {
     const ok = await bcrypt.compare(password, rows[0].password_hash);
     await record(ok);
     if (!ok) return fail('이메일 또는 비밀번호가 맞지 않습니다.');
+    // 이메일 로그인은 운영자 계정만. 일반 회원은 카카오로만 로그인
+    if (rows[0].role !== 'admin') return fail('이메일 로그인은 운영자 계정만 쓸 수 있어요. 카카오로 로그인해 주세요.');
 
     req.session.regenerate((err) => {
       if (err) return fail('로그인 처리 중 문제가 생겼습니다. 다시 시도해 주세요.');
@@ -219,7 +221,8 @@ router.get('/pending', async (req, res) => {
 /* ---------------- 로그아웃 ---------------- */
 router.post('/logout', (req, res) => {
   // to=switch: 다른 계정으로 로그인 (로그아웃하고 로그인 화면으로)
-  const to = req.body && req.body.to === 'switch' ? '/login?switch=1' : '/';
+  const t = req.body && req.body.to;
+  const to = t === 'email' ? '/login/email' : t === 'switch' ? '/login?switch=1' : '/';
   req.session.destroy(() => {
     res.clearCookie('zhlab.sid');
     res.redirect(to);
