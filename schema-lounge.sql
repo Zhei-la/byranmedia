@@ -364,6 +364,15 @@ CREATE TABLE IF NOT EXISTS lounge_owner_devices (
   user_id    INT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+-- 조회수: 같은 글·프롬프트는 하루에 기기 1대당 1번만 (새로고침·재방문은 안 셈). 며칠 지난 기록은 지움
+CREATE TABLE IF NOT EXISTS lounge_view_log (
+  kind    CHAR(1)     NOT NULL,           -- p=프롬프트, c=커뮤니티 글
+  item_id INT         NOT NULL,
+  day     DATE        NOT NULL,
+  who     VARCHAR(60) NOT NULL,
+  PRIMARY KEY (kind, item_id, day, who)
+);
+DELETE FROM lounge_view_log WHERE day < CURRENT_DATE - 3;
 -- 사람 확인: 화면을 연 뒤 실제로 만지거나(스크롤·터치) 잠시 머문 브라우저만 true (봇·크롤러 걸러내기)
 DROP VIEW IF EXISTS lounge_visits_x;
 ALTER TABLE lounge_visits ADD COLUMN IF NOT EXISTS human BOOLEAN NOT NULL DEFAULT false;

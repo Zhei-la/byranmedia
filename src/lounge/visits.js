@@ -90,6 +90,7 @@ function track(req, res, next) {
     vid = crypto.randomBytes(12).toString('hex');
     res.cookie('bv', vid, { maxAge: 1000 * 60 * 60 * 24 * 400, httpOnly: true, sameSite: 'lax', secure: PROD });
   }
+  req.vid = vid; // 처음 온 기기도 이번 화면에서 바로 쓸 수 있게
   // 운영자로 로그인한 기기는 '운영자 기기'로 기억 → 관리 통계에서 빼기 (로그아웃하고 들어와도)
   if (isOwner) {
     db.query(`INSERT INTO lounge_owner_devices (vid, user_id) VALUES ($1,$2) ON CONFLICT (vid) DO NOTHING`, [vid, req.user.id])
@@ -262,8 +263,20 @@ async function todayStr() {
 
 /** 이 기기의 이름표 (방문 쿠키). 없으면 null */
 function deviceId(req) {
-  const v = readCookie(req, 'bv');
+  const v = readCookie(req, 'bv') || req.vid || '';
   return /^[a-f0-9]{16,40}$/.test(v) ? v : null;
+}
+
+/** 조회수 올리기: 같은 글·프롬프트는 하루(한국 시간)에 기기 1대당 1번만. 봇(기기 이름표 없음)은 안 셈 */
+function countView(kind, table, id, req) {
+  const d = deviceId(req);
+  const who = d ? 'd:' + d : req.user ? 'u:' + req.user.id : null;
+  if (!who) return Promise.resolve(false);
+  return db.query(
+    `WITH ins AS (INSERT INTO lounge_view_log (kind, item_id, day, who) VALUES ($1, $2, ${DAY}, $3) ON CONFLICT DO NOTHING RETURNING 1)
+     UPDATE ${table} SET views = views + 1 WHERE id = $2 AND EXISTS (SELECT 1 FROM ins)`,
+    [kind, id, who]
+  ).then((r) => r.rowCount > 0).catch((e) => { console.error('[조회수]', e.message); return false; });
 }
 
 /** 사람 확인 신호: 화면에서 스크롤·터치 등을 하거나 몇 초 머물면 브라우저가 보냄 → 그 기기를 '사람'으로 표시 */
@@ -292,4 +305,4 @@ function markOwner(req, res) {
     .catch(() => res.redirect('/'));
 }
 
-module.exports = { hi, ownerKey, markOwner, track, stats, byDay, periodTotal, dayDetail, todayStr, todayBrief, publicToday, deviceId, SOURCES, readCookie };
+module.exports = { hi, ownerKey, markOwner, track, stats, byDay, periodTotal, dayDetail, todayStr, todayBrief, publicToday, deviceId, countView, SOURCES, readCookie };

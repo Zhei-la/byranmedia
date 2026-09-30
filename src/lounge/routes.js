@@ -308,7 +308,7 @@ get('/community/:id(\\d+)', async (req, res) => {
     return res.status(404).render('error', { title: '없는 글', message: '지워졌거나 없는 글이에요.' });
   }
   const locked = !canSee(req, p) && !isAdmin(req);
-  if (!locked) db.query(`UPDATE lounge_posts SET views=views+1 WHERE id=$1`, [p.id]).catch(() => {});
+  if (!locked) V.countView('c', 'lounge_posts', p.id, req); // 하루에 기기 1대당 1번
   const { rows: comments } = locked ? { rows: [] } : await db.query(
     `SELECT c.id, c.body, c.created_at, c.user_id, COALESCE(u.nickname,u.name) AS nick, u.country, u.avatar_id, u.role
        FROM lounge_comments c LEFT JOIN users u ON u.id=c.user_id
@@ -668,7 +668,7 @@ get('/prompts/:id(\\d+)', async (req, res) => {
   if (!p || (!(p.is_active && p.status === 'live') && !isAdmin(req) && !mine)) {
     return res.status(404).render('error', { title: '없는 프롬프트', message: '지워졌거나 없는 프롬프트예요.' });
   }
-  db.query(`UPDATE lounge_prompts SET views=views+1 WHERE id=$1`, [p.id]).catch(() => {});
+  V.countView('p', 'lounge_prompts', p.id, req); // 하루에 기기 1대당 1번
   const S = res.locals.S;
   // 바이란이 올린 프롬프트는 누구나 복사, 회원이 공유한 프롬프트는 가입한 회원만
   const canCopy = !p.user_id || !!(req.user && req.user.nickname);
