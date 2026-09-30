@@ -112,7 +112,7 @@
             <span><%= sort === 'old' ? p.date_s : p.category %></span>
           </div>
           <b><%= p.title %></b>
-          <p class="lg-pcard-pre"><%= p.preview %>…</p>
+          <% if (shared && !isMember) { %><p class="lg-pcard-pre lock">🔒 가입하면 프롬프트를 볼 수 있어요</p><% } else { %><p class="lg-pcard-pre"><%= p.preview %>…</p><% } %>
           <p class="lg-pcard-stats"><span title="하트">♥ <%= p.hearts %></span><span title="복사해 간 사람(기기)">📋 <%= p.copiers %></span><span title="즐겨찾기">⭐ <%= p.favs %></span></p>
         </a>
       <% }); %>

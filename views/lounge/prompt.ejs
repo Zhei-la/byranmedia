@@ -42,7 +42,7 @@
         <pre id="promptText" class="<%= canCopy ? '' : 'faded' %>"><%= shown %><% if (!canCopy) { %>…<% } %></pre>
         <% if (!canCopy) { %>
           <div class="lg-pbox-lock">
-            <p><b>전체 프롬프트는 회원에게 보여요</b><br>카카오로 3초면 가입되고, 모든 프롬프트를 복사할 수 있어요.</p>
+            <p><b>회원들이 공유한 프롬프트는 가입한 회원에게 보여요</b><br>카카오로 3초면 가입되고, 모두의 프롬프트를 전부 복사할 수 있어요. (바이란 프롬프트는 가입 없이도 복사돼요)</p>
             <a href="<%= user ? '/onboard?next=/prompts/' + p.id : '/login?next=/prompts/' + p.id %>" class="lg-btn kakao"><%= user ? '닉네임 정하고 보기' : '카카오로 3초 시작' %></a>
           </div>
         <% } %>

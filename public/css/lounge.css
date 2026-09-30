@@ -1282,3 +1282,4 @@ a.lg-msg-who{text-decoration:none !important;color:#4A4A4F}
 .lg-dchart-tabs[hidden]{display:none}
 .lg-dbar-x .short{display:none}
 @media (max-width:700px){.lg-dbar-x .full{display:none}.lg-dbar-x .short{display:inline}}
+.lg-pcard-pre.lock{color:#9A9AA0}

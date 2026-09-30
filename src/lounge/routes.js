@@ -670,7 +670,8 @@ get('/prompts/:id(\\d+)', async (req, res) => {
   }
   db.query(`UPDATE lounge_prompts SET views=views+1 WHERE id=$1`, [p.id]).catch(() => {});
   const S = res.locals.S;
-  const canCopy = S.prompt_public === '1' || !!(req.user && req.user.nickname);
+  // 바이란이 올린 프롬프트는 누구나 복사, 회원이 공유한 프롬프트는 가입한 회원만
+  const canCopy = !p.user_id || !!(req.user && req.user.nickname);
   let liked = false;
   if (req.user) {
     const r = await db.query(`SELECT 1 FROM lounge_prompt_likes WHERE prompt_id=$1 AND user_id=$2`, [p.id, req.user.id]);
