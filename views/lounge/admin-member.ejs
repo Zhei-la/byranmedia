@@ -16,6 +16,19 @@
       <p class="lg-muted">카카오 이름 <b><%= m.name %></b> · 회원 번호 #<%= m.id %><% tags.forEach(function(t){ %> <i class="lg-mtag"><%= t %></i><% }); %></p>
     </div>
   </div>
+  <div class="lg-mbtns">
+    <% if (m.role !== 'admin') { %>
+      <form method="post" action="/admin/lounge/members/<%= m.id %>/student" class="inline">
+        <input type="hidden" name="on" value="<%= m.is_student ? '' : '1' %>">
+        <button class="lg-btn sm <%= m.is_student ? 'ghost' : 'primary' %>"><%= m.is_student ? '수강생 표시 풀기' : '🎓 수강생으로 표시' %></button>
+      </form>
+    <% } %>
+    <form method="post" action="/admin/lounge/members/<%= m.id %>/admin" class="inline" data-confirm="<%= m.role === 'admin' ? (m.nickname || m.name) + '님의 운영자 권한을 뺄까요?' : (m.nickname || m.name) + '님에게 운영자 권한을 줄까요? 관리 화면의 모든 기능을 쓸 수 있게 돼요.' %>">
+      <input type="hidden" name="on" value="<%= m.role === 'admin' ? '' : '1' %>">
+      <button class="lg-btn sm ghost"><%= m.role === 'admin' ? '운영자 권한 빼기' : '👑 운영자 권한 주기' %></button>
+    </form>
+  </div>
+  <p class="lg-hint">수강생 표시: 결제·등록을 확인한 사람을 체크해 두는 용도예요. 채팅·상단에 🎓 표시가 붙어요. 피드백 과정 수강권을 주면 자동으로 수강생이 돼요.</p>
   <% if (msg) { %><div class="lg-alert ok"><%= msg %></div><% } %>
 </section>
 

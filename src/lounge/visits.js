@@ -1,5 +1,6 @@
 /* 방문자 세기
- * - 브라우저마다 쿠키(bv)로 이름표를 붙이고, 하루에 한 줄만 남긴다 (같은 사람이 여러 번 와도 1명)
+ * - 브라우저마다 쿠키(bv)로 이름표를 붙이고 하루에 한 줄 + IP 를 같이 남긴다
+ * - 운영자 통계: IP 하나당 1명 / 홈에 보이는 '오늘 방문': 본 화면 수를 모두 더한 값(중복 포함)
  * - 화면(HTML)을 연 것만 센다. 사진·CSS·채팅 새로고침·봇·운영자는 빼고
  * - 날짜는 한국 시간 기준
  */
@@ -42,10 +43,10 @@ function track(req, res, next) {
     if (res.statusCode >= 400) return;
     if (!/text\/html/.test(String(res.get('content-type') || ''))) return;
     db.query(
-      `INSERT INTO lounge_visits (day, vid, user_id, first_path, ref_host) VALUES (${DAY}, $1, $2, $3, $4)
+      `INSERT INTO lounge_visits (day, vid, user_id, first_path, ref_host, ip) VALUES (${DAY}, $1, $2, $3, $4, $5)
        ON CONFLICT (day, vid) DO UPDATE SET views = lounge_visits.views + 1,
-         user_id = COALESCE(lounge_visits.user_id, EXCLUDED.user_id)`,
-      [vid, req.user ? req.user.id : null, req.path.slice(0, 200), ref]
+         user_id = COALESCE(lounge_visits.user_id, EXCLUDED.user_id), ip = COALESCE(lounge_visits.ip, EXCLUDED.ip)`,
+      [vid, req.user ? req.user.id : null, req.path.slice(0, 200), ref, String(req.ip || '').slice(0, 64) || null]
     ).catch((e) => console.error('[방문 기록]', e.message));
   });
   next();
@@ -56,9 +57,9 @@ async function stats(days = 14) {
   const q = (sql, p) => db.query(sql, p).then((r) => r.rows);
   const [today] = await q(
     `WITH d AS (SELECT ${DAY} AS t)
-     SELECT (SELECT count(*) FROM lounge_visits, d WHERE day = d.t)::int AS v,
+     SELECT (SELECT count(DISTINCT COALESCE(ip, vid)) FROM lounge_visits, d WHERE day = d.t)::int AS v,
             (SELECT COALESCE(sum(views),0) FROM lounge_visits, d WHERE day = d.t)::int AS pv,
-            (SELECT count(*) FROM lounge_visits, d WHERE day = d.t - 1)::int AS v_y,
+            (SELECT count(DISTINCT COALESCE(ip, vid)) FROM lounge_visits, d WHERE day = d.t - 1)::int AS v_y,
             (SELECT count(*) FROM users, d WHERE (created_at AT TIME ZONE 'Asia/Seoul')::date = d.t)::int AS j,
             (SELECT count(*) FROM users, d WHERE (created_at AT TIME ZONE 'Asia/Seoul')::date = d.t - 1)::int AS j_y,
             (SELECT count(*) FROM users, d WHERE (lounge_at AT TIME ZONE 'Asia/Seoul')::date = d.t)::int AS p,
@@ -69,7 +70,7 @@ async function stats(days = 14) {
   const daily = await q(
     `WITH d AS (SELECT generate_series(${DAY} - ($1::int - 1), ${DAY}, interval '1 day')::date AS day)
      SELECT d.day::text AS day, to_char(d.day, 'MM.DD') AS label, extract(isodow FROM d.day)::int AS dow,
-            (SELECT count(*) FROM lounge_visits v WHERE v.day = d.day)::int AS v,
+            (SELECT count(DISTINCT COALESCE(ip, vid)) FROM lounge_visits v WHERE v.day = d.day)::int AS v,
             (SELECT COALESCE(sum(views),0) FROM lounge_visits v WHERE v.day = d.day)::int AS pv,
             (SELECT count(*) FROM users u WHERE (u.created_at AT TIME ZONE 'Asia/Seoul')::date = d.day)::int AS j,
             (SELECT count(*) FROM users u WHERE (u.lounge_at AT TIME ZONE 'Asia/Seoul')::date = d.day)::int AS p
@@ -77,11 +78,11 @@ async function stats(days = 14) {
     [days]
   );
   const refs = await q(
-    `SELECT COALESCE(ref_host, '직접 들어옴 · 즐겨찾기') AS host, count(*)::int AS n
+    `SELECT COALESCE(ref_host, '직접 들어옴 · 즐겨찾기') AS host, count(DISTINCT COALESCE(ip, vid))::int AS n
        FROM lounge_visits WHERE day >= ${DAY} - 6 GROUP BY 1 ORDER BY n DESC LIMIT 10`
   );
   const pages = await q(
-    `SELECT first_path AS path, count(*)::int AS n
+    `SELECT first_path AS path, count(DISTINCT COALESCE(ip, vid))::int AS n
        FROM lounge_visits WHERE day >= ${DAY} - 6 GROUP BY 1 ORDER BY n DESC LIMIT 8`
   );
   const joins = await q(
@@ -95,10 +96,19 @@ async function stats(days = 14) {
 /** 머리 부분에 늘 보이는 오늘 숫자 */
 async function todayBrief() {
   const { rows } = await db.query(
-    `SELECT (SELECT count(*) FROM lounge_visits WHERE day = ${DAY})::int AS v,
+    `SELECT (SELECT count(DISTINCT COALESCE(ip, vid)) FROM lounge_visits WHERE day = ${DAY})::int AS v,
             (SELECT count(*) FROM users WHERE (created_at AT TIME ZONE 'Asia/Seoul')::date = ${DAY})::int AS j`
   );
   return rows[0];
 }
 
-module.exports = { track, stats, todayBrief };
+/** 홈에 보여줄 오늘 방문 수 — 본 화면 수를 모두 더한 값 (중복 포함). 1분 동안 저장해 두고 씀 */
+let pubCache = { at: 0, n: 0 };
+async function publicToday() {
+  if (Date.now() - pubCache.at < 60000) return pubCache.n;
+  const { rows } = await db.query(`SELECT COALESCE(sum(views),0)::int AS n FROM lounge_visits WHERE day = ${DAY}`);
+  pubCache = { at: Date.now(), n: rows[0].n };
+  return pubCache.n;
+}
+
+module.exports = { track, stats, todayBrief, publicToday };

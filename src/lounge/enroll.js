@@ -48,6 +48,8 @@ async function activeCourseIds(uid) {
 
 /** 강의 수강생인가 (전자책만 산 사람은 아님) */
 async function isStudent(uid) {
+  const { rows } = await db.query(`SELECT is_student FROM users WHERE id=$1`, [uid]);
+  if (rows[0] && rows[0].is_student) return true; // 운영자가 직접 수강생으로 표시
   return (await activeCourseIds(uid)).length > 0;
 }
 

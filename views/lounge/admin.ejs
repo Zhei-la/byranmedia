@@ -31,7 +31,7 @@
     <div class="lg-kpi"><small>오늘 본 화면 수</small><b><%= T.pv %></b><em>한 사람이 여러 화면을 보면 모두 더해요</em></div>
     <div class="lg-kpi"><small>전체 가입자</small><b><%= T.total_users %>명</b><em>오늘 프로필까지 끝낸 사람 <%= T.p %>명 · 오늘 글 <%= T.posts %>개</em></div>
   </div>
-  <p class="lg-hint">방문자는 한국 시간 하루 기준, 같은 사람(같은 폰·브라우저)이 여러 번 와도 1명으로 세요. 운영자와 검색봇은 빼요.<% if (T.since) { %> <%= T.since.replace(/-/g, '.') %>부터 세기 시작했어요.<% } else { %> 방문 기록은 이번 업데이트부터 쌓여요.<% } %></p>
+  <p class="lg-hint">방문자는 한국 시간 하루 기준, <b>IP 하나당 1명</b>으로 세요 (같은 와이파이에서 들어온 사람은 1명으로 묶일 수 있어요). 운영자와 검색봇은 빼요. 홈에 보이는 '오늘 방문'은 본 화면 수를 모두 더한 숫자예요.<% if (T.since) { %> <%= T.since.replace(/-/g, '.') %>부터 세기 시작했어요.<% } else { %> 방문 기록은 이번 업데이트부터 쌓여요.<% } %></p>
 
   <div class="lg-two mt">
     <div class="lg-card">
@@ -488,7 +488,7 @@
 %>
   <div class="lg-mfilter">
     <a href="<%= kq('') %>" class="<%= !kind ? 'on' : '' %>">전체 <b><%= kcount.all || 0 %></b></a>
-    <% ['student','ebook','ended','member','noprofile','suspended','admin'].forEach(function(k){ if (!kcount[k] && kind !== k) return; %>
+    <% ['student','member','admin','suspended'].forEach(function(k){ if (!kcount[k] && kind !== k && k === 'suspended') return; %>
       <a href="<%= kq(k) %>" class="<%= kind === k ? 'on' : '' %>"><%= KINDS[k].label %> <b><%= kcount[k] || 0 %></b></a>
     <% }); %>
   </div>
@@ -501,20 +501,31 @@
   <p class="lg-hint">회원을 누르면 수강권 지급·기간 수정, 메모·태그, 포인트, 쓴 글까지 한 화면에서 봐요.</p>
   <div class="lg-mlist">
     <% members.forEach(function(m){ var K = KINDS[m.kind] || KINDS.member; %>
-      <a href="/admin/lounge/members/<%= m.id %>" class="lg-mrow">
+      <div class="lg-mrow">
+      <a href="/admin/lounge/members/<%= m.id %>" class="lg-mrow-link">
         <span class="lg-ava"><%= (m.nickname || m.name || '?').slice(0,1) %></span>
         <span class="lg-mrow-main">
           <span class="lg-mrow-top">
             <b><%= m.nickname || '(닉네임 없음)' %></b><small class="lg-muted"><%= m.name %></small>
             <i class="lg-kind <%= K.cls %>"><%= K.label %></i>
+            <% if (m.has_ebook) { %><i class="lg-mtag">📖 전자책</i><% } %>
+            <% if (!m.nickname) { %><i class="lg-mtag gray">프로필 전</i><% } %>
             <% (m.admin_tags || '').split(',').filter(Boolean).forEach(function(t){ %><i class="lg-mtag"><%= t %></i><% }); %>
           </span>
           <% if (m.courses) { %><span class="lg-mrow-course">🎟 <%= m.courses %></span><% } %>
           <small class="lg-muted">가입 <%= fd(m.created_at) %> · 최근 <%= ago(m.seen_at) %><%= m.interest ? ' · ' + m.interest : '' %> · 글 <%= m.posts %> · 💎 <%= P.fmt(m.points) %>P<%= m.phone ? ' · 📞 ' + m.phone : '' %></small>
           <% if (m.memo) { %><small class="lg-mrow-memo">📝 <%= m.memo.split('\n')[0].slice(0, 60) %></small><% } %>
         </span>
-        <span class="lg-mrow-go">›</span>
       </a>
+        <% if (m.kind !== 'admin') { %>
+          <form method="post" action="/admin/lounge/members/<%= m.id %>/student" class="lg-mrow-act">
+            <input type="hidden" name="on" value="<%= m.is_student ? '' : '1' %>">
+            <input type="hidden" name="ret" value="/admin/lounge?tab=members<%= kind ? '&k=' + kind : '' %>">
+            <button class="lg-btn sm <%= m.is_student ? 'ghost' : '' %>"><%= m.is_student ? '수강생 해제' : '🎓 수강생으로' %></button>
+          </form>
+        <% } %>
+        <a href="/admin/lounge/members/<%= m.id %>" class="lg-mrow-go" aria-label="자세히">›</a>
+      </div>
     <% }); %>
     <% if (!members.length) { %><p class="lg-muted">해당하는 회원이 없어요.</p><% } %>
   </div>

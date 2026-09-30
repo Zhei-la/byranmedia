@@ -16,6 +16,7 @@ async function migrate() {
   await seedEbookCode();
   await seedPlanV5();
   await resetOwner();
+  await closeOwnerClaim();
 }
 
 /* 관리자 초기화 (한 번만): 지금 관리자들을 일반 회원으로 내리고,
@@ -33,6 +34,18 @@ async function resetOwner() {
 }
 
 /** 운영자 자리가 비어 있으면 이 회원이 차지한다. 동시에 두 명이 와도 한 명만 된다. */
+/* 이제 '카톡 첫 로그인 = 운영자'는 닫는다. 운영자는 관리 > 회원에서 직접 지정.
+ * (운영자가 한 명도 없을 때만 열어 둔다 — 아무도 관리할 수 없게 되는 걸 막는 안전장치) */
+async function closeOwnerClaim() {
+  const { rows } = await db.query(`SELECT count(*)::int AS n FROM users WHERE role='admin'`);
+  if (rows[0].n > 0) {
+    const r = await db.query(`UPDATE lounge_settings SET value='closed' WHERE key='owner_claim' AND value='open' RETURNING key`);
+    if (r.rows.length) console.log(`[라운지] 운영자 ${rows[0].n}명 확인 — 카톡 첫 로그인 운영자 등록을 닫았어요.`);
+  } else {
+    console.warn('[라운지] 운영자가 한 명도 없어요. 다음 카톡 첫 로그인이 운영자가 됩니다.');
+  }
+}
+
 async function claimOwner(userId) {
   const { rows } = await db.query(
     `UPDATE lounge_settings SET value=$1 WHERE key='owner_claim' AND value='open' RETURNING key`,

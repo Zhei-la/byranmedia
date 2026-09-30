@@ -290,5 +290,10 @@ ALTER TABLE lounge_posts ADD COLUMN IF NOT EXISTS prompt_id INT REFERENCES loung
 ALTER TABLE lounge_posts ADD COLUMN IF NOT EXISTS guest_name VARCHAR(20);
 ALTER TABLE lounge_posts ADD COLUMN IF NOT EXISTS guest_ip   VARCHAR(64);
 
+-- 운영자가 직접 '수강생'으로 표시 (결제·등록 확인용)
+ALTER TABLE users ADD COLUMN IF NOT EXISTS is_student BOOLEAN NOT NULL DEFAULT false;
+-- 방문자 IP (운영자 통계는 IP당 1명)
+ALTER TABLE lounge_visits ADD COLUMN IF NOT EXISTS ip VARCHAR(64);
+
 -- 운영자가 붙이는 회원 태그 (쉼표로 구분: 상담 중, 입금 대기 …) — 메모는 users.memo
 ALTER TABLE users ADD COLUMN IF NOT EXISTS admin_tags VARCHAR(200);

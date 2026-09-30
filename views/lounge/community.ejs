@@ -14,16 +14,13 @@
 <section class="lg-wrap narrow lg-csec">
 
 <% if (cat === 'chat') { %>
-  <div class="lg-card lg-chat tall" data-chat data-after="<%= chat.length ? chat[chat.length-1].id : 0 %>" data-login="<%= isMember ? '1' : '' %>">
+  <div class="lg-card lg-chat tall" data-chat data-after="0" data-me="<%= user && me ? user.id : '' %>" data-login="<%= isMember ? '1' : '' %>">
     <div class="lg-card-h">
       <h3># 실시간 수다방</h3>
       <span class="lg-live"><i></i> <span data-online>지금</span></span>
     </div>
     <ul class="lg-chat-list" data-list>
-      <% chat.forEach(function(m){ %>
-        <li><b class="<%= m.role === 'admin' ? 'admin' : '' %>"><%= m.nick %></b><span><%= m.body %></span></li>
-      <% }); %>
-      <% if (!chat.length) { %><li class="lg-muted" data-emptyrow>아직 조용해요. 첫 인사를 남겨 주세요!</li><% } %>
+      <li class="lg-muted lg-chat-empty" data-emptyrow>불러오는 중…</li>
     </ul>
     <% if (isMember) { %>
       <form class="lg-chat-form" data-chatform>

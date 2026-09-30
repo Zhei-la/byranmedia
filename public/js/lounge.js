@@ -233,13 +233,34 @@
   $$('[data-chat]').forEach(function (box) {
     var list = $('[data-list]', box), form = $('[data-chatform]', box), onl = $('[data-online]', box);
     var after = parseInt(box.getAttribute('data-after'), 10) || 0;
+    var me = box.getAttribute('data-me') || '';
+    var loaded = false;
+    var BADGE = { admin: '👑', student: '🎓' };
+    function hhmm(at) {
+      try { return new Date(at).toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Seoul' }); } catch (e) { return ''; }
+    }
+    // 카톡처럼: 내 메시지는 오른쪽 노란 말풍선, 다른 사람은 왼쪽에 (배지) 닉네임 + 흰 말풍선
     function add(m) {
       var empty = $('[data-emptyrow]', list); if (empty) empty.remove();
+      var mine = me && String(m.uid) === me;
+      var prev = list.lastElementChild;
+      var cont = prev && prev.getAttribute('data-uid') === String(m.uid);
       var li = document.createElement('li');
-      var b = document.createElement('b'); b.textContent = m.nick; if (m.admin) b.className = 'admin';
-      var s = document.createElement('span'); s.textContent = m.body;
-      li.appendChild(b); li.appendChild(s); list.appendChild(li);
-      while (list.children.length > 60) list.removeChild(list.firstChild);
+      li.className = 'lg-msg ' + (mine ? 'me' : 'other') + (cont ? ' cont' : '');
+      li.setAttribute('data-uid', String(m.uid));
+      if (!mine && !cont) {
+        var who = document.createElement('div'); who.className = 'lg-msg-who';
+        if (BADGE[m.badge]) { var e = document.createElement('span'); e.className = 'lg-msg-badge ' + m.badge; e.textContent = BADGE[m.badge]; who.appendChild(e); }
+        var n = document.createElement('b'); n.textContent = m.nick; who.appendChild(n);
+        li.appendChild(who);
+      }
+      var row = document.createElement('div'); row.className = 'lg-msg-row';
+      var bub = document.createElement('div'); bub.className = 'lg-msg-bub'; bub.textContent = m.body;
+      var t = document.createElement('small'); t.className = 'lg-msg-t'; t.textContent = hhmm(m.at);
+      row.appendChild(bub); row.appendChild(t);
+      li.appendChild(row);
+      list.appendChild(li);
+      while (list.children.length > 80) list.removeChild(list.firstChild);
     }
     function scroll() { list.scrollTop = list.scrollHeight; }
     scroll();
@@ -250,6 +271,8 @@
         .then(function (d) {
           if (onl) onl.textContent = d.online ? '최근 30분 ' + d.online + '명' : '지금';
           if (d.items && d.items.length) { d.items.forEach(add); after = d.items[d.items.length - 1].id; scroll(); }
+          else if (!loaded) { var em = $('[data-emptyrow]', list); if (em) em.textContent = '아직 조용해요. 첫 인사를 남겨 주세요!'; }
+          loaded = true;
         }).catch(function () {});
     }
     poll();

@@ -246,6 +246,21 @@ router.get('/admin/lounge/members/:id(\\d+)', async (req, res) => {
     today: new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' }),
   });
 });
+router.post('/admin/lounge/members/:id(\\d+)/student', async (req, res) => {
+  const id = int(req.params.id);
+  const on = req.body.on === '1';
+  await M.setStudent(id, on);
+  const r = String(req.body.ret || '');
+  const to = retOk(r) || (/^\/admin\/lounge\?tab=members(&k=[a-z]+)?$/.test(r) ? r : `/admin/lounge/members/${id}`);
+  res.redirect(`${to}${to.includes('?') ? '&' : '?'}msg=${encodeURIComponent(on ? '수강생으로 표시했어요.' : '수강생 표시를 풀었어요. (수강권이 있으면 계속 수강생으로 보여요)')}`);
+});
+router.post('/admin/lounge/members/:id(\\d+)/admin', async (req, res) => {
+  const id = int(req.params.id);
+  const on = req.body.on === '1';
+  if (!on && id === req.user.id) return res.redirect(`/admin/lounge/members/${id}?msg=${encodeURIComponent('내 운영자 권한은 여기서 뺄 수 없어요.')}`);
+  await M.setAdmin(id, on);
+  res.redirect(`/admin/lounge/members/${id}?msg=${encodeURIComponent(on ? '운영자 권한을 줬어요. 관리 화면을 쓸 수 있어요.' : '운영자 권한을 뺐어요.')}`);
+});
 router.post('/admin/lounge/members/:id(\\d+)/save', async (req, res) => {
   const id = int(req.params.id);
   await M.save(id, { memo: req.body.memo, phone: req.body.phone, tags: [].concat(req.body.tag || [], req.body.tag_new || []) });

@@ -3,12 +3,10 @@ const db = require('../db');
 const E = require('./enroll');
 
 // 회원 구분 (위에서부터 먼저 맞는 것)
+// 가입하면 모두 '일반'. 수강생은 운영자가 직접 표시하거나 수강권(피드백 과정)을 주면 자동으로.
 const KINDS = {
   student:   { label: '🎓 수강생', cls: 'k-stu' },
-  ebook:     { label: '📖 전자책', cls: 'k-ebook' },
-  ended:     { label: '수강 종료', cls: 'k-ended' },
-  member:    { label: '일반 회원', cls: 'k-mem' },
-  noprofile: { label: '프로필 전', cls: 'k-none' },
+  member:    { label: '일반', cls: 'k-mem' },
   admin:     { label: '👑 운영자', cls: 'k-admin' },
   suspended: { label: '⛔ 이용 중지', cls: 'k-stop' },
 };
@@ -28,15 +26,13 @@ const BASE = `
     SELECT user_id, max(day) AS day FROM lounge_visits WHERE user_id IS NOT NULL GROUP BY user_id
   ), m AS (
     SELECT u.id, u.name, u.nickname, u.email, u.phone, u.provider, u.role, u.status, u.interest,
-           u.memo, u.admin_tags, u.created_at, u.lounge_at, u.last_login_at, u.referred_by,
+           u.memo, u.admin_tags, u.created_at, u.lounge_at, u.last_login_at, u.referred_by, u.is_student,
+           COALESCE(en.ebook, false) AS has_ebook, COALESCE(en.stu, false) AS has_course,
            GREATEST(u.last_login_at, lv.day::timestamptz) AS seen_at,
            en.courses, COALESCE(en.n, 0) AS enroll_n,
            CASE WHEN u.role='admin' THEN 'admin'
                 WHEN u.status='suspended' THEN 'suspended'
-                WHEN en.stu THEN 'student'
-                WHEN en.ebook THEN 'ebook'
-                WHEN en.n > 0 THEN 'ended'
-                WHEN u.nickname IS NULL THEN 'noprofile'
+                WHEN u.is_student OR en.stu THEN 'student'
                 ELSE 'member' END AS kind,
            (SELECT count(*) FROM lounge_posts p WHERE p.user_id=u.id AND p.is_hidden=false)::int AS posts,
            (SELECT COALESCE(sum(amount),0) FROM lounge_point_log g WHERE g.user_id=u.id)::int AS points
@@ -93,6 +89,13 @@ async function detail(id) {
   return { m, enrolls, points, posts, opened, reviews, inquiries, referrer };
 }
 
+async function setStudent(id, on) {
+  await db.query(`UPDATE users SET is_student=$1 WHERE id=$2`, [!!on, id]);
+}
+async function setAdmin(id, on) {
+  await db.query(on ? `UPDATE users SET role='admin', status='active' WHERE id=$1` : `UPDATE users SET role='member' WHERE id=$1`, [id]);
+}
+
 async function save(id, { memo, phone, tags }) {
   const clean = Array.from(new Set(
     [].concat(tags || []).join(',').split(',').map((t) => t.trim().slice(0, 20)).filter(Boolean)
@@ -120,4 +123,4 @@ async function csv({ kind, s }) {
   return '﻿' + lines.join('\r\n');
 }
 
-module.exports = { KINDS, PRESET_TAGS, list, counts, detail, save, csv };
+module.exports = { KINDS, PRESET_TAGS, list, counts, detail, save, setStudent, setAdmin, csv };

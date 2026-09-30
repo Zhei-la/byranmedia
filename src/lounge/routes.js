@@ -5,6 +5,7 @@ const L = require('./core');
 const T = require('./translate');
 const P = require('./points');
 const E = require('./enroll');
+const V = require('./visits');
 
 const router = express.Router();
 
@@ -112,8 +113,9 @@ get('/', async (req, res) => {
     q(`SELECT id, title, subtitle, price_text, list_price, price_note, badge, ptype FROM lounge_products WHERE is_active=true ORDER BY sort_order, id LIMIT 3`).then(E.priced),
   ]);
 
+  const todayViews = await V.publicToday().catch(() => 0);
   res.render('lounge/home', {
-    title: '', active: 'home',
+    title: '', active: 'home', todayViews,
     results, board, chat: chat.reverse(), sections, reviews, cohort: cohort[0] || null, prompts, courses,
     ogT: '바이란 라운지 · AI로 시작하는 1인 창업 커뮤니티',
     ogD: '무료 자료집, AI 프롬프트, 같이 성장하는 커뮤니티. 카카오로 3초면 시작해요.',
@@ -390,8 +392,14 @@ post('/report', member, async (req, res) => {
 /* ---------------- 실시간 채팅 ---------------- */
 get('/chat/messages', async (req, res) => {
   const after = parseInt(req.query.after, 10) || 0;
+  // badge: 운영자 👑 / 수강생 🎓 (직접 표시했거나 피드백 과정 수강 중)
   const { rows } = await db.query(
-    `SELECT c.id, c.body, c.created_at, COALESCE(u.nickname,u.name) AS nick, u.role
+    `SELECT c.id, c.body, c.created_at, c.user_id, COALESCE(u.nickname,u.name) AS nick,
+            CASE WHEN u.role='admin' THEN 'admin'
+                 WHEN u.is_student OR EXISTS (
+                   SELECT 1 FROM lounge_enrollments e LEFT JOIN lounge_products p ON p.id=e.product_id
+                    WHERE e.user_id=u.id AND ${E.ACTIVE} AND COALESCE(p.ptype,'course')='course') THEN 'student'
+                 ELSE '' END AS badge
        FROM lounge_chat c JOIN users u ON u.id=c.user_id
       WHERE c.is_hidden=false AND c.id > $1 ORDER BY c.id DESC LIMIT 40`,
     [after]
@@ -401,7 +409,7 @@ get('/chat/messages', async (req, res) => {
   );
   res.json({
     online: on[0].n,
-    items: rows.reverse().map((m) => ({ id: m.id, nick: m.nick, admin: m.role === 'admin', body: m.body, ago: L.ago(m.created_at) })),
+    items: rows.reverse().map((m) => ({ id: m.id, uid: m.user_id, nick: m.nick, badge: m.badge, admin: m.badge === 'admin', body: m.body, at: m.created_at })),
   });
 });
 
