@@ -7,7 +7,7 @@
       <span>✍️ 글 쓰면 <b>+<%= pt.rules.post %>P</b> <em class="<%= pt.today.posts >= pt.rules.postDaily ? 'full' : '' %>">오늘 <%= Math.min(pt.today.posts, pt.rules.postDaily) %>/<%= pt.rules.postDaily %></em></span>
       <span>⭐ 후기 쓰면 <b>+<%= pt.rules.review %>P</b> <em class="<%= pt.today.reviews >= pt.rules.reviewDaily ? 'full' : '' %>">오늘 <%= Math.min(pt.today.reviews, pt.rules.reviewDaily) %>/<%= pt.rules.reviewDaily %></em></span>
     </div>
-    <a href="/library" class="lg-btn sm primary">포인트로 자료집 열기 →</a>
+    <% if (!(typeof soon !== 'undefined' && soon && soon.library)) { %><a href="/library" class="lg-btn sm primary">포인트로 자료집 열기 →</a><% } %>
   </div>
 <% } else { %>
   <div class="lg-ptbar guest">
@@ -15,7 +15,7 @@
     <div class="lg-ptbar-rules">
       <span>✍️ 글 <b>+<%= PR.post %>P</b> <em>하루 <%= PR.postDaily %>개</em></span>
       <span>⭐ 후기 <b>+<%= PR.review %>P</b> <em>하루 <%= PR.reviewDaily %>개</em></span>
-      <span>📚 모은 포인트로 사주·타로·스레드 자료집 열기</span>
+      <% if (!(typeof soon !== 'undefined' && soon && soon.library)) { %><span>📚 모은 포인트로 사주·타로·스레드 자료집 열기</span><% } %>
     </div>
     <% if (!user) { %><a href="/login?next=<%= encodeURIComponent(path) %>" class="lg-btn sm kakao">가입하고 모으기</a><% } %>
   </div>

@@ -3,6 +3,8 @@
   const heroLines = String(S.hero_title || '').split('\n');
   const kakaoStart = '/login?next=/';
   const SOONH = typeof soon !== 'undefined' && soon ? soon : {};
+  const PEEK = user && user.role === 'admin';
+  const peekTag = '<span class="lg-peek">🔒 준비중 · 운영자에게만 보여요</span>';
   const SEC_ICON = { '수강 안내': '🎓', '사주·타로': '🔮', '쿠팡파트너스': '🛒', '스레드 글쓰기': '✍️', 'AI 이미지': '🎨', '무료 자료': '🎁' };
 %>
 
@@ -22,14 +24,20 @@
           </a>
           <a href="/prompts" class="lg-btn ghost lg">AI 프롬프트 구경하기 →</a>
         </div>
-        <p class="lg-hero-note"><%= S.welcome_note %></p>
+        <% if (!SOONH.library) { %><p class="lg-hero-note"><%= S.welcome_note %></p><% } %>
       </div>
       <div class="lg-hero-card" aria-label="라운지에서 받을 수 있는 것">
         <div class="lg-byline"><span>BY</span> 바이란 라운지</div>
         <ol class="lg-howto">
+          <% if (SOONH.library) { %>
+          <li><b>AI 프롬프트</b><span>이미지 누르고 바로 복사, 생성기까지</span></li>
+          <li><b>프롬프트 요청</b><span>원하는 컨셉을 남기면 프롬프트로 만들어 올려 드려요</span></li>
+          <li><b>같이 크는 곳</b><span>질문하고, 인증하고, 같이 묻고 답해요</span></li>
+          <% } else { %>
           <li><b>무료 자료집</b><span>쿠팡파트너스는 가입 즉시, 사주·타로·스레드는 포인트로</span></li>
           <li><b>AI 프롬프트</b><span>이미지 누르고 바로 복사, 생성기까지</span></li>
           <li><b>같이 크는 곳</b><span>글 +<%= S.pt_post %>P, 후기 +<%= S.pt_review %>P — 모아서 자료집 열기</span></li>
+          <% } %>
         </ol>
       </div>
     </div>
@@ -43,7 +51,7 @@
         <p class="lg-muted">자료집 보고, 프롬프트 복사하고, 막히면 커뮤니티에 물어보세요.</p>
       </div>
       <div class="lg-quick">
-        <a href="/library"><span>📚</span><b>자료실</b><small>무료 자료집</small></a>
+        <% if (SOONH.library) { %><a href="/community?cat=request&write=1&wc=request#write"><span>💡</span><b>프롬프트 요청</b><small>원하는 컨셉 남기기</small></a><% } else { %><a href="/library"><span>📚</span><b>자료실</b><small>무료 자료집</small></a><% } %>
         <a href="/prompts"><span>🎨</span><b>AI 프롬프트</b><small>복사해서 바로</small></a>
         <a href="/prompts/builder"><span>🪄</span><b>프롬프트 생성기</b><small>칸만 채우면 완성</small></a>
         <a href="/community?write=1"><span>✍️</span><b>글쓰기</b><small>질문·인증·인사</small></a>
@@ -72,14 +80,19 @@
     <div><b>프롬프트 생성기로 나만의 프롬프트 만들기</b><small>인물·화보·제품 패턴에 칸만 채우면 영어 프롬프트가 완성돼요</small></div>
     <em>열기 →</em>
   </a>
+  <a href="/community?cat=request" class="lg-builderbar req">
+    <span>💡</span>
+    <div><b>원하는 프롬프트 요청하기</b><small>컨셉만 적어 주시면 프롬프트로 만들어 올려 드려요</small></div>
+    <em>요청 →</em>
+  </a>
 </section>
 <% } %>
 
-<!-- 자료실 -->
-<% if (sections.length) { %>
+<!-- 자료실 (준비중이면 운영자만 보임) -->
+<% if (sections.length && !SOONH.library) { %>
 <section class="lg-wrap lg-sec">
   <div class="lg-sec-h">
-    <div><p class="lg-kicker">Library</p><h2 class="lg-h2"><%= user ? '자료실' : '가입하면 바로 보는 무료 자료집' %></h2></div>
+    <div><p class="lg-kicker">Library<% if (PEEK && S.soon_library === '1') { %> <%- peekTag %><% } %></p><h2 class="lg-h2"><%= user ? '자료실' : '가입하면 바로 보는 무료 자료집' %></h2></div>
     <a href="/library" class="lg-more">자료실 전체 →</a>
   </div>
   <div class="lg-secgrid">
@@ -184,7 +197,7 @@
 <% if (courses.length && !SOONH.course) { %>
 <section class="lg-wrap lg-sec">
   <div class="lg-sec-h">
-    <div><p class="lg-kicker">E-book · 1:1 Feedback</p><h2 class="lg-h2">혼자 해볼지, 같이 갈지</h2></div>
+    <div><p class="lg-kicker">E-book · 1:1 Feedback<% if (PEEK && S.soon_course === '1') { %> <%- peekTag %><% } %></p><h2 class="lg-h2">혼자 해볼지, 같이 갈지</h2></div>
     <a href="/library#course" class="lg-more">수강 · 전자책 →</a>
   </div>
   <div class="lg-courses mini">
@@ -223,7 +236,7 @@
 <section class="lg-wrap lg-sec">
   <div class="lg-consult-box">
     <div>
-      <p class="lg-kicker">1:1 무료 상담</p>
+      <p class="lg-kicker">1:1 무료 상담<% if (PEEK && S.soon_consult === '1') { %> <%- peekTag %><% } %></p>
       <h2 class="lg-h2">어떤 상황이세요?</h2>
       <p class="lg-muted">상황을 골라 남겨 주시면 바이란이 직접 연락드려요.</p>
     </div>
@@ -238,7 +251,7 @@
 <% if (!user) { %>
   <section class="lg-wrap lg-sec">
     <div class="lg-final">
-      <h2 class="lg-display sm">가입하면<br>쿠팡파트너스 자료집부터 바로</h2>
+      <h2 class="lg-display sm"><% if (SOONH.library) { %>가입하고<br>원하는 프롬프트를 요청해 보세요<% } else { %>가입하면<br>쿠팡파트너스 자료집부터 바로<% } %></h2>
       <a href="<%= kakaoStart %>" class="lg-btn kakao lg">카카오로 3초 시작</a>
     </div>
   </section>

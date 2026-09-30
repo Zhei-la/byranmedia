@@ -20,9 +20,30 @@
         <span class="lg-muted">· <%= L.ago(p.created_at) %> · 조회 <%= p.views + 1 %></span>
       </div>
     </header>
+    <% if (p.category === 'request') { %>
+      <% if (answer) { %>
+        <a href="/prompts/<%= answer.id %>" class="lg-reqanswer">
+          <% if (answer.image_ids && answer.image_ids.length) { %><img src="/u/img/<%= answer.image_ids[0] %>" alt="<%= answer.title %>" loading="lazy"><% } %>
+          <div><i class="lg-reqstate done">완료</i><b>요청하신 프롬프트가 올라왔어요</b><span><%= answer.title %> →</span></div>
+        </a>
+      <% } else { %>
+        <p class="lg-reqwait"><i class="lg-reqstate">접수</i> 요청을 받았어요. 프롬프트가 올라오면 여기와 댓글로 알려 드려요.</p>
+      <% } %>
+    <% } %>
     <div class="lg-post-body"><%- L.linkify(p.body || '') %></div>
     <% if (p.image_id) { %>
       <a href="/u/img/<%= p.image_id %>" target="_blank" rel="noopener"><img src="/u/img/<%= p.image_id %>" alt="첨부 사진" class="lg-post-img" loading="lazy"></a>
+    <% } %>
+    <% if (isAdmin && p.category === 'request') { %>
+      <form method="post" action="/community/<%= p.id %>/answer" class="lg-reqadmin">
+        <b>👑 운영자: 만든 프롬프트 연결</b>
+        <select name="prompt_id" class="lg-in">
+          <option value="">— 연결 안 함 —</option>
+          <% promptList.forEach(function(x){ %><option value="<%= x.id %>" <%= p.prompt_id === x.id ? 'selected' : '' %>><%= x.title %></option><% }); %>
+        </select>
+        <button class="lg-btn primary sm">저장</button>
+        <small class="lg-muted">먼저 <a href="/admin/lounge?tab=prompts">관리 &gt; 프롬프트</a>에서 올린 뒤 여기서 고르세요. 처음 연결하면 댓글이 자동으로 달려요.</small>
+      </form>
     <% } %>
     <footer class="lg-post-foot">
       <% if (user && me) { %>

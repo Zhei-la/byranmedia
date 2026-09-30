@@ -184,7 +184,7 @@ get('/community', async (req, res) => {
     : { rows: [] };
   params.push(PAGE, (page - 1) * PAGE);
   const { rows: posts } = await db.query(
-    `SELECT p.id, p.category, p.title, p.views, p.created_at, p.user_id, p.image_id,
+    `SELECT p.id, p.category, p.title, p.views, p.created_at, p.user_id, p.image_id, p.prompt_id,
             COALESCE(u.nickname,u.name) AS nick, u.role,
             (SELECT count(*) FROM lounge_likes l WHERE l.post_id=p.id)::int AS likes,
             (SELECT count(*) FROM lounge_comments c WHERE c.post_id=p.id AND c.is_hidden=false)::int AS comments
@@ -272,7 +272,39 @@ get('/community/:id(\\d+)', async (req, res) => {
     const r = await db.query(`SELECT 1 FROM lounge_likes WHERE post_id=$1 AND user_id=$2`, [p.id, req.user.id]);
     liked = r.rows.length > 0;
   }
-  res.render('lounge/post', { title: locked ? '비밀글' : p.title, active: 'community', p, comments, liked, locked });
+  // 프롬프트 요청: 올라온 프롬프트, 운영자는 연결할 프롬프트 목록
+  let answer = null, promptList = [];
+  if (p.category === 'request' && !locked) {
+    if (p.prompt_id) {
+      const r = await db.query(`SELECT id, title, image_ids FROM lounge_prompts WHERE id=$1 AND is_active`, [p.prompt_id]);
+      answer = r.rows[0] || null;
+    }
+    if (isAdmin(req)) {
+      const r = await db.query(`SELECT id, title FROM lounge_prompts WHERE is_active ORDER BY created_at DESC LIMIT 60`);
+      promptList = r.rows;
+    }
+  }
+  res.render('lounge/post', { title: locked ? '비밀글' : p.title, active: 'community', p, comments, liked, locked, answer, promptList });
+});
+
+// 운영자: 요청 글에 만든 프롬프트 연결 (답글도 자동으로 남김)
+post('/community/:id(\\d+)/answer', member, async (req, res) => {
+  if (!isAdmin(req)) return res.redirect('/community');
+  const p = await loadPost(req.params.id);
+  if (!p || p.category !== 'request') return res.redirect('/community');
+  const pid = parseInt(req.body.prompt_id, 10) || null;
+  await db.query(`UPDATE lounge_posts SET prompt_id=$1 WHERE id=$2`, [pid, p.id]);
+  if (pid && !p.prompt_id) {
+    const r = await db.query(`SELECT title FROM lounge_prompts WHERE id=$1`, [pid]);
+    if (r.rows[0]) {
+      await db.query(
+        `INSERT INTO lounge_comments (post_id, user_id, body) VALUES ($1,$2,$3)`,
+        [p.id, req.user.id, `요청하신 프롬프트 올렸어요! 👉 「${r.rows[0].title}」 ${res.locals.baseUrl}/prompts/${pid}`]
+      );
+    }
+  }
+  flash(req, pid ? '프롬프트를 연결했어요. 요청 글에 완료로 표시돼요.' : '연결을 풀었어요.');
+  res.redirect(`/community/${p.id}`);
 });
 
 post('/community/:id(\\d+)/comment', member, async (req, res) => {

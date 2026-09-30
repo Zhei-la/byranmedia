@@ -282,3 +282,6 @@ CREATE TABLE IF NOT EXISTS lounge_visits (
   PRIMARY KEY (day, vid)
 );
 CREATE INDEX IF NOT EXISTS idx_visits_day ON lounge_visits (day);
+
+-- 프롬프트 요청 글에 운영자가 올린 프롬프트를 연결
+ALTER TABLE lounge_posts ADD COLUMN IF NOT EXISTS prompt_id INT REFERENCES lounge_prompts(id) ON DELETE SET NULL;

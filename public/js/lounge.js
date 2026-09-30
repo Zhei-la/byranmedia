@@ -7,6 +7,22 @@
   var toast = $('[data-toast]');
   if (toast) setTimeout(function () { toast.classList.add('hide'); }, 4200);
 
+  /* 글쓰기: 프롬프트 요청을 고르면 안내·예시가 바뀜 */
+  $$('.lg-write-form').forEach(function (f) {
+    var guide = $('[data-reqguide]', f), title = $('[name=title]', f), body = $('[name=body]', f);
+    if (!guide || !title || !body) return;
+    var bodyPh = body.getAttribute('placeholder');
+    function sync() {
+      var r = $('[data-cat-radio]:checked', f);
+      var req = r && r.value === 'request';
+      guide.hidden = !req;
+      title.setAttribute('placeholder', req ? title.getAttribute('data-ph-title-req') : title.getAttribute('data-ph-title'));
+      body.setAttribute('placeholder', req ? body.getAttribute('data-ph-body-req') : bodyPh);
+    }
+    $$('[data-cat-radio]', f).forEach(function (r) { r.addEventListener('change', sync); });
+    sync();
+  });
+
   /* 준비중인 곳: 눌러도 들어가지 않고 알림만 */
   var soon = (document.body.getAttribute('data-soon') || '').split(' ');
   function isSoon(p) {

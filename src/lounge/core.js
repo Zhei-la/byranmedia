@@ -394,6 +394,7 @@ const CATEGORIES = {
   proof:  { label: '오늘의 인증' },
   free:   { label: '자유' },
   qna:    { label: '질문' },
+  request: { label: '🎨 프롬프트 요청' },
   secret: { label: '1:1 문의' },
 };
 

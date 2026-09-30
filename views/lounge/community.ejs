@@ -35,11 +35,15 @@
         <form method="post" action="/community" data-image-form class="lg-write-form">
           <div class="lg-chips" role="radiogroup" aria-label="분류">
             <% Object.keys(CATS).forEach(function(k){ if (k === 'notice' && !isAdmin) return; %>
-              <label class="lg-chip"><input type="radio" name="category" value="<%= k %>" <%= writeCat === k ? 'checked' : '' %>><span><%= CATS[k].label %></span></label>
+              <label class="lg-chip"><input type="radio" name="category" value="<%= k %>" <%= writeCat === k ? 'checked' : '' %> data-cat-radio><span><%= CATS[k].label %></span></label>
             <% }); %>
           </div>
-          <input name="title" class="lg-in" maxlength="120" required placeholder="제목">
-          <textarea name="body" class="lg-in" rows="6" maxlength="5000" required placeholder="오늘의 인증 예시)&#10;- 블로그 글 1개 발행 (링크)&#10;- 제목을 3번 고쳐 봤어요&#10;- 내일은 키워드 찾기!"></textarea>
+          <div class="lg-reqguide" data-reqguide <%= writeCat === 'request' ? '' : 'hidden' %>>
+            <b>🎨 이런 프롬프트가 있으면 좋겠다!</b>
+            <span>원하는 느낌을 적어 주시면 바이란이 프롬프트로 만들어 AI 프롬프트에 올려 드려요. 참고 사진이 있으면 같이 올려 주세요.</span>
+          </div>
+          <input name="title" class="lg-in" maxlength="120" required placeholder="제목" data-ph-title="제목" data-ph-title-req="예: 벚꽃 아래 한복 입은 인물 화보">
+          <textarea name="body" class="lg-in" rows="6" maxlength="5000" required placeholder="오늘의 인증 예시)&#10;- 블로그 글 1개 발행 (링크)&#10;- 제목을 3번 고쳐 봤어요&#10;- 내일은 키워드 찾기!" data-ph-body-req="원하는 컨셉을 자유롭게 적어 주세요.&#10;- 누가/무엇이: 20대 여성, 강아지, 제품 사진 등&#10;- 분위기·스타일: 실사, 애니, 파스텔, 필름 느낌 등&#10;- 장소·배경, 옷, 색감, 구도&#10;- 어디에 쓸지: 스레드 프로필, 블로그 썸네일 등"></textarea>
           <div class="lg-write-foot">
             <label class="lg-btn sm ghost lg-filebtn">📷 사진<input type="file" accept="image/*" data-file hidden></label>
             <img alt="" data-preview hidden class="lg-thumb">
@@ -55,6 +59,20 @@
     <% } %>
 
     <%- include('_cnav') %>
+
+    <% if (cat === 'request') { %>
+      <div class="lg-reqbox">
+        <div>
+          <b>🎨 요청하고 싶은 프롬프트가 있나요?</b>
+          <p>원하는 컨셉을 남겨 주시면 바이란이 프롬프트로 만들어 <a href="/prompts">AI 프롬프트</a>에 올려 드려요. 올라가면 글에 <i class="lg-reqstate done">완료</i>로 바뀌고 댓글로 알려 드려요.</p>
+        </div>
+        <% if (user && me) { %>
+          <a href="/community?cat=request&write=1&wc=request#write" class="lg-btn primary sm">요청하기</a>
+        <% } else { %>
+          <a href="/login?next=<%= encodeURIComponent('/community?cat=request&write=1&wc=request') %>" class="lg-btn kakao sm">가입하고 요청하기</a>
+        <% } %>
+      </div>
+    <% } %>
 
     <div class="lg-card flush">
       <ul class="lg-board">
@@ -72,6 +90,7 @@
             <a href="/community/<%= p.id %>">
               <span class="lg-cat c-<%= p.category %>"><%= c.label %></span>
               <span class="t">
+                <% if (p.category === 'request') { %><i class="lg-reqstate <%= p.prompt_id ? 'done' : '' %>"><%= p.prompt_id ? '완료' : '접수' %></i><% } %>
                 <% if (p.category === 'secret' && !mine) { %>🔒 비밀글입니다<% } else { %><%= p.category === 'secret' ? '🔒 ' : '' %><%= p.title %><% } %>
                 <% if (p.image_id) { %> <span class="lg-muted" title="사진 있음">📷</span><% } %>
                 <% if (p.comments) { %> <em>[<%= p.comments %>]</em><% } %>

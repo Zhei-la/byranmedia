@@ -937,3 +937,28 @@ body.lg{background:#fff;color:var(--ink)}
 .lg-adstats span.today b{color:#fff}
 @media (max-width:720px){.lg-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .lg-adstats-link{text-decoration:none;color:inherit}
+
+/* 프롬프트 요청 */
+.lg-cat.c-request{background:#FFF1E6;color:#A4501B}
+.lg-reqstate{display:inline-block;font-style:normal;font-size:11px;font-weight:800;padding:2px 7px;border-radius:999px;background:#F1F1F3;color:#6B6B70;margin-right:6px;vertical-align:1px}
+.lg-reqstate.done{background:#E6F6EC;color:#1C7A43}
+.lg-reqbox{display:flex;align-items:center;gap:16px;justify-content:space-between;background:#FFF7F0;border:1px solid #FBE3CF;border-radius:14px;padding:16px 18px;margin:0 0 14px}
+.lg-reqbox b{font-size:15px}
+.lg-reqbox p{margin:4px 0 0;font-size:13.5px;color:#5B5B60;line-height:1.6}
+.lg-reqbox .lg-btn{flex:none}
+.lg-reqguide{display:flex;flex-direction:column;gap:3px;background:#FFF7F0;border:1px solid #FBE3CF;border-radius:12px;padding:12px 14px;font-size:13.5px;color:#5B5B60;line-height:1.55}
+.lg-reqguide b{color:var(--ink);font-size:14px}
+.lg-reqguide[hidden]{display:none}
+.lg-reqanswer{display:flex;gap:14px;align-items:center;border:1px solid #CDEBD8;background:#F2FBF5;border-radius:14px;padding:12px;margin:6px 0 16px;text-decoration:none;color:inherit}
+.lg-reqanswer img{width:72px;height:72px;object-fit:cover;border-radius:10px;flex:none}
+.lg-reqanswer div{display:flex;flex-direction:column;gap:3px}
+.lg-reqanswer b{font-size:15px}
+.lg-reqanswer span{font-size:14px;color:#1C7A43;font-weight:700}
+.lg-reqwait{background:#F7F7F8;border-radius:12px;padding:10px 14px;font-size:13.5px;color:#5B5B60;margin:6px 0 16px}
+.lg-reqadmin{display:flex;flex-wrap:wrap;align-items:center;gap:8px;border:1px dashed #D9D9DD;border-radius:12px;padding:12px 14px;margin:16px 0 4px}
+.lg-reqadmin select{flex:1;min-width:180px}
+.lg-reqadmin small{flex-basis:100%}
+.lg-builderbar.req{margin-top:10px;background:#FFF7F0;border-color:#FBE3CF}
+@media (max-width:640px){.lg-reqbox{flex-direction:column;align-items:flex-start}}
+.lg-peek{display:inline-block;margin-left:6px;padding:2px 8px;border-radius:999px;background:#171717;color:#fff;font-size:10.5px;letter-spacing:0;text-transform:none;font-weight:700;vertical-align:1px}
+.lg-cols>*,.lg-col-main{min-width:0}
