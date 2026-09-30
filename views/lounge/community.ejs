@@ -14,6 +14,13 @@
 <section class="lg-wrap narrow lg-csec">
 
 <% if (cat === 'chat') { %>
+  <% if (S.live_room_url) { %>
+    <a href="<%= S.live_room_url %>" target="_blank" rel="noopener" class="lg-openchat">
+      <span class="lg-openchat-i">💬</span>
+      <span><b>AI 정보 공유방 · 카카오톡 오픈채팅</b><small>새로 나온 AI 툴·꿀팁을 카톡으로 같이 나눠요<% if (S.live_room_code) { %> · 참여코드 <b><%= S.live_room_code %></b><% } %></small></span>
+      <em>들어가기 →</em>
+    </a>
+  <% } %>
   <div class="lg-card lg-chat tall" data-chat data-after="0" data-me="<%= user && me ? user.id : '' %>" data-login="<%= isMember ? '1' : '' %>">
     <div class="lg-card-h">
       <h3># 실시간 수다방</h3>

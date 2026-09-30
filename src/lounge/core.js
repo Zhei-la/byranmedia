@@ -17,6 +17,7 @@ async function migrate() {
   await seedPlanV5();
   await resetOwner();
   await closeOwnerClaim();
+  await seedOpenChat();
 }
 
 /* 관리자 초기화 (한 번만): 지금 관리자들을 일반 회원으로 내리고,
@@ -34,6 +35,18 @@ async function resetOwner() {
 }
 
 /** 운영자 자리가 비어 있으면 이 회원이 차지한다. 동시에 두 명이 와도 한 명만 된다. */
+/* AI 정보 공유방(카톡 오픈채팅) 주소 — 비어 있을 때 한 번만 넣는다 */
+async function seedOpenChat() {
+  const { rows } = await db.query(`SELECT 1 FROM lounge_settings WHERE key='seeded_openchat_v1'`);
+  if (rows.length) return;
+  await db.query(
+    `INSERT INTO lounge_settings (key, value) VALUES ('live_room_url', 'https://open.kakao.com/o/giz8T3Ii')
+     ON CONFLICT (key) DO UPDATE SET value = CASE WHEN lounge_settings.value = '' THEN EXCLUDED.value ELSE lounge_settings.value END`
+  );
+  await db.query(`INSERT INTO lounge_settings (key, value) VALUES ('seeded_openchat_v1', '1') ON CONFLICT (key) DO NOTHING`);
+  settingsCache = null;
+}
+
 /* 이제 '카톡 첫 로그인 = 운영자'는 닫는다. 운영자는 관리 > 회원에서 직접 지정.
  * (운영자가 한 명도 없을 때만 열어 둔다 — 아무도 관리할 수 없게 되는 걸 막는 안전장치) */
 async function closeOwnerClaim() {

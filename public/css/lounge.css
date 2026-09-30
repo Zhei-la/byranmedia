@@ -1085,3 +1085,21 @@ body.lg{background:#fff;color:var(--ink)}
 .lg-tag.warn{background:#FFF4D6;color:#8A5B17}
 .lg-pshare-top{margin:14px 0 0;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .lg-pscope.wide{display:grid;width:100%;margin:6px 0 14px}.lg-pscope.wide a{padding:12px 10px;font-size:15px}
+
+/* 홈 프롬프트: PC 최대 8개, 태블릿·모바일 6개 */
+@media (max-width:960px){.lg-pgrid.mini>.lg-pcard:nth-child(n+7){display:none}}
+/* 페이지 번호 */
+.lg-pager{flex-wrap:wrap;align-items:center;margin-top:28px}
+.lg-pager a{border:1px solid var(--line,#E8E8EA);background:#fff}
+.lg-pager a.on{border-color:#171717}
+.lg-pager a.arr{padding:0 12px;font-weight:600}
+.lg-pager .gap{color:#9A9AA0;padding:0 4px}
+.lg-pager-note{text-align:center;color:#8A8A8E;font-size:12.5px;margin:8px 0 0}
+/* AI 정보 공유방 (오픈채팅) */
+.lg-openchat{display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:14px;background:#FFFBE0;border:1px solid #F5E68A;color:var(--ink);text-decoration:none !important}
+.lg-openchat-i{width:40px;height:40px;border-radius:12px;background:#FEE500;display:grid;place-items:center;font-size:20px;flex:none}
+.lg-openchat span:nth-child(2){display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}
+.lg-openchat b{font-size:15px}
+.lg-openchat small{font-size:13px;color:#6B6B70}
+.lg-openchat em{font-style:normal;font-weight:700;font-size:13.5px;white-space:nowrap}
+.lg-openchat-btn{display:inline-flex;align-items:center;gap:6px;margin-top:12px;padding:9px 14px;border-radius:999px;background:#FEE500;color:#191600;font-weight:700;font-size:13.5px;text-decoration:none !important}

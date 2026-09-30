@@ -26,6 +26,7 @@
           <a href="/prompts" class="lg-btn ghost lg">AI 프롬프트 구경하기 →</a>
         </div>
         <% if (!SOONH.library) { %><p class="lg-hero-note"><%= S.welcome_note %></p><% } %>
+        <% if (S.live_room_url) { %><a href="<%= S.live_room_url %>" target="_blank" rel="noopener" class="lg-openchat-btn">💬 AI 정보 공유 카톡방 들어가기 →</a><% } %>
       </div>
       <div class="lg-hero-card" aria-label="라운지에서 받을 수 있는 것">
         <div class="lg-byline"><span>BY</span> 바이란 라운지</div>
@@ -50,7 +51,8 @@
         <% if (todayViews) { %><p class="lg-today"><i></i><span>오늘 <b><%= todayViews.toLocaleString("ko-KR") %></b>명 방문</span></p><% } %>
         <p class="lg-kicker"><%= nick %>님</p>
         <h1 class="lg-h1">오늘은 뭐부터 해볼까요?</h1>
-        <p class="lg-muted">자료집 보고, 프롬프트 복사하고, 막히면 커뮤니티에 물어보세요.</p>
+        <p class="lg-muted">프롬프트 복사하고, 원하는 건 요청하고, 막히면 커뮤니티에 물어보세요.</p>
+        <% if (S.live_room_url) { %><a href="<%= S.live_room_url %>" target="_blank" rel="noopener" class="lg-openchat-btn">💬 AI 정보 공유 카톡방 들어가기 →</a><% } %>
       </div>
       <div class="lg-quick">
         <% if (SOONH.library) { %><a href="/community?cat=request&write=1#write"><span>💡</span><b>프롬프트 요청</b><small>원하는 컨셉 남기기</small></a><% } else { %><a href="/library"><span>📚</span><b>자료실</b><small>무료 자료집</small></a><% } %>

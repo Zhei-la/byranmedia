@@ -112,9 +112,11 @@
     </div>
     <% if (pages > 1) { %>
       <nav class="lg-pager" aria-label="페이지">
-        <% for (let i = 1; i <= pages; i++) { if (pages > 9 && Math.abs(i - page) > 3 && i !== 1 && i !== pages) continue; %>
-          <a href="<%= qs({ page: i > 1 ? String(i) : '' }) %>" class="<%= i === page ? 'on' : '' %>"><%= i %></a>
+        <% if (page > 1) { %><a href="<%= qs({ page: page - 1 > 1 ? String(page - 1) : '' }) %>" class="arr" aria-label="이전 페이지">‹ 이전</a><% } %>
+        <% let gap = false; for (let i = 1; i <= pages; i++) { if (pages > 9 && Math.abs(i - page) > 2 && i !== 1 && i !== pages) { if (!gap) { gap = true; %><span class="gap">…</span><% } continue; } gap = false; %>
+          <a href="<%= qs({ page: i > 1 ? String(i) : '' }) %>" class="<%= i === page ? 'on' : '' %>" <%= i === page ? 'aria-current=page' : '' %>><%= i %></a>
         <% } %>
+        <% if (page < pages) { %><a href="<%= qs({ page: String(page + 1) }) %>" class="arr" aria-label="다음 페이지">다음 ›</a><% } %>
       </nav>
     <% } %>
   <% } else { %>

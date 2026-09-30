@@ -571,7 +571,7 @@ post('/library/:id(\\d+)/buy', member, async (req, res) => {
 });
 
 /* ---------------- 프롬프트 갤러리 ---------------- */
-const P_PAGE = 24;
+const P_PAGE = 30;
 
 // 프롬프트: 바이란 공식(user_id 없음) + 모두의 프롬프트(회원 공유)
 const PUB = `p.is_active AND p.status='live'`;
