@@ -1,0 +1,47 @@
+<%- include('_top') %>
+<%
+  const isEdit = !!(p && p.id);
+  const isAdminU = user && user.role === 'admin';
+  const official = isEdit && !p.user_id;
+  const maxImg = isAdminU ? 8 : 4;
+%>
+<section class="lg-wrap narrow lg-pagehead">
+  <a href="<%= isEdit ? '/prompts/' + p.id : '/prompts/shared' %>" class="lg-back">← <%= isEdit ? '프롬프트로' : '모두의 프롬프트' %></a>
+  <h1 class="lg-h1"><%= isEdit ? '프롬프트 고치기' : '🙌 프롬프트 공유하기' %></h1>
+  <p class="lg-muted"><%= isEdit ? (official ? '바이란 공식 프롬프트를 고쳐요.' : '고친 내용은 바로 반영돼요.') : '직접 만든 프롬프트와 결과 이미지를 올려 주세요. 모두의 프롬프트에 바로 올라가요.' %></p>
+  <% if (isEdit && p.status === 'fix' && p.fix_note) { %>
+    <div class="lg-alert warn">✏️ <b>운영자 수정 요청</b> — <%= p.fix_note %><br><small>고쳐서 저장하면 다시 공개돼요.</small></div>
+  <% } %>
+  <% if (error) { %><div class="lg-alert err"><%= error %></div><% } %>
+</section>
+
+<section class="lg-wrap narrow lg-sec">
+  <form method="post" action="<%= isEdit ? '/prompts/' + p.id + '/edit' : '/prompts/share' %>" data-multi-image-form data-max="<%= maxImg %>" class="lg-card lg-compose-form lg-pform">
+    <label class="lg-dropzone" data-dropzone>
+      <input type="file" accept="image/*" multiple hidden data-multi-file>
+      <span>📷 결과 이미지를 눌러서 고르거나 끌어오세요 <small>(최대 <%= maxImg %>장 · 첫 장이 대표)</small></span>
+    </label>
+    <div class="lg-adimgs-row" data-imgs>
+      <% if (isEdit) { (p.image_ids || []).forEach(function(id){ %>
+        <label class="lg-adimg"><img src="/u/img/<%= id %>" alt=""><span><input type="checkbox" name="keep" value="<%= id %>" checked> 남기기</span></label>
+      <% }); } %>
+    </div>
+    <label>제목<input name="title" class="lg-in" required maxlength="120" value="<%= p ? p.title || '' : '' %>" placeholder="예: 비 오는 날 카페 창가 셀카"></label>
+    <label>프롬프트<textarea name="prompt" class="lg-in mono" rows="7" required placeholder="프롬프트를 붙여 넣으세요"><%= p ? p.prompt || '' : '' %></textarea></label>
+    <div class="lg-pform-row">
+      <label>카테고리<select name="category" class="lg-in"><% L.PROMPT_CATS.forEach(function(c){ %><option <%= p && p.category === c ? 'selected' : '' %>><%= c %></option><% }); %></select></label>
+      <label>만든 도구 (선택)<input name="model" class="lg-in" maxlength="40" value="<%= p ? p.model || '' : '' %>" placeholder="예: 나노바나나, 미드저니"></label>
+    </div>
+    <details class="lg-compose-more" <%= p && (p.negative || p.note) ? 'open' : '' %>>
+      <summary>부정 프롬프트 · 한 줄 설명 (선택)</summary>
+      <textarea name="negative" class="lg-in mono" rows="2" placeholder="부정 프롬프트"><%= p ? p.negative || '' : '' %></textarea>
+      <input name="note" class="lg-in" maxlength="300" value="<%= p ? p.note || '' : '' %>" placeholder="한 줄 설명 (예: 얼굴 참고 사진 1장 같이 넣으면 좋아요)">
+    </details>
+    <% if (!isEdit) { %><p class="lg-hint">다른 사람 사진·작품을 허락 없이 올리거나, 부적절한 내용은 운영자가 지우거나 수정 요청을 드릴 수 있어요.</p><% } %>
+    <div class="lg-compose-foot">
+      <span class="lg-grow"></span>
+      <button class="lg-btn primary"><%= isEdit ? '저장' : '공유하기' %></button>
+    </div>
+  </form>
+</section>
+<%- include('_bottom') %>

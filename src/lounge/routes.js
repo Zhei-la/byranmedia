@@ -31,6 +31,10 @@ async function locals(req, res, next) {
     res.locals.pts = req.user && req.user.nickname ? await P.balance(req.user.id) : null;
     res.locals.student = req.user && req.user.nickname ? await E.isStudent(req.user.id) : false;
     res.locals.soon = L.soonOf(res.locals.S, req.user);
+    // 내가 공유한 프롬프트에 운영자 수정 요청이 있으면 위쪽에 알림
+    res.locals.fixCount = req.user && req.user.nickname
+      ? (await db.query(`SELECT count(*)::int AS n FROM lounge_prompts WHERE user_id=$1 AND status='fix'`, [req.user.id])).rows[0].n
+      : 0;
     // 아직 준비 안 된 곳은 들어가지 않고 이전 화면으로
     if (req.method === 'GET' && L.soonBlocked(res.locals.soon, req.originalUrl.split('?')[0])) {
       if (req.session) req.session.flash = SOON_MSG;
@@ -109,7 +113,7 @@ get('/', async (req, res) => {
     q(`SELECT id, name, title, start_date, days, status FROM lounge_cohorts
         WHERE status IN ('recruiting','running') ORDER BY start_date DESC LIMIT 1`),
     q(`SELECT id, title, category, image_ids FROM lounge_prompts
-        WHERE is_active=true AND cardinality(image_ids) > 0 ORDER BY created_at DESC LIMIT 8`),
+        WHERE is_active=true AND status='live' AND user_id IS NULL AND cardinality(image_ids) > 0 ORDER BY created_at DESC LIMIT 8`),
     q(`SELECT id, title, subtitle, price_text, list_price, price_note, badge, ptype FROM lounge_products WHERE is_active=true ORDER BY sort_order, id LIMIT 3`).then(E.priced),
   ]);
 
@@ -569,15 +573,18 @@ post('/library/:id(\\d+)/buy', member, async (req, res) => {
 /* ---------------- 프롬프트 갤러리 ---------------- */
 const P_PAGE = 24;
 
-get('/prompts', async (req, res) => {
+// 프롬프트: 바이란 공식(user_id 없음) + 모두의 프롬프트(회원 공유)
+const PUB = `p.is_active AND p.status='live'`;
+async function promptList(req, res, shared) {
   const cat = L.PROMPT_CATS.includes(req.query.cat) ? req.query.cat : '';
   const q = String(req.query.q || '').trim().slice(0, 60);
   const sort = req.query.sort === 'popular' ? 'popular' : 'new';
   const fav = req.query.fav === '1' && req.user;
   const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+  const scope = shared ? 'p.user_id IS NOT NULL' : 'p.user_id IS NULL';
 
   const params = [];
-  let where = 'p.is_active=true';
+  let where = `${PUB} AND ${scope}`;
   if (cat) { params.push(cat); where += ` AND p.category=$${params.length}`; }
   if (q) { params.push(`%${q}%`); where += ` AND (p.title ILIKE $${params.length} OR p.prompt ILIKE $${params.length})`; }
   if (fav) { params.push(req.user.id); where += ` AND EXISTS (SELECT 1 FROM lounge_prompt_likes k WHERE k.prompt_id=p.id AND k.user_id=$${params.length})`; }
@@ -586,23 +593,28 @@ get('/prompts', async (req, res) => {
   params.push(P_PAGE, (page - 1) * P_PAGE);
   const order = sort === 'popular' ? 'p.copies DESC, p.views DESC, p.id DESC' : 'p.created_at DESC, p.id DESC';
   const { rows: items } = await db.query(
-    `SELECT p.id, p.title, p.category, p.image_ids, left(p.prompt, 140) AS preview, p.copies
-       FROM lounge_prompts p WHERE ${where} ORDER BY ${order}
+    `SELECT p.id, p.title, p.category, p.image_ids, left(p.prompt, 140) AS preview, p.copies, p.user_id,
+            COALESCE(u.nickname, u.name) AS author
+       FROM lounge_prompts p LEFT JOIN users u ON u.id=p.user_id WHERE ${where} ORDER BY ${order}
       LIMIT $${params.length - 1} OFFSET $${params.length}`,
     params
   );
-  const { rows: cats } = await db.query(
-    `SELECT category, count(*)::int AS n FROM lounge_prompts WHERE is_active GROUP BY category`
+  const { rows: cats } = await db.query(`SELECT category, count(*)::int AS n FROM lounge_prompts p WHERE ${PUB} AND ${scope} GROUP BY category`);
+  const { rows: tot } = await db.query(
+    `SELECT count(*) FILTER (WHERE p.user_id IS NULL)::int AS official, count(*) FILTER (WHERE p.user_id IS NOT NULL)::int AS shared
+       FROM lounge_prompts p WHERE ${PUB}`
   );
-  const { rows: tot } = await db.query(`SELECT count(*)::int AS n FROM lounge_prompts WHERE is_active`);
   res.render('lounge/prompts', {
-    title: 'AI 프롬프트', active: 'prompts', items, cat, q, sort, fav: !!fav, page,
-    pages: Math.max(1, Math.ceil(cnt[0].n / P_PAGE)), total: cnt[0].n, all: tot[0].n,
+    title: shared ? '모두의 프롬프트' : 'AI 프롬프트', active: 'prompts', shared, items, cat, q, sort, fav: !!fav, page,
+    pages: Math.max(1, Math.ceil(cnt[0].n / P_PAGE)), total: cnt[0].n,
+    all: shared ? tot[0].shared : tot[0].official, counts: tot[0],
     catCount: Object.fromEntries(cats.map((c) => [c.category, c.n])),
-    ogT: '바이란 AI 프롬프트 모음 · 이미지 누르고 바로 복사',
-    ogD: 'AI 인물·화보·캐릭터 이미지 프롬프트 모음. 마음에 드는 이미지를 누르면 프롬프트를 볼 수 있어요.',
+    ogT: shared ? '모두의 프롬프트 · 바이란 회원들이 공유한 AI 프롬프트' : '바이란 AI 프롬프트 모음 · 이미지 누르고 바로 복사',
+    ogD: shared ? '회원들이 직접 만들어 공유한 AI 이미지 프롬프트. 누르면 바로 복사할 수 있어요.' : 'AI 인물·화보·캐릭터 이미지 프롬프트 모음. 마음에 드는 이미지를 누르면 프롬프트를 볼 수 있어요.',
   });
-});
+}
+get('/prompts', (req, res) => promptList(req, res, false));
+get('/prompts/shared', (req, res) => promptList(req, res, true));
 
 get('/prompts/builder', (req, res) => {
   res.render('lounge/builder', {
@@ -613,9 +625,16 @@ get('/prompts/builder', (req, res) => {
 });
 
 get('/prompts/:id(\\d+)', async (req, res) => {
-  const { rows } = await db.query(`SELECT * FROM lounge_prompts WHERE id=$1 AND (is_active OR $2)`, [req.params.id, !!isAdmin(req)]);
+  const { rows } = await db.query(
+    `SELECT p.*, COALESCE(u.nickname, u.name) AS author FROM lounge_prompts p LEFT JOIN users u ON u.id=p.user_id WHERE p.id=$1`,
+    [req.params.id]
+  );
   const p = rows[0];
-  if (!p) return res.status(404).render('error', { title: '없는 프롬프트', message: '지워졌거나 없는 프롬프트예요.' });
+  const mine = !!(p && req.user && p.user_id === req.user.id);
+  // 숨김·수정 요청 중인 프롬프트는 운영자와 올린 사람만 볼 수 있다
+  if (!p || (!(p.is_active && p.status === 'live') && !isAdmin(req) && !mine)) {
+    return res.status(404).render('error', { title: '없는 프롬프트', message: '지워졌거나 없는 프롬프트예요.' });
+  }
   db.query(`UPDATE lounge_prompts SET views=views+1 WHERE id=$1`, [p.id]).catch(() => {});
   const S = res.locals.S;
   const canCopy = S.prompt_public === '1' || !!(req.user && req.user.nickname);
@@ -625,18 +644,115 @@ get('/prompts/:id(\\d+)', async (req, res) => {
     liked = r.rows.length > 0;
   }
   const { rows: more } = await db.query(
-    `SELECT id, title, image_ids FROM lounge_prompts
-      WHERE is_active AND id<>$1 AND category=$2 AND cardinality(image_ids)>0 ORDER BY created_at DESC LIMIT 4`,
-    [p.id, p.category]
+    `SELECT p.id, p.title, p.image_ids FROM lounge_prompts p
+      WHERE ${PUB} AND p.id<>$1 AND p.category=$2 AND cardinality(p.image_ids)>0
+        AND (p.user_id IS NULL) = $3
+      ORDER BY p.created_at DESC LIMIT 4`,
+    [p.id, p.category, !p.user_id]
   );
   res.render('lounge/prompt', {
-    title: p.title, active: 'prompts', p, canCopy, liked, more,
-    // 로그인 전에는 앞부분만 보여준다
+    title: p.title, active: 'prompts', p, canCopy, liked, more, mine,
     shown: canCopy ? p.prompt : p.prompt.slice(0, Math.min(220, Math.floor(p.prompt.length * 0.35))),
     ogT: `${p.title} · 바이란 AI 프롬프트`,
     ogD: '이미지를 누르면 프롬프트를 바로 복사할 수 있어요.',
     ogImg: p.image_ids[0] ? `/u/img/${p.image_ids[0]}` : null,
   });
+});
+
+/* ---------- 모두의 프롬프트: 회원이 공유 · 고치기 · 지우기 ---------- */
+async function readPromptForm(req, existing) {
+  const title = String(req.body.title || '').trim().slice(0, 120);
+  const prompt = String(req.body.prompt || '').trim().slice(0, 12000);
+  const max = isAdmin(req) ? 8 : 4;
+  let keep = [].concat(req.body.keep || []).map((x) => parseInt(x, 10)).filter((x) => x && existing && existing.image_ids.includes(x));
+  const uploads = [].concat(req.body.images || []).filter(Boolean).slice(0, max);
+  for (const d of uploads) {
+    if (keep.length >= max) break;
+    const imgId = await L.saveImage(req.user.id, d);
+    if (imgId) keep.push(imgId);
+  }
+  return {
+    title, prompt, image_ids: keep.slice(0, max),
+    category: L.PROMPT_CATS.includes(req.body.category) ? req.body.category : '기타',
+    negative: String(req.body.negative || '').trim().slice(0, 4000) || null,
+    note: String(req.body.note || '').trim().slice(0, 300) || null,
+    model: String(req.body.model || '').trim().slice(0, 40) || null,
+  };
+}
+async function loadPrompt(id) {
+  const { rows } = await db.query(`SELECT * FROM lounge_prompts WHERE id=$1`, [id]);
+  return rows[0] || null;
+}
+const canEditPrompt = (req, p) => p && req.user && (isAdmin(req) || p.user_id === req.user.id);
+
+get('/prompts/share', member, (req, res) => {
+  res.render('lounge/prompt-form', { title: '프롬프트 공유하기', active: 'prompts', p: null, error: null });
+});
+post('/prompts/share', member, async (req, res) => {
+  const { rows: rc } = await db.query(
+    `SELECT count(*)::int AS n FROM lounge_prompts WHERE user_id=$1 AND created_at > now() - interval '1 day'`, [req.user.id]
+  );
+  if (rc[0].n >= 10 && !isAdmin(req)) {
+    flash(req, '오늘은 공유를 많이 하셨어요. 내일 다시 올려 주세요 🙏');
+    return res.redirect('/prompts/shared');
+  }
+  const f = await readPromptForm(req, null);
+  if (!f.title || !f.prompt) {
+    return res.status(400).render('lounge/prompt-form', { title: '프롬프트 공유하기', active: 'prompts', p: Object.assign({ id: null, image_ids: [] }, f), error: '제목과 프롬프트를 넣어 주세요.' });
+  }
+  const { rows } = await db.query(
+    `INSERT INTO lounge_prompts (title, category, prompt, negative, model, note, image_ids, is_active, user_id, status)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,true,$8,'live') RETURNING id`,
+    [f.title, f.category, f.prompt, f.negative, f.model, f.note, f.image_ids, req.user.id]
+  );
+  flash(req, '프롬프트를 공유했어요! 모두의 프롬프트에 올라갔어요 🙌');
+  res.redirect(`/prompts/${rows[0].id}`);
+});
+get('/prompts/:id(\\d+)/edit', member, async (req, res) => {
+  const p = await loadPrompt(req.params.id);
+  if (!canEditPrompt(req, p)) return res.redirect(`/prompts/${req.params.id}`);
+  res.render('lounge/prompt-form', { title: '프롬프트 고치기', active: 'prompts', p, error: null });
+});
+post('/prompts/:id(\\d+)/edit', member, async (req, res) => {
+  const p = await loadPrompt(req.params.id);
+  if (!canEditPrompt(req, p)) return res.redirect(`/prompts/${req.params.id}`);
+  const f = await readPromptForm(req, p);
+  if (!f.title || !f.prompt) {
+    return res.status(400).render('lounge/prompt-form', { title: '프롬프트 고치기', active: 'prompts', p: Object.assign({}, p, f), error: '제목과 프롬프트를 넣어 주세요.' });
+  }
+  // 올린 사람이 고치면 수정 요청은 풀리고 다시 공개
+  const byAuthor = p.user_id && p.user_id === req.user.id;
+  await db.query(
+    `UPDATE lounge_prompts SET title=$1, category=$2, prompt=$3, negative=$4, model=$5, note=$6, image_ids=$7, updated_at=now()
+            ${byAuthor ? `, status='live', fix_note=NULL, is_active=true` : ''}
+      WHERE id=$8`,
+    [f.title, f.category, f.prompt, f.negative, f.model, f.note, f.image_ids, p.id]
+  );
+  flash(req, byAuthor && p.status === 'fix' ? '고쳐서 다시 올렸어요. 고마워요! 🙏' : '프롬프트를 고쳤어요.');
+  res.redirect(`/prompts/${p.id}`);
+});
+post('/prompts/:id(\\d+)/delete', member, async (req, res) => {
+  const p = await loadPrompt(req.params.id);
+  if (!canEditPrompt(req, p)) return res.redirect(`/prompts/${req.params.id}`);
+  await db.query(`DELETE FROM lounge_prompts WHERE id=$1`, [p.id]);
+  flash(req, '프롬프트를 지웠어요.');
+  res.redirect(p.user_id ? (isAdmin(req) && p.user_id !== req.user.id ? '/prompts/shared' : '/my#myprompts') : '/prompts');
+});
+// 운영자: 회원 프롬프트에 수정 요청 (고칠 때까지 숨길 수 있음) / 요청 풀기
+post('/prompts/:id(\\d+)/fix', member, async (req, res) => {
+  if (!isAdmin(req)) return res.redirect(`/prompts/${req.params.id}`);
+  const p = await loadPrompt(req.params.id);
+  if (!p) return res.redirect('/prompts/shared');
+  if (req.body.clear === '1') {
+    await db.query(`UPDATE lounge_prompts SET status='live', fix_note=NULL, is_active=true WHERE id=$1`, [p.id]);
+    flash(req, '수정 요청을 풀고 다시 공개했어요.');
+  } else {
+    const note = String(req.body.note || '').trim().slice(0, 500);
+    if (!note) { flash(req, '무엇을 고쳐 달라고 할지 적어 주세요.'); return res.redirect(`/prompts/${p.id}#fix`); }
+    await db.query(`UPDATE lounge_prompts SET status='fix', fix_note=$1 WHERE id=$2`, [note, p.id]);
+    flash(req, '수정 요청을 보냈어요. 올린 분이 고칠 때까지 목록에서 숨겨져요.');
+  }
+  res.redirect(`/prompts/${p.id}`);
 });
 
 // 생성기: 한국어 → 영어 (AI 키가 있으면 AI, 없으면 단어장)
@@ -876,7 +992,7 @@ get('/my', member, async (req, res) => {
     `SELECT id, title, section FROM lounge_resources
       WHERE is_active AND access='course' AND ((cardinality(product_ids)=0 AND $2) OR product_ids && $1::int[]) ORDER BY sort_order, id`, [sp, hasCourse]
   ) : { rows: [] };
-  const [myReviews, posts, u, favs, resOpened] = await Promise.all([
+  const [myReviews, posts, u, favs, resOpened, myPrompts] = await Promise.all([
     db.query(
       `SELECT r.id, r.status, r.rating, r.body, r.created_at, p.title AS product
          FROM lounge_reviews r LEFT JOIN lounge_products p ON p.id=r.product_id
@@ -885,14 +1001,17 @@ get('/my', member, async (req, res) => {
     db.query(`SELECT status, referred_by, created_at FROM users WHERE id=$1`, [uid]),
     db.query(
       `SELECT p.id, p.title, p.image_ids FROM lounge_prompt_likes k JOIN lounge_prompts p ON p.id=k.prompt_id
-        WHERE k.user_id=$1 AND p.is_active ORDER BY k.created_at DESC LIMIT 12`, [uid]),
+        WHERE k.user_id=$1 AND p.is_active AND p.status='live' ORDER BY k.created_at DESC LIMIT 12`, [uid]),
     db.query(
       `SELECT r.id, r.title, r.section FROM lounge_unlocks x JOIN lounge_resources r ON r.id=x.resource_id
         WHERE x.user_id=$1 AND r.is_active ORDER BY x.created_at DESC LIMIT 12`, [uid]),
+    db.query(
+      `SELECT id, title, image_ids, status, fix_note, copies FROM lounge_prompts
+        WHERE user_id=$1 ORDER BY (status='fix') DESC, created_at DESC LIMIT 24`, [uid]),
   ]);
   res.render('lounge/my', {
     title: '마이페이지', active: 'my',
-    myReviews: myReviews.rows, posts: posts.rows, acct: u.rows[0], favs: favs.rows, opened: resOpened.rows, pt, hist, enrolls, stuRes, upsell,
+    myReviews: myReviews.rows, posts: posts.rows, acct: u.rows[0], favs: favs.rows, opened: resOpened.rows, myPrompts: myPrompts.rows, pt, hist, enrolls, stuRes, upsell,
   });
 });
 

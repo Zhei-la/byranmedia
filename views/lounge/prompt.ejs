@@ -1,6 +1,16 @@
 <%- include('_top') %>
+<%
+  const isAdminU = user && user.role === 'admin';
+  const isMember = !!(user && me);
+  const shareHref = isMember ? '/prompts/share' : '/login?next=' + encodeURIComponent('/prompts/share');
+%>
 <section class="lg-wrap lg-sec">
-  <a href="/prompts" class="lg-back">← 프롬프트 모음</a>
+  <a href="<%= p.user_id ? '/prompts/shared' : '/prompts' %>" class="lg-back">← <%= p.user_id ? '모두의 프롬프트' : '프롬프트 모음' %></a>
+  <% if (p.status === 'fix') { %>
+    <div class="lg-alert warn">✏️ <b>운영자 수정 요청</b> — <%= p.fix_note %><br><small><%= mine ? '고쳐서 저장하면 다시 공개돼요. 그 전까지는 목록에 안 보여요.' : '올린 분이 고칠 때까지 목록에서 숨겨져 있어요.' %></small><% if (mine) { %> <a href="/prompts/<%= p.id %>/edit" class="lg-btn sm primary">지금 고치기</a><% } %></div>
+  <% } else if (!p.is_active) { %>
+    <div class="lg-alert warn">숨김 처리된 프롬프트예요. (운영자에게만 보여요)</div>
+  <% } %>
   <div class="lg-pdetail">
     <div class="lg-pdetail-media" data-gallery>
       <% if (p.image_ids.length) { %>
@@ -18,7 +28,7 @@
     </div>
 
     <div class="lg-pdetail-body">
-      <div class="lg-pcard-meta"><span>NO. <%= String(p.id).padStart(3, '0') %></span><span><%= p.category %></span><% if (p.model) { %><span><%= p.model %></span><% } %></div>
+      <div class="lg-pcard-meta"><span><%= p.user_id ? '🙋 ' + (p.author || '회원') + '님이 공유' : 'NO. ' + String(p.id).padStart(3, '0') %></span><span><%= p.category %></span><% if (p.model) { %><span><%= p.model %></span><% } %></div>
       <h1 class="lg-h1"><%= p.title %></h1>
       <% if (p.note) { %><p class="lg-muted"><%= p.note %></p><% } %>
 
@@ -54,9 +64,36 @@
         <% } %>
         <button type="button" class="lg-linkbtn" data-copylink>🔗 링크 복사</button>
         <a href="/prompts/builder" class="lg-linkbtn">🪄 생성기로 변형하기</a>
-        <% if (user && user.role === 'admin') { %><a href="/admin/lounge?tab=prompts&edit=<%= p.id %>" class="lg-linkbtn">✏️ 수정</a><% } %>
+        <% if (isAdminU || mine) { %>
+          <a href="/prompts/<%= p.id %>/edit" class="lg-linkbtn">✏️ 수정</a>
+          <form method="post" action="/prompts/<%= p.id %>/delete" class="inline" data-confirm="이 프롬프트를 지울까요? 되돌릴 수 없어요."><button class="lg-linkbtn danger">🗑 삭제</button></form>
+        <% } %>
       </div>
+      <% if (isAdminU && p.user_id) { %>
+        <form method="post" action="/prompts/<%= p.id %>/fix" class="lg-pfix" id="fix">
+          <b>👑 운영자: 올린 분에게 수정 요청</b>
+          <% if (p.status === 'fix') { %>
+            <p class="lg-muted">지금 수정 요청 중이에요: "<%= p.fix_note %>"</p>
+            <input type="hidden" name="clear" value="1">
+            <button class="lg-btn sm">요청 풀고 다시 공개</button>
+          <% } else { %>
+            <textarea name="note" class="lg-in" rows="2" maxlength="500" required placeholder="예: 다른 사람 사진이 들어 있어요. 직접 만든 이미지로 바꿔 주세요."></textarea>
+            <button class="lg-btn sm primary">수정 요청 보내기</button>
+            <small class="lg-muted">보내면 고칠 때까지 목록에서 숨겨지고, 올린 분 화면 위쪽과 마이페이지에 요청 내용이 떠요.</small>
+          <% } %>
+        </form>
+      <% } %>
       <p class="lg-hint">복사한 프롬프트는 미드저니, 챗지피티(이미지), 나노바나나, Flux 등에 붙여 넣어 쓰세요. 도구마다 결과가 조금씩 달라요.</p>
+    </div>
+  </div>
+</section>
+
+<section class="lg-wrap lg-sec">
+  <div class="lg-pshare">
+    <div><b>🙌 나도 프롬프트 공유하기</b><p>직접 만든 프롬프트를 올리면 <a href="/prompts/shared">모두의 프롬프트</a>에서 다른 회원들이 볼 수 있어요.<% if (!isMember) { %> (가입한 회원만)<% } %></p></div>
+    <div class="lg-pshare-b">
+      <a href="/prompts/shared" class="lg-btn">회원들이 공유한 프롬프트 보러가기 →</a>
+      <a href="<%= shareHref %>" class="lg-btn primary">＋ 프롬프트 공유하기</a>
     </div>
   </div>
 </section>

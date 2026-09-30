@@ -136,7 +136,8 @@
     if (!input) return;
     function addFiles(list) {
       var have = $$('input[name=images], input[name=keep]:checked', form).length;
-      var files = Array.prototype.slice.call(list || []).filter(function (f) { return /^image\//.test(f.type); }).slice(0, Math.max(0, 8 - have));
+      var max = parseInt(form.getAttribute('data-max'), 10) || 8;
+      var files = Array.prototype.slice.call(list || []).filter(function (f) { return /^image\//.test(f.type); }).slice(0, Math.max(0, max - have));
       files.forEach(function (f) {
         shrink(f, 1400, function (data) {
           if (!data) return;

@@ -118,6 +118,30 @@
   </div>
   <% } %>
 
+  <div class="lg-card" id="myprompts">
+    <div class="lg-card-h"><h2 class="lg-h3">🙌 내가 공유한 프롬프트</h2><a href="/prompts/share" class="lg-btn sm primary">＋ 공유하기</a></div>
+    <% if (myPrompts.length) { %>
+      <ul class="lg-myp">
+        <% myPrompts.forEach(function(p){ %>
+          <li class="<%= p.status === 'fix' ? 'fix' : '' %>">
+            <a href="/prompts/<%= p.id %>" class="lg-myp-img"><% if (p.image_ids.length) { %><img src="/u/img/<%= p.image_ids[0] %>" alt="" loading="lazy"><% } else { %><span>TEXT</span><% } %></a>
+            <div>
+              <a href="/prompts/<%= p.id %>"><b><%= p.title %></b></a>
+              <% if (p.status === 'fix') { %>
+                <p class="lg-myp-fix">✏️ 운영자 수정 요청: <%= p.fix_note %></p>
+                <a href="/prompts/<%= p.id %>/edit" class="lg-btn sm primary">고치기</a>
+              <% } else { %>
+                <small class="lg-muted">공개 중 · 복사 <%= p.copies %>번</small>
+              <% } %>
+            </div>
+          </li>
+        <% }); %>
+      </ul>
+    <% } else { %>
+      <p class="lg-muted">직접 만든 프롬프트를 공유해 보세요. <a href="/prompts/shared">모두의 프롬프트</a>에 올라가요.</p>
+    <% } %>
+  </div>
+
   <div class="lg-card">
     <h2 class="lg-h3">♡ 즐겨찾기한 프롬프트</h2>
     <% if (favs.length) { %>

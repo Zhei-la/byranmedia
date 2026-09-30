@@ -80,6 +80,9 @@
   </nav>
 </header>
 
+<% if (typeof fixCount !== 'undefined' && fixCount) { %>
+  <a href="/my#myprompts" class="lg-fixbar">✏️ 공유하신 프롬프트 <b><%= fixCount %></b>개에 운영자 수정 요청이 있어요 — 확인하기 →</a>
+<% } %>
 <% if (flash) { %>
   <div class="lg-toast" role="status" data-toast><%= flash %></div>
 <% } %>

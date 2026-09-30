@@ -150,12 +150,19 @@
     </div>
   </form>
 
+  <div class="lg-mfilter mt">
+    <a href="/admin/lounge?tab=prompts" class="<%= pf === 'official' ? 'on' : '' %>">✨ 바이란 프롬프트 <b><%= pcount.official %></b></a>
+    <a href="/admin/lounge?tab=prompts&pf=shared" class="<%= pf === 'shared' ? 'on' : '' %>">🙌 회원 공유 <b><%= pcount.shared %></b></a>
+    <a href="/admin/lounge?tab=prompts&pf=fix" class="<%= pf === 'fix' ? 'on' : '' %>">✏️ 수정 요청 중 <b><%= pcount.fix %></b></a>
+  </div>
+  <% if (pf !== 'official') { %><p class="lg-hint">회원 공유 프롬프트는 각 페이지에서 <b>수정 · 삭제 · 수정 요청</b>을 할 수 있어요. (페이지 보기 → 아래쪽 운영자 칸)</p><% } %>
   <div class="lg-admin-list">
     <% prompts.forEach(function(p){ %>
       <div class="lg-adrow <%= p.is_active ? '' : 'off' %>">
         <% if (p.image_ids.length) { %><img src="/u/img/<%= p.image_ids[0] %>" alt="" class="lg-adthumb"><% } else { %><span class="lg-adthumb"></span><% } %>
-        <div class="grow"><b><%= p.title %></b><small><%= p.category %> · 조회 <%= p.views %> · 복사 <%= p.copies %> · <%= d(p.created_at) %></small></div>
-        <a href="/admin/lounge?tab=prompts&edit=<%= p.id %>#pform" class="lg-btn sm">수정</a>
+        <div class="grow"><b><%= p.title %></b><% if (p.status === 'fix') { %> <span class="lg-tag warn">수정 요청 중</span><% } %><small><%= p.user_id ? '🙋 ' + (p.author || '회원') + ' · ' : '' %><%= p.category %> · 조회 <%= p.views %> · 복사 <%= p.copies %> · <%= d(p.created_at) %></small><% if (p.status === 'fix') { %><small>요청: <%= p.fix_note %></small><% } %></div>
+        <a href="/prompts/<%= p.id %>" class="lg-btn sm ghost" target="_blank">보기</a>
+        <a href="<%= p.user_id ? '/prompts/' + p.id + '/edit' : '/admin/lounge?tab=prompts&edit=' + p.id + '#pform' %>" class="lg-btn sm">수정</a>
         <form method="post" action="/admin/lounge/prompts/<%= p.id %>/toggle" class="inline"><button class="lg-btn sm ghost"><%= p.is_active ? '숨기기' : '공개' %></button></form>
         <form method="post" action="/admin/lounge/prompts/<%= p.id %>/delete" class="inline" data-confirm="정말 지울까요?"><button class="lg-btn sm ghost danger">삭제</button></form>
       </div>

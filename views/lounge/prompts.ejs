@@ -4,13 +4,26 @@
     const base = { cat: cat, q: q, sort: sort === 'new' ? '' : sort, fav: fav ? '1' : '', page: '' };
     const m = Object.assign(base, o);
     const s = Object.entries(m).filter(e => e[1]).map(e => e[0] + '=' + encodeURIComponent(e[1])).join('&');
-    return '/prompts' + (s ? '?' + s : '');
+    return (shared ? '/prompts/shared' : '/prompts') + (s ? '?' + s : '');
   };
+  const isMember = !!(user && me);
+  const shareHref = isMember ? '/prompts/share' : '/login?next=' + encodeURIComponent('/prompts/share');
 %>
 <section class="lg-wrap lg-pagehead lg-phead">
-  <p class="lg-kicker">AI Prompts · <%= all %> works</p>
-  <h1 class="lg-display sm">이미지 누르고,<br><em>프롬프트는 그대로 복사</em></h1>
-  <p class="lg-muted">AI로 만든 인물·화보·캐릭터 이미지와 그 프롬프트를 모았어요. 마음에 드는 이미지를 눌러 보세요.</p>
+  <nav class="lg-pscope" aria-label="프롬프트 종류">
+    <a href="/prompts" class="<%= shared ? '' : 'on' %>">✨ 바이란 프롬프트 <small><%= counts.official %></small></a>
+    <a href="/prompts/shared" class="<%= shared ? 'on' : '' %>">🙌 모두의 프롬프트 <small><%= counts.shared %></small></a>
+  </nav>
+  <% if (shared) { %>
+    <p class="lg-kicker">Shared by members · <%= all %> works</p>
+    <h1 class="lg-display sm">모두의 프롬프트<br><em>회원들이 직접 만든 것</em></h1>
+    <p class="lg-muted">바이란 회원들이 직접 만들어 공유한 프롬프트예요. 마음에 들면 복사해서 쓰고, 나만의 프롬프트도 공유해 주세요.</p>
+    <p class="lg-pshare-top"><a href="<%= shareHref %>" class="lg-btn primary">＋ 내 프롬프트 공유하기</a><% if (!isMember) { %> <small class="lg-muted">가입한 회원만 공유할 수 있어요</small><% } %></p>
+  <% } else { %>
+    <p class="lg-kicker">AI Prompts · <%= all %> works</p>
+    <h1 class="lg-display sm">이미지 누르고,<br><em>프롬프트는 그대로 복사</em></h1>
+    <p class="lg-muted">AI로 만든 인물·화보·캐릭터 이미지와 그 프롬프트를 모았어요. 마음에 드는 이미지를 눌러 보세요.</p>
+  <% } %>
 </section>
 
 <section class="lg-wrap">
@@ -25,7 +38,7 @@
     <em>요청하기 →</em>
   </a>
 
-  <form class="lg-pfilter" method="get" action="/prompts" role="search">
+  <form class="lg-pfilter" method="get" action="<%= shared ? "/prompts/shared" : "/prompts" %>" role="search">
     <div class="lg-pfilter-tabs">
       <a href="<%= qs({ fav: '' }) %>" class="<%= !fav ? 'on' : '' %>">전체 <small><%= all %></small></a>
       <% if (user) { %><a href="<%= qs({ fav: '1', page: '' }) %>" class="<%= fav ? 'on' : '' %>">♡ 즐겨찾기</a><% } %>
@@ -48,7 +61,7 @@
   </form>
 </section>
 
-<% if (user && user.role === 'admin') { %>
+<% if (user && user.role === 'admin' && !shared) { %>
 <section class="lg-wrap">
   <details class="lg-card lg-compose" id="compose" open>
     <summary><span class="lg-ava"><%= (nick || '운').slice(0,1) %></span><b>새 프롬프트 올리기</b><small>이미지와 프롬프트를 피드처럼 올려요 · 관리자만 보여요</small></summary>
@@ -91,7 +104,7 @@
               <div class="lg-pcard-noimg">텍스트 프롬프트</div>
             <% } %>
           </div>
-          <div class="lg-pcard-meta"><span>NO. <%= String(p.id).padStart(3, '0') %></span><span><%= p.category %></span></div>
+          <div class="lg-pcard-meta"><span><%= shared ? '🙋 ' + (p.author || '회원') : 'NO. ' + String(p.id).padStart(3, '0') %></span><span><%= p.category %></span></div>
           <b><%= p.title %></b>
           <p class="lg-pcard-pre"><%= p.preview %>…</p>
         </a>
@@ -111,9 +124,28 @@
       <% } else if (q || cat) { %>
         <b>찾는 프롬프트가 없어요</b><p>다른 단어로 검색해 보세요.</p>
       <% } else { %>
-        <b>프롬프트를 채우고 있어요</b><p>곧 올라와요. 그동안 <a href="/prompts/builder">프롬프트 생성기</a>로 직접 만들어 보세요!</p>
+        <% if (shared) { %>
+          <b>아직 공유된 프롬프트가 없어요</b><p>첫 번째로 <a href="<%= shareHref %>">내 프롬프트를 공유</a>해 주세요!</p>
+        <% } else { %>
+          <b>프롬프트를 채우고 있어요</b><p>곧 올라와요. 그동안 <a href="/prompts/builder">프롬프트 생성기</a>로 직접 만들어 보세요!</p>
+        <% } %>
       <% } %>
     </div>
   <% } %>
+</section>
+
+<section class="lg-wrap lg-sec">
+  <div class="lg-pshare">
+    <% if (shared) { %>
+      <div><b>✨ 바이란이 직접 만든 프롬프트도 보세요</b><p>운영자가 만들어 올리는 공식 프롬프트 모음이에요.</p></div>
+      <a href="/prompts" class="lg-btn">바이란 프롬프트 보러가기 →</a>
+    <% } else { %>
+      <div><b>🙌 모두의 프롬프트</b><p>바이란 회원들이 직접 만들어 공유한 프롬프트도 구경해 보세요. 내 프롬프트를 공유할 수도 있어요.</p></div>
+      <div class="lg-pshare-b">
+        <a href="/prompts/shared" class="lg-btn">회원들이 공유한 프롬프트 보러가기 →</a>
+        <a href="<%= shareHref %>" class="lg-btn primary">＋ 프롬프트 공유하기</a>
+      </div>
+    <% } %>
+  </div>
 </section>
 <%- include('_bottom') %>

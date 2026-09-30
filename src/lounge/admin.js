@@ -124,10 +124,19 @@ router.get('/admin/lounge', async (req, res) => {
     }
   }
   if (tab === 'prompts') {
+    const pf = ['shared', 'fix'].includes(req.query.pf) ? req.query.pf : 'official';
+    data.pf = pf;
     data.prompts = await q(
-      `SELECT id, title, category, image_ids, is_active, views, copies, created_at FROM lounge_prompts
-        ORDER BY created_at DESC LIMIT 200`
+      `SELECT p.id, p.title, p.category, p.image_ids, p.is_active, p.views, p.copies, p.created_at, p.user_id, p.status, p.fix_note,
+              COALESCE(u.nickname, u.name) AS author
+         FROM lounge_prompts p LEFT JOIN users u ON u.id=p.user_id
+        WHERE ${pf === 'official' ? 'p.user_id IS NULL' : pf === 'shared' ? 'p.user_id IS NOT NULL' : "p.status='fix'"}
+        ORDER BY p.created_at DESC LIMIT 200`
     );
+    data.pcount = (await q(
+      `SELECT count(*) FILTER (WHERE user_id IS NULL)::int AS official, count(*) FILTER (WHERE user_id IS NOT NULL)::int AS shared,
+              count(*) FILTER (WHERE status='fix')::int AS fix FROM lounge_prompts`
+    ))[0];
     data.edit = req.query.edit ? (await q(`SELECT * FROM lounge_prompts WHERE id=$1`, [req.query.edit]))[0] || null : null;
   }
   if (tab === 'students') {

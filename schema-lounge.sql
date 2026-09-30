@@ -297,3 +297,10 @@ ALTER TABLE lounge_visits ADD COLUMN IF NOT EXISTS ip VARCHAR(64);
 
 -- 운영자가 붙이는 회원 태그 (쉼표로 구분: 상담 중, 입금 대기 …) — 메모는 users.memo
 ALTER TABLE users ADD COLUMN IF NOT EXISTS admin_tags VARCHAR(200);
+
+-- 회원이 공유한 프롬프트 (user_id 가 있으면 회원 공유, 없으면 바이란 공식)
+ALTER TABLE lounge_prompts ADD COLUMN IF NOT EXISTS user_id  INT REFERENCES users(id) ON DELETE SET NULL;
+ALTER TABLE lounge_prompts ADD COLUMN IF NOT EXISTS status   VARCHAR(12) NOT NULL DEFAULT 'live'; -- live | fix(운영자 수정 요청)
+ALTER TABLE lounge_prompts ADD COLUMN IF NOT EXISTS fix_note VARCHAR(500);
+ALTER TABLE lounge_prompts ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ;
+CREATE INDEX IF NOT EXISTS idx_prompts_user ON lounge_prompts (user_id, created_at DESC);
