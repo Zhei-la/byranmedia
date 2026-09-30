@@ -17,6 +17,49 @@ function readCookie(req, name) {
   return m ? decodeURIComponent(m[1]) : '';
 }
 
+/* ---------- 들어온 플랫폼 ---------- */
+const SOURCES = {
+  threads: '🧵 스레드', instagram: '📸 인스타그램', facebook: '📘 페이스북', kakaotalk: '💬 카카오톡',
+  naver: '🟢 네이버', google: '🔎 구글', youtube: '▶️ 유튜브', daum: '🔵 다음', x: '✖️ X(트위터)',
+  tiktok: '🎵 틱톡', band: '🟩 밴드', line: '🟢 라인', direct: '🔗 직접 들어옴 · 즐겨찾기', other: '🌐 기타 사이트',
+};
+const SRC_WORDS = [
+  ['threads', /threads/], ['instagram', /insta|ig\b/], ['facebook', /facebook|\bfb\b/], ['kakaotalk', /kakao|카톡/],
+  ['naver', /naver|블로그|blog/], ['google', /google/], ['youtube', /youtube|yt\b/], ['daum', /daum/],
+  ['x', /twitter|^x$/], ['tiktok', /tiktok/], ['band', /band/], ['line', /^line/],
+];
+function sourceOf(req, host) {
+  // 1) 링크에 붙인 표시 (?from=threads, ?utm_source=instagram)
+  const tag = String((req.query && (req.query.from || req.query.utm_source || req.query.ref)) || '').toLowerCase().slice(0, 30);
+  if (tag) { const hit = SRC_WORDS.find((w) => w[1].test(tag)); return hit ? hit[0] : 'other'; }
+  // 2) 앱 안 브라우저 (주소를 안 넘겨 줘도 앱 이름은 알 수 있음)
+  const ua = req.get('user-agent') || '';
+  if (/Barcelona|Threads/i.test(ua)) return 'threads';
+  if (/Instagram/i.test(ua)) return 'instagram';
+  if (/FBAN|FBAV|FB_IAB|FBIOS/i.test(ua)) return 'facebook';
+  if (/KAKAOTALK/i.test(ua)) return 'kakaotalk';
+  if (/NAVER\(inapp|NAVER\//i.test(ua)) return 'naver';
+  if (/DaumApps/i.test(ua)) return 'daum';
+  if (/\bBAND\//i.test(ua)) return 'band';
+  if (/\bLine\//i.test(ua)) return 'line';
+  if (/musical_ly|TikTok|BytedanceWebview/i.test(ua)) return 'tiktok';
+  // 3) 들어오기 전 주소
+  const h = host || '';
+  if (!h) return 'direct';
+  if (/threads\.(net|com)$/.test(h)) return 'threads';
+  if (/instagram\.com$/.test(h)) return 'instagram';
+  if (/(facebook\.com|fb\.me)$/.test(h)) return 'facebook';
+  if (/kakao/.test(h)) return 'kakaotalk';
+  if (/naver\./.test(h)) return 'naver';
+  if (/(^|\.)google\./.test(h)) return 'google';
+  if (/(youtube\.com|youtu\.be)$/.test(h)) return 'youtube';
+  if (/daum\.net$/.test(h)) return 'daum';
+  if (/(^|\.)(t\.co|x\.com|twitter\.com)$/.test(h)) return 'x';
+  if (/tiktok\.com$/.test(h)) return 'tiktok';
+  if (/band\.us$/.test(h)) return 'band';
+  return 'other';
+}
+
 /** 방문자 IP: 레일웨이 앞단이 넣어 주는 X-Real-IP → 없으면 X-Forwarded-For 첫 번째 → req.ip */
 function clientIp(req) {
   const real = String(req.get('x-real-ip') || '').trim();
@@ -47,16 +90,21 @@ function track(req, res, next) {
     res.cookie('bv', vid, { maxAge: 1000 * 60 * 60 * 24 * 400, httpOnly: true, sameSite: 'lax', secure: PROD });
   }
   const ref = refHost(req);
+  const src = sourceOf(req, ref);
+  // 처음 들어온 곳을 30일 기억 → 가입할 때 '가입 경로'로 남김
+  if (src !== 'direct' && !readCookie(req, 'bsrc')) {
+    res.cookie('bsrc', src, { maxAge: 1000 * 60 * 60 * 24 * 30, httpOnly: true, sameSite: 'lax', secure: PROD });
+  }
   res.on('finish', () => {
     if (res.statusCode >= 400) return;
     if (!/text\/html/.test(String(res.get('content-type') || ''))) return;
     db.query(
-      `INSERT INTO lounge_visits (day, vid, user_id, first_path, ref_host, ip, last_at) VALUES (${DAY}, $1, $2, $3, $4, $5, now())
+      `INSERT INTO lounge_visits (day, vid, user_id, first_path, ref_host, ip, last_at, source) VALUES (${DAY}, $1, $2, $3, $4, $5, now(), $6)
        ON CONFLICT (day, vid) DO UPDATE SET views = lounge_visits.views + 1,
          visits = lounge_visits.visits + CASE WHEN lounge_visits.last_at IS NULL OR now() - lounge_visits.last_at > interval '30 minutes' THEN 1 ELSE 0 END,
          last_at = now(),
          user_id = COALESCE(lounge_visits.user_id, EXCLUDED.user_id), ip = COALESCE(lounge_visits.ip, EXCLUDED.ip)`,
-      [vid, req.user ? req.user.id : null, req.path.slice(0, 200), ref, clientIp(req)]
+      [vid, req.user ? req.user.id : null, req.path.slice(0, 200), ref, clientIp(req), src]
     ).catch((e) => console.error('[방문 기록]', e.message));
   });
   next();
@@ -113,9 +161,21 @@ async function stats(r = 'today', days = 14) {
     [days]
   );
   const rc = range(r, 'day');
+  // 플랫폼별: 방문한 사람(기기) · 방문 횟수 · 그 플랫폼에서 온 가입자
+  const uc = range(r, KDATE('created_at'));
+  const platforms = await q(
+    `WITH v AS (
+       SELECT COALESCE(source, 'direct') AS src, count(DISTINCT vid)::int AS people, COALESCE(sum(visits),0)::int AS visits
+         FROM lounge_visits WHERE ${rc} GROUP BY 1
+     ), j AS (
+       SELECT COALESCE(source, 'direct') AS src, count(*)::int AS joins FROM users WHERE role <> 'admin' AND ${uc} GROUP BY 1
+     )
+     SELECT COALESCE(v.src, j.src) AS src, COALESCE(v.people,0) AS people, COALESCE(v.visits,0) AS visits, COALESCE(j.joins,0) AS joins
+       FROM v FULL JOIN j ON j.src = v.src ORDER BY people DESC, joins DESC`
+  );
   const refs = await q(
-    `SELECT COALESCE(ref_host, '직접 들어옴 · 즐겨찾기') AS host, count(DISTINCT vid)::int AS n
-       FROM lounge_visits WHERE ${rc} GROUP BY 1 ORDER BY n DESC LIMIT 10`
+    `SELECT ref_host AS host, count(DISTINCT vid)::int AS n
+       FROM lounge_visits WHERE ${rc} AND ref_host IS NOT NULL GROUP BY 1 ORDER BY n DESC LIMIT 10`
   );
   const pages = await q(
     `SELECT first_path AS path, count(DISTINCT vid)::int AS n
@@ -129,7 +189,7 @@ async function stats(r = 'today', days = 14) {
   const countries = await q(
     `SELECT COALESCE(country, '') AS code, count(*)::int AS n FROM users WHERE role <> 'admin' GROUP BY 1 ORDER BY n DESC LIMIT 15`
   );
-  return { sum, meta, daily, refs, pages, joins, countries };
+  return { sum, meta, daily, platforms, refs, pages, joins, countries };
 }
 
 /** 머리 부분에 늘 보이는 오늘 숫자 */
@@ -150,4 +210,10 @@ async function publicToday() {
   return pubCache.n;
 }
 
-module.exports = { track, stats, todayBrief, publicToday };
+/** 이 기기의 이름표 (방문 쿠키). 없으면 null */
+function deviceId(req) {
+  const v = readCookie(req, 'bv');
+  return /^[a-f0-9]{16,40}$/.test(v) ? v : null;
+}
+
+module.exports = { track, stats, todayBrief, publicToday, deviceId, SOURCES, readCookie };

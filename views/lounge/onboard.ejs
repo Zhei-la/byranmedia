@@ -7,8 +7,20 @@
 
     <% if (error) { %><div class="lg-alert err"><%= error %></div><% } %>
 
-    <form method="post" action="/onboard">
+    <form method="post" action="/onboard" data-image-form>
       <input type="hidden" name="next" value="<%= next %>">
+      <div class="lg-avapick">
+        <span class="lg-pava xl" data-avabox><% if (user.avatar_id) { %><img src="/u/img/<%= user.avatar_id %>" alt="" data-preview><% } else { %><img alt="" data-preview hidden><span data-avainit><%= (form.nickname || '?').slice(0,1) %></span><% } %></span>
+        <div>
+          <label class="lg-lb" style="margin:0">프로필 사진 <small class="lg-muted">Photo (선택)</small></label>
+          <div class="lg-avapick-b">
+            <label class="lg-btn sm">📷 사진 고르기<input type="file" accept="image/*" data-file hidden></label>
+            <% if (user.avatar_id) { %><label class="lg-check"><input type="checkbox" name="avatar_remove" value="1"> 사진 지우기</label><% } %>
+          </div>
+          <small class="lg-muted" data-droptext>채팅·글·공유한 프롬프트에 같이 보여요</small>
+        </div>
+        <input type="hidden" name="avatar" data-image>
+      </div>
       <label class="lg-lb" for="nick">닉네임 <small class="lg-muted">Nickname</small></label>
       <input id="nick" name="nickname" class="lg-in" maxlength="10" required value="<%= form.nickname %>" placeholder="2~10자" autocomplete="off" autofocus>
       <ul class="lg-rules">

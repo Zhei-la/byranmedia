@@ -26,7 +26,8 @@ const BASE = `
     SELECT user_id, max(day) AS day FROM lounge_visits WHERE user_id IS NOT NULL GROUP BY user_id
   ), m AS (
     SELECT u.id, u.name, u.nickname, u.email, u.phone, u.provider, u.role, u.status, u.interest,
-           u.memo, u.admin_tags, u.country, u.created_at, u.lounge_at, u.last_login_at, u.referred_by, u.is_student,
+           u.memo, u.admin_tags, u.country, u.created_at, u.chat_ban_until, u.write_ban_until, u.ban_note,
+           (u.chat_ban_until > now()) AS chat_banned, (u.write_ban_until > now()) AS write_banned, u.lounge_at, u.last_login_at, u.referred_by, u.is_student,
            COALESCE(en.ebook, false) AS has_ebook, COALESCE(en.stu, false) AS has_course,
            GREATEST(u.last_login_at, lv.day::timestamptz) AS seen_at,
            en.courses, COALESCE(en.n, 0) AS enroll_n,
@@ -89,6 +90,28 @@ async function detail(id) {
   return { m, enrolls, points, posts, opened, reviews, inquiries, referrer };
 }
 
+/** 제재: kind 'chat' | 'write', days 0 = 풀기, 36500 = 영구 */
+async function ban(id, kind, days, note) {
+  const col = kind === 'write' ? 'write_ban_until' : 'chat_ban_until';
+  await db.query(
+    `UPDATE users SET ${col} = CASE WHEN $2::int > 0 THEN now() + ($2::int || ' days')::interval ELSE NULL END,
+            ban_note = COALESCE(NULLIF($3, ''), ban_note) WHERE id=$1`,
+    [id, days, String(note || '').trim().slice(0, 300)]
+  );
+}
+/** 강퇴(이용 정지) / 풀기 — 풀면 이전 상태로 */
+async function kick(id, on, note) {
+  if (on) {
+    await db.query(
+      `UPDATE users SET prev_status = CASE WHEN status <> 'suspended' THEN status ELSE prev_status END, status='suspended',
+              ban_note = COALESCE(NULLIF($2, ''), ban_note) WHERE id=$1 AND role <> 'admin'`,
+      [id, String(note || '').trim().slice(0, 300)]
+    );
+  } else {
+    await db.query(`UPDATE users SET status = COALESCE(prev_status, 'pending'), prev_status = NULL WHERE id=$1 AND status='suspended'`, [id]);
+  }
+}
+
 async function setStudent(id, on) {
   await db.query(`UPDATE users SET is_student=$1 WHERE id=$2`, [!!on, id]);
 }
@@ -124,4 +147,4 @@ async function csv({ kind, s }) {
   return '﻿' + lines.join('\r\n');
 }
 
-module.exports = { KINDS, PRESET_TAGS, list, counts, detail, save, setStudent, setAdmin, csv };
+module.exports = { KINDS, PRESET_TAGS, list, counts, detail, save, setStudent, setAdmin, ban, kick, csv };

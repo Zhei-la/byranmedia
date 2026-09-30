@@ -57,7 +57,7 @@
       <% if (user && me) { %>
         <% if (typeof pts !== 'undefined' && pts !== null) { %><a href="/my#points" class="lg-ptpill" title="내 포인트">💎 <%= P.fmt(pts) %>P</a><% } %>
         <a href="/my" class="lg-mepill" title="마이페이지">
-          <span class="lg-ava sm"><%= me.nick.slice(0,1) %></span>
+          <% if (user.avatar_id) { %><span class="lg-pava sm"><img src="/u/img/<%= user.avatar_id %>" alt=""></span><% } else { %><span class="lg-ava sm"><%= me.nick.slice(0,1) %></span><% } %>
           <span class="lg-mepill-p"><%= me.nick %></span><% if (typeof student !== 'undefined' && student) { %><span class="lg-stu-mini">수강생</span><% } %>
         </a>
       <% } else if (user) { %>

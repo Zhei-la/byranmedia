@@ -30,6 +30,11 @@
   var PL = { today: '어제보다', '7d': '지난 7일보다', all: '' }[range];
   var up = function(a, b){ if (b == null) return ''; var n = a - b; return n > 0 ? '<i class="lg-up">▲ ' + n + '</i>' : n < 0 ? '<i class="lg-down">▼ ' + (-n) + '</i>' : '<i class="lg-same">–</i>'; };
 %>
+ <form method="get" action="/admin/lounge" class="lg-inlineform lg-qsearch">
+    <input type="hidden" name="tab" value="members">
+    <input name="s" class="lg-in" placeholder="🔎 가입자 검색 (닉네임 · 카카오 이름 · 전화 · 이메일 · 메모)">
+    <button class="lg-btn sm primary">찾기</button>
+  </form>
   <nav class="lg-rangetabs">
     <a href="/admin/lounge?tab=stats" class="<%= range === 'today' ? 'on' : '' %>">당일</a>
     <a href="/admin/lounge?tab=stats&r=7d" class="<%= range === '7d' ? 'on' : '' %>">최근 7일</a>
@@ -49,6 +54,26 @@
   <p class="lg-hint"><b>방문한 사람</b>은 기기(폰·PC 브라우저) 하나당 1명이에요. 같은 폰으로 여러 번 와도 1명, <b>방문 횟수</b>는 30분 넘게 쉬었다가 다시 오면 1번 더 세요. <%= PL ? '▲▼는 ' + PL + ' 늘거나 줄어든 숫자예요.' : '' %> 운영자(나)와 검색봇은 빼요. 전체 가입자 <%= M.total_users %>명<% if (M.since) { %> · <%= M.since.replace(/-/g, '.') %>부터 기록<% } %>.
   <br><small>※ 스레드·인스타·카톡 앱 안에서 연 화면은 앱마다 따로 저장돼서, 같은 사람이 다른 앱으로 들어오면 2명으로 셀 수 있어요.</small></p>
 
+  <div class="lg-card mt">
+    <h2 class="lg-h3">📱 어느 플랫폼에서 들어왔나 <small class="lg-muted"><%= RL %></small></h2>
+    <% var totP = stats.platforms.reduce(function(a, x){ return a + x.people; }, 0) || 1; %>
+    <% if (stats.platforms.length) { %>
+      <div class="lg-tablewrap">
+      <table class="lg-daytable lg-plat">
+        <thead><tr><th>플랫폼</th><th>방문한 사람</th><th>비율</th><th>방문 횟수</th><th>가입</th></tr></thead>
+        <tbody>
+          <% stats.platforms.forEach(function(x){ var pct = Math.round(x.people / totP * 1000) / 10; %>
+            <tr><td class="left"><b><%= SOURCES[x.src] || x.src %></b></td><td><%= x.people %>명</td>
+                <td class="lg-platbar"><span style="width:<%= Math.max(2, pct) %>%"></span><em><%= pct %>%</em></td>
+                <td><%= x.visits %>회</td><td><%= x.joins %>명</td></tr>
+          <% }); %>
+        </tbody>
+      </table>
+      </div>
+    <% } else { %><p class="lg-muted">아직 기록이 없어요.</p><% } %>
+    <p class="lg-hint">스레드·인스타·카톡 앱 안에서 연 링크는 앱 이름으로 알아내요. 더 정확히 보려면 링크 끝에 표시를 붙여서 올리세요: <b>byranmedia.com/?from=threads</b> · <b>?from=instagram</b> · <b>?from=kakao</b> · <b>?from=blog</b>. '가입'은 그 플랫폼으로 처음 들어와서 가입한 사람이에요 (오늘부터 기록).</p>
+  </div>
+
   <div class="lg-two mt">
     <div class="lg-card">
       <h2 class="lg-h3">최근 14일</h2>
@@ -63,10 +88,10 @@
     </div>
     <div>
       <div class="lg-card">
-        <h2 class="lg-h3">어디서 들어왔나 <small class="lg-muted"><%= RL %></small></h2>
+        <h2 class="lg-h3">들어오기 전 사이트 주소 <small class="lg-muted"><%= RL %></small></h2>
         <% if (stats.refs.length) { %>
           <ul class="lg-refs"><% stats.refs.forEach(function(r){ %><li><span><%= r.host %></span><b><%= r.n %>명</b></li><% }); %></ul>
-        <% } else { %><p class="lg-muted">아직 기록이 없어요.</p><% } %>
+        <% } else { %><p class="lg-muted">주소가 넘어온 기록이 없어요. (앱 안 브라우저는 주소를 안 넘겨요)</p><% } %>
       </div>
       <div class="lg-card mt">
         <h2 class="lg-h3">처음 들어온 화면 <small class="lg-muted"><%= RL %></small></h2>
@@ -539,6 +564,8 @@
             <i class="lg-kind <%= K.cls %>"><%= K.label %></i>
             <% if (m.has_ebook) { %><i class="lg-mtag">📖 전자책</i><% } %>
             <% if (!m.nickname) { %><i class="lg-mtag gray">프로필 전</i><% } %>
+            <% if (m.chat_banned) { %><i class="lg-mtag red">💬 채팅 금지</i><% } %>
+            <% if (m.write_banned) { %><i class="lg-mtag red">✍️ 글 금지</i><% } %>
             <% (m.admin_tags || '').split(',').filter(Boolean).forEach(function(t){ %><i class="lg-mtag"><%= t %></i><% }); %>
           </span>
           <% if (m.courses) { %><span class="lg-mrow-course">🎟 <%= m.courses %></span><% } %>

@@ -50,6 +50,7 @@ router.get('/admin/lounge', async (req, res) => {
   if (tab === 'stats') {
     data.range = ['7d', 'all'].includes(req.query.r) ? req.query.r : 'today';
     data.stats = await V.stats(data.range, 14);
+    data.SOURCES = V.SOURCES;
   }
 
   if (tab === 'board') {
@@ -272,6 +273,23 @@ router.post('/admin/lounge/members/:id(\\d+)/admin', async (req, res) => {
   if (!on && id === req.user.id) return res.redirect(`/admin/lounge/members/${id}?msg=${encodeURIComponent('내 운영자 권한은 여기서 뺄 수 없어요.')}`);
   await M.setAdmin(id, on);
   res.redirect(`/admin/lounge/members/${id}?msg=${encodeURIComponent(on ? '운영자 권한을 줬어요. 관리 화면을 쓸 수 있어요.' : '운영자 권한을 뺐어요.')}`);
+});
+router.post('/admin/lounge/members/:id(\\d+)/ban', async (req, res) => {
+  const id = int(req.params.id);
+  if (id === req.user.id) return res.redirect(`/admin/lounge/members/${id}?msg=${encodeURIComponent('나 자신은 제재할 수 없어요.')}`);
+  const kind = req.body.kind === 'write' ? 'write' : 'chat';
+  const days = Math.max(0, Math.min(36500, parseInt(req.body.days, 10) || 0));
+  await M.ban(id, kind, days, req.body.note);
+  const what = kind === 'write' ? '글·댓글' : '채팅';
+  const msg = days ? `${what} 금지를 걸었어요 (${days >= 36500 ? '영구' : days + '일'}).` : `${what} 금지를 풀었어요.`;
+  res.redirect(`/admin/lounge/members/${id}?msg=${encodeURIComponent(msg)}#ban`);
+});
+router.post('/admin/lounge/members/:id(\\d+)/kick', async (req, res) => {
+  const id = int(req.params.id);
+  if (id === req.user.id) return res.redirect(`/admin/lounge/members/${id}?msg=${encodeURIComponent('나 자신은 강퇴할 수 없어요.')}`);
+  const on = req.body.on === '1';
+  await M.kick(id, on, req.body.note);
+  res.redirect(`/admin/lounge/members/${id}?msg=${encodeURIComponent(on ? '강퇴(이용 정지)했어요. 이제 로그인해도 라운지를 쓸 수 없어요.' : '강퇴를 풀었어요.')}#ban`);
 });
 router.post('/admin/lounge/members/:id(\\d+)/save', async (req, res) => {
   const id = int(req.params.id);

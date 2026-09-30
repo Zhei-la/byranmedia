@@ -15,7 +15,7 @@ const get = (p, ...h) => router.get(p, ...h.map(wrap));
 const post = (p, ...h) => router.post(p, ...h.map(wrap));
 
 /* ---------------- 공통 ---------------- */
-const LOUNGE_PATHS = ['/community', '/library', '/reviews', '/course', '/store', '/challenge', '/my', '/consult', '/onboard', '/prompts', '/agency'];
+const LOUNGE_PATHS = ['/member', '/community', '/library', '/reviews', '/course', '/store', '/challenge', '/my', '/consult', '/onboard', '/prompts', '/agency'];
 
 // 라운지 화면마다 필요한 값
 async function locals(req, res, next) {
@@ -31,6 +31,8 @@ async function locals(req, res, next) {
     res.locals.pts = req.user && req.user.nickname ? await P.balance(req.user.id) : null;
     res.locals.student = req.user && req.user.nickname ? await E.isStudent(req.user.id) : false;
     res.locals.soon = L.soonOf(res.locals.S, req.user);
+    res.locals.chatBan = banned(req, 'chat');
+    res.locals.writeBan = banned(req, 'write');
     // 내가 공유한 프롬프트에 운영자 수정 요청이 있으면 위쪽에 알림
     res.locals.fixCount = req.user && req.user.nickname
       ? (await db.query(`SELECT count(*)::int AS n FROM lounge_prompts WHERE user_id=$1 AND status='fix'`, [req.user.id])).rows[0].n
@@ -67,6 +69,16 @@ function safeNext(v) {
   return s.startsWith('/') && !s.startsWith('//') ? s : '';
 }
 const wantsJson = (req) => (req.get('accept') || '').includes('json');
+
+/** 제재 중인지: 'chat' | 'write' → 끝나는 날 글자 또는 null */
+function banned(req, kind) {
+  const u = req.user;
+  if (!u || u.role === 'admin') return null;
+  const until = kind === 'write' ? u.write_ban_until : u.chat_ban_until;
+  if (!until || new Date(until) <= new Date()) return null;
+  const d = new Date(until);
+  return d.getFullYear() > new Date().getFullYear() + 50 ? '무기한' : d.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', hour: 'numeric', timeZone: 'Asia/Seoul' }) + '까지';
+}
 
 /** 로그인 + 닉네임 설정까지 끝난 회원 */
 function member(req, res, next) {
@@ -148,10 +160,18 @@ post('/onboard', async (req, res) => {
   const interest = L.INTERESTS.includes(form.interest) ? form.interest : null;
   if (!L.COUNTRY[form.country]) return fail('나라를 골라 주세요. (Please choose your country)');
   const first = !req.user.nickname;
+  // 프로필 사진: 새로 올렸으면 저장, '사진 지우기'면 비움
+  let avatarId = req.user.avatar_id || null;
+  if (req.body.avatar_remove === '1') avatarId = null;
+  if (req.body.avatar) {
+    const id = await L.saveImage(req.user.id, req.body.avatar).catch(() => null);
+    if (id) avatarId = id;
+  }
   try {
     await db.query(
-      `UPDATE users SET nickname=$1, interest=$2, country=$3, lounge_at=COALESCE(lounge_at, now()) WHERE id=$4`,
-      [chk.value, interest, form.country, req.user.id]
+      `UPDATE users SET nickname=$1, interest=$2, country=$3, avatar_id=$4, lounge_at=COALESCE(lounge_at, now()),
+              source=COALESCE(source, $6) WHERE id=$5`,
+      [chk.value, interest, form.country, avatarId, req.user.id, V.SOURCES[V.readCookie(req, 'bsrc')] ? V.readCookie(req, 'bsrc') : 'direct']
     );
   } catch (e) {
     if (e.code === '23505') return fail('이미 누가 쓰고 있는 닉네임이에요.');
@@ -185,7 +205,7 @@ get('/community', async (req, res) => {
     total = cnt[0].n;
     const r = await db.query(
       `SELECT p.id, p.category, p.title, p.views, p.created_at, p.user_id, p.image_id, p.prompt_id,
-              COALESCE(u.nickname, u.name, p.guest_name, '손님') AS nick, u.role, p.user_id IS NULL AS guest,
+              COALESCE(u.nickname, u.name, p.guest_name, '손님') AS nick, u.role, p.user_id IS NULL AS guest, u.avatar_id, u.country,
               (SELECT count(*) FROM lounge_likes l WHERE l.post_id=p.id)::int AS likes,
               (SELECT count(*) FROM lounge_comments c WHERE c.post_id=p.id AND c.is_hidden=false)::int AS comments
          FROM lounge_posts p LEFT JOIN users u ON u.id=p.user_id
@@ -210,6 +230,8 @@ function memberOrGuestRequest(req, res, next) {
 
 post('/community', memberOrGuestRequest, async (req, res) => {
   const category = req.body.category === 'request' ? 'request' : 'proof';
+  const wb = banned(req, 'write');
+  if (wb) { flash(req, `운영자가 글쓰기를 막아 뒀어요 (${wb}).`); return res.redirect(`/community?cat=${category}`); }
   const title = String(req.body.title || '').trim().slice(0, 120);
   const body = String(req.body.body || '').trim().slice(0, 5000);
   const backTo = `/community?cat=${category}&write=1#write`;
@@ -271,7 +293,7 @@ post('/community', memberOrGuestRequest, async (req, res) => {
 
 async function loadPost(id) {
   const { rows } = await db.query(
-    `SELECT p.*, COALESCE(u.nickname, u.name, p.guest_name, '손님') AS nick, u.role,
+    `SELECT p.*, COALESCE(u.nickname, u.name, p.guest_name, '손님') AS nick, u.role, u.avatar_id, u.country,
             (SELECT count(*) FROM lounge_likes l WHERE l.post_id=p.id)::int AS likes
        FROM lounge_posts p LEFT JOIN users u ON u.id=p.user_id WHERE p.id=$1`,
     [id]
@@ -288,7 +310,7 @@ get('/community/:id(\\d+)', async (req, res) => {
   const locked = !canSee(req, p) && !isAdmin(req);
   if (!locked) db.query(`UPDATE lounge_posts SET views=views+1 WHERE id=$1`, [p.id]).catch(() => {});
   const { rows: comments } = locked ? { rows: [] } : await db.query(
-    `SELECT c.id, c.body, c.created_at, c.user_id, COALESCE(u.nickname,u.name) AS nick, u.country, u.role
+    `SELECT c.id, c.body, c.created_at, c.user_id, COALESCE(u.nickname,u.name) AS nick, u.country, u.avatar_id, u.role
        FROM lounge_comments c LEFT JOIN users u ON u.id=c.user_id
       WHERE c.post_id=$1 AND c.is_hidden=false ORDER BY c.created_at`,
     [p.id]
@@ -338,6 +360,8 @@ post('/community/:id(\\d+)/comment', member, async (req, res) => {
   if (!p || !canSee(req, p)) return res.redirect('/community');
   const body = String(req.body.body || '').trim().slice(0, 1000);
   if (!body) return res.redirect(`/community/${p.id}`);
+  const wb = banned(req, 'write');
+  if (wb) { flash(req, `운영자가 댓글을 막아 뒀어요 (${wb}).`); return res.redirect(`/community/${p.id}`); }
   const { rows } = await db.query(
     `INSERT INTO lounge_comments (post_id, user_id, body) VALUES ($1,$2,$3) RETURNING id`,
     [p.id, req.user.id, body]
@@ -399,7 +423,7 @@ get('/chat/messages', async (req, res) => {
   const after = parseInt(req.query.after, 10) || 0;
   // badge: 운영자 👑 / 수강생 🎓 (직접 표시했거나 피드백 과정 수강 중)
   const { rows } = await db.query(
-    `SELECT c.id, c.body, c.created_at, c.user_id, COALESCE(u.nickname,u.name) AS nick, u.country,
+    `SELECT c.id, c.body, c.created_at, c.user_id, COALESCE(u.nickname,u.name) AS nick, u.country, u.avatar_id,
             CASE WHEN u.role='admin' THEN 'admin'
                  WHEN u.is_student OR EXISTS (
                    SELECT 1 FROM lounge_enrollments e LEFT JOIN lounge_products p ON p.id=e.product_id
@@ -414,13 +438,15 @@ get('/chat/messages', async (req, res) => {
   );
   res.json({
     online: on[0].n,
-    items: rows.reverse().map((m) => ({ id: m.id, uid: m.user_id, nick: m.nick, badge: m.badge, flag: m.country && m.country !== 'KR' ? L.flag(m.country) : '', admin: m.badge === 'admin', body: m.body, at: m.created_at })),
+    items: rows.reverse().map((m) => ({ id: m.id, uid: m.user_id, nick: m.nick, badge: m.badge, flag: m.country ? L.flag(m.country) : '', ava: m.avatar_id || null, admin: m.badge === 'admin', body: m.body, at: m.created_at })),
   });
 });
 
 post('/chat', member, async (req, res) => {
   const body = String(req.body.body || '').trim().slice(0, 300);
   if (!body) return res.status(400).json({ error: '내용을 적어 주세요.' });
+  const cb = banned(req, 'chat');
+  if (cb) return res.status(403).json({ error: `운영자가 채팅을 막아 뒀어요 (${cb}).` });
   const { rows: rc } = await db.query(
     `SELECT count(*)::int AS n FROM lounge_chat WHERE user_id=$1 AND created_at > now() - interval '20 seconds'`,
     [req.user.id]
@@ -579,7 +605,7 @@ const PUB = `p.is_active AND p.status='live'`;
 async function promptList(req, res, shared) {
   const cat = L.PROMPT_CATS.includes(req.query.cat) ? req.query.cat : '';
   const q = String(req.query.q || '').trim().slice(0, 60);
-  const sort = req.query.sort === 'popular' ? 'popular' : 'new';
+  const sort = ['popular', 'old'].includes(req.query.sort) ? req.query.sort : 'new';
   const fav = req.query.fav === '1' && req.user;
   const page = Math.max(1, parseInt(req.query.page, 10) || 1);
   const scope = shared ? 'p.user_id IS NOT NULL' : 'p.user_id IS NULL';
@@ -592,10 +618,14 @@ async function promptList(req, res, shared) {
 
   const { rows: cnt } = await db.query(`SELECT count(*)::int AS n FROM lounge_prompts p WHERE ${where}`, params);
   params.push(P_PAGE, (page - 1) * P_PAGE);
-  const order = sort === 'popular' ? 'p.copies DESC, p.views DESC, p.id DESC' : 'p.created_at DESC, p.id DESC';
+  // 인기순: 하트·즐겨찾기 3점, 복사해 간 기기 2점, 조회 20번에 1점 / 날짜순: 오래된 것부터
+  const order = sort === 'popular'
+    ? '(p.hearts * 3 + p.favs * 3 + p.copiers * 2 + p.views / 20) DESC, p.created_at DESC'
+    : sort === 'old' ? 'p.created_at ASC, p.id ASC' : 'p.created_at DESC, p.id DESC';
   const { rows: items } = await db.query(
     `SELECT p.id, p.title, p.category, p.image_ids, left(p.prompt, 140) AS preview, p.copies, p.user_id,
-            COALESCE(u.nickname, u.name) AS author
+            p.hearts, p.copiers, p.favs, to_char(p.created_at AT TIME ZONE 'Asia/Seoul', 'YYYY.MM.DD') AS date_s,
+            COALESCE(u.nickname, u.name) AS author, u.avatar_id AS author_avatar, u.country AS author_country
        FROM lounge_prompts p LEFT JOIN users u ON u.id=p.user_id WHERE ${where} ORDER BY ${order}
       LIMIT $${params.length - 1} OFFSET $${params.length}`,
     params
@@ -627,7 +657,9 @@ get('/prompts/builder', (req, res) => {
 
 get('/prompts/:id(\\d+)', async (req, res) => {
   const { rows } = await db.query(
-    `SELECT p.*, COALESCE(u.nickname, u.name) AS author FROM lounge_prompts p LEFT JOIN users u ON u.id=p.user_id WHERE p.id=$1`,
+    `SELECT p.*, COALESCE(u.nickname, u.name) AS author, u.avatar_id AS author_avatar, u.country AS author_country,
+            to_char(p.created_at AT TIME ZONE 'Asia/Seoul', 'YYYY.MM.DD') AS date_s
+       FROM lounge_prompts p LEFT JOIN users u ON u.id=p.user_id WHERE p.id=$1`,
     [req.params.id]
   );
   const p = rows[0];
@@ -644,6 +676,8 @@ get('/prompts/:id(\\d+)', async (req, res) => {
     const r = await db.query(`SELECT 1 FROM lounge_prompt_likes WHERE prompt_id=$1 AND user_id=$2`, [p.id, req.user.id]);
     liked = r.rows.length > 0;
   }
+  const hk = heartKey(req);
+  const hearted = hk ? (await db.query(`SELECT 1 FROM lounge_prompt_hearts WHERE prompt_id=$1 AND who=$2`, [p.id, hk])).rows.length > 0 : false;
   const { rows: more } = await db.query(
     `SELECT p.id, p.title, p.image_ids FROM lounge_prompts p
       WHERE ${PUB} AND p.id<>$1 AND p.category=$2 AND cardinality(p.image_ids)>0
@@ -652,7 +686,7 @@ get('/prompts/:id(\\d+)', async (req, res) => {
     [p.id, p.category, !p.user_id]
   );
   res.render('lounge/prompt', {
-    title: p.title, active: 'prompts', p, canCopy, liked, more, mine,
+    title: p.title, active: 'prompts', p, canCopy, liked, hearted, more, mine,
     shown: canCopy ? p.prompt : p.prompt.slice(0, Math.min(220, Math.floor(p.prompt.length * 0.35))),
     ogT: `${p.title} · 바이란 AI 프롬프트`,
     ogD: '이미지를 누르면 프롬프트를 바로 복사할 수 있어요.',
@@ -690,6 +724,8 @@ get('/prompts/share', member, (req, res) => {
   res.render('lounge/prompt-form', { title: '프롬프트 공유하기', active: 'prompts', p: null, error: null });
 });
 post('/prompts/share', member, async (req, res) => {
+  const wb = banned(req, 'write');
+  if (wb) { flash(req, `운영자가 글쓰기·공유를 막아 뒀어요 (${wb}).`); return res.redirect('/prompts/shared'); }
   const { rows: rc } = await db.query(
     `SELECT count(*)::int AS n FROM lounge_prompts WHERE user_id=$1 AND created_at > now() - interval '1 day'`, [req.user.id]
   );
@@ -770,9 +806,38 @@ post('/prompts/translate', async (req, res) => {
   res.json(out);
 });
 
+// 하트: 회원은 1명당, 비회원은 기기 1대당 한 번 (다시 누르면 취소)
+function heartKey(req) {
+  if (req.user) return 'u:' + req.user.id;
+  const d = V.deviceId(req);
+  return d ? 'd:' + d : null;
+}
+// 복사: 기기 1대당 한 번만 '가져간 사람'으로 셈 (운영자는 쿠키가 없으면 회원 번호로)
+function copyKey(req) {
+  const d = V.deviceId(req);
+  if (d) return 'd:' + d;
+  return req.user ? 'u:' + req.user.id : null;
+}
 post('/prompts/:id(\\d+)/copied', async (req, res) => {
-  await db.query(`UPDATE lounge_prompts SET copies=copies+1 WHERE id=$1`, [req.params.id]).catch(() => {});
+  const id = parseInt(req.params.id, 10);
+  await db.query(`UPDATE lounge_prompts SET copies=copies+1 WHERE id=$1`, [id]).catch(() => {});
+  const k = copyKey(req);
+  if (k) {
+    const r = await db.query(`INSERT INTO lounge_prompt_copies (prompt_id, who) VALUES ($1,$2) ON CONFLICT DO NOTHING`, [id, k]).catch(() => ({ rowCount: 0 }));
+    if (r.rowCount) await db.query(`UPDATE lounge_prompts SET copiers=copiers+1 WHERE id=$1`, [id]).catch(() => {});
+  }
   res.json({ ok: true });
+});
+post('/prompts/:id(\\d+)/heart', async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const k = heartKey(req);
+  if (!k) return res.status(400).json({ error: '잠시 후 다시 눌러 주세요.' });
+  const del = await db.query(`DELETE FROM lounge_prompt_hearts WHERE prompt_id=$1 AND who=$2`, [id, k]);
+  if (!del.rowCount) await db.query(`INSERT INTO lounge_prompt_hearts (prompt_id, who) VALUES ($1,$2) ON CONFLICT DO NOTHING`, [id, k]).catch(() => {});
+  const { rows } = await db.query(
+    `UPDATE lounge_prompts SET hearts = (SELECT count(*) FROM lounge_prompt_hearts WHERE prompt_id=$1) WHERE id=$1 RETURNING hearts`, [id]
+  );
+  res.json({ hearted: !del.rowCount, hearts: rows[0] ? rows[0].hearts : 0 });
 });
 
 post('/prompts/:id(\\d+)/like', member, async (req, res) => {
@@ -781,7 +846,10 @@ post('/prompts/:id(\\d+)/like', member, async (req, res) => {
   if (!del.rowCount) {
     await db.query(`INSERT INTO lounge_prompt_likes (prompt_id, user_id) VALUES ($1,$2) ON CONFLICT DO NOTHING`, [id, req.user.id]).catch(() => {});
   }
-  if (wantsJson(req)) return res.json({ liked: !del.rowCount });
+  const { rows: fv } = await db.query(
+    `UPDATE lounge_prompts SET favs = (SELECT count(*) FROM lounge_prompt_likes WHERE prompt_id=$1) WHERE id=$1 RETURNING favs`, [id]
+  );
+  if (wantsJson(req)) return res.json({ liked: !del.rowCount, favs: fv[0] ? fv[0].favs : 0 });
   res.redirect(`/prompts/${id}`);
 });
 
@@ -977,6 +1045,49 @@ post('/challenge/submit', member, async (req, res) => {
 });
 
 /* ---------------- 마이페이지 ---------------- */
+/* ---------------- 회원 프로필 (네이버 카페처럼: 쓴 글 · 공유한 프롬프트 · 댓글) ---------------- */
+get('/member/:id(\\d+)', async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const { rows } = await db.query(
+    `SELECT u.id, u.nickname, u.avatar_id, u.country, u.interest, u.role, u.is_student, u.lounge_at, u.created_at,
+            EXISTS (SELECT 1 FROM lounge_enrollments e LEFT JOIN lounge_products p ON p.id=e.product_id
+                     WHERE e.user_id=u.id AND ${E.ACTIVE} AND COALESCE(p.ptype,'course')='course') AS has_course,
+            (SELECT count(*) FROM lounge_posts p WHERE p.user_id=u.id AND p.is_hidden=false AND p.category<>'secret')::int AS n_posts,
+            (SELECT count(*) FROM lounge_prompts p WHERE p.user_id=u.id AND p.is_active AND p.status='live')::int AS n_prompts,
+            (SELECT count(*) FROM lounge_comments c WHERE c.user_id=u.id AND c.is_hidden=false)::int AS n_comments,
+            (SELECT COALESCE(sum(hearts),0) FROM lounge_prompts p WHERE p.user_id=u.id AND p.is_active AND p.status='live')::int AS n_hearts
+       FROM users u WHERE u.id=$1 AND u.nickname IS NOT NULL AND u.status <> 'suspended'`,
+    [id]
+  );
+  const m = rows[0];
+  if (!m) return res.status(404).render('error', { title: '없는 회원', message: '찾는 회원이 없어요.' });
+  const tab = ['prompts', 'comments'].includes(req.query.t) ? req.query.t : 'posts';
+  let items = [];
+  if (tab === 'posts') {
+    items = (await db.query(
+      `SELECT p.id, p.category, p.title, p.created_at, p.image_id, p.prompt_id,
+              (SELECT count(*) FROM lounge_comments c WHERE c.post_id=p.id AND c.is_hidden=false)::int AS comments
+         FROM lounge_posts p WHERE p.user_id=$1 AND p.is_hidden=false AND p.category<>'secret'
+        ORDER BY p.created_at DESC LIMIT 50`, [id])).rows;
+  } else if (tab === 'prompts') {
+    items = (await db.query(
+      `SELECT p.id, p.title, p.category, p.image_ids, p.hearts, p.copiers, p.favs
+         FROM lounge_prompts p WHERE p.user_id=$1 AND p.is_active AND p.status='live'
+        ORDER BY p.created_at DESC LIMIT 60`, [id])).rows;
+  } else {
+    items = (await db.query(
+      `SELECT c.id, left(c.body, 140) AS body, c.created_at, p.id AS post_id, p.title
+         FROM lounge_comments c JOIN lounge_posts p ON p.id=c.post_id
+        WHERE c.user_id=$1 AND c.is_hidden=false AND p.is_hidden=false AND p.category<>'secret'
+        ORDER BY c.created_at DESC LIMIT 50`, [id])).rows;
+  }
+  res.render('lounge/member', {
+    title: `${m.nickname}님의 프로필`, active: 'community', m, tab, items,
+    isMe: !!(req.user && req.user.id === m.id),
+    badge: m.role === 'admin' ? 'admin' : m.is_student || m.has_course ? 'student' : '',
+  });
+});
+
 get('/my', member, async (req, res) => {
   const uid = req.user.id;
   const [pt, hist, enrolls] = await Promise.all([P.summary(uid), P.history(uid, 15), E.list(uid)]);

@@ -41,15 +41,18 @@
   <form class="lg-pfilter" method="get" action="<%= shared ? "/prompts/shared" : "/prompts" %>" role="search">
     <div class="lg-pfilter-tabs">
       <a href="<%= qs({ fav: '' }) %>" class="<%= !fav ? 'on' : '' %>">전체 <small><%= all %></small></a>
-      <% if (user) { %><a href="<%= qs({ fav: '1', page: '' }) %>" class="<%= fav ? 'on' : '' %>">♡ 즐겨찾기</a><% } %>
+      <% if (user) { %><a href="<%= qs({ fav: '1', page: '' }) %>" class="<%= fav ? 'on' : '' %>">⭐ 즐겨찾기</a><% } %>
+      <span class="lg-grow"></span>
+      <nav class="lg-sortnav" aria-label="정렬">
+        <a href="<%= qs({ sort: '', page: '' }) %>" class="<%= sort === 'new' ? 'on' : '' %>">최신순</a>
+        <a href="<%= qs({ sort: 'popular', page: '' }) %>" class="<%= sort === 'popular' ? 'on' : '' %>">🔥 인기순</a>
+        <a href="<%= qs({ sort: 'old', page: '' }) %>" class="<%= sort === 'old' ? 'on' : '' %>">날짜순</a>
+      </nav>
     </div>
     <div class="lg-pfilter-row">
       <input type="search" name="q" value="<%= q %>" placeholder="프롬프트나 제목으로 검색" class="lg-in" aria-label="검색">
       <% if (cat) { %><input type="hidden" name="cat" value="<%= cat %>"><% } %>
-      <select name="sort" class="lg-in" aria-label="정렬" onchange="this.form.submit()">
-        <option value="new" <%= sort === 'new' ? 'selected' : '' %>>최신순</option>
-        <option value="popular" <%= sort === 'popular' ? 'selected' : '' %>>많이 복사한 순</option>
-      </select>
+      <% if (sort !== 'new') { %><input type="hidden" name="sort" value="<%= sort %>"><% } %>
       <button class="lg-btn primary">검색</button>
     </div>
     <nav class="lg-chipnav" aria-label="카테고리">
@@ -104,9 +107,13 @@
               <div class="lg-pcard-noimg">텍스트 프롬프트</div>
             <% } %>
           </div>
-          <div class="lg-pcard-meta"><span><%= shared ? '🙋 ' + (p.author || '회원') : 'NO. ' + String(p.id).padStart(3, '0') %></span><span><%= p.category %></span></div>
+          <div class="lg-pcard-meta">
+            <% if (shared) { %><span class="lg-pauthor"><%- include('_ava', { u: { id: p.user_id, nick: p.author, avatar_id: p.author_avatar }, size: 'xs', link: false }) %><%= p.author || '회원' %> <%= L.flag(p.author_country) %></span><% } else { %><span>NO. <%= String(p.id).padStart(3, '0') %></span><% } %>
+            <span><%= sort === 'old' ? p.date_s : p.category %></span>
+          </div>
           <b><%= p.title %></b>
           <p class="lg-pcard-pre"><%= p.preview %>…</p>
+          <p class="lg-pcard-stats"><span title="하트">♥ <%= p.hearts %></span><span title="복사해 간 사람(기기)">📋 <%= p.copiers %></span><span title="즐겨찾기">⭐ <%= p.favs %></span></p>
         </a>
       <% }); %>
     </div>

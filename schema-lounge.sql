@@ -312,3 +312,48 @@ CREATE INDEX IF NOT EXISTS idx_visits_ip ON lounge_visits (day, ip);
 
 -- 회원 국가 (ISO 두 글자, ZZ = 기타)
 ALTER TABLE users ADD COLUMN IF NOT EXISTS country VARCHAR(2);
+
+-- 프로필 사진
+ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_id INT;
+
+-- 프롬프트 하트 (회원은 회원 1명당, 비회원은 기기 1대당 1번)
+CREATE TABLE IF NOT EXISTS lounge_prompt_hearts (
+  prompt_id  INT NOT NULL REFERENCES lounge_prompts(id) ON DELETE CASCADE,
+  who        VARCHAR(60) NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (prompt_id, who)
+);
+-- 프롬프트를 복사해 간 기기 (기기 1대당 1번만 셈)
+CREATE TABLE IF NOT EXISTS lounge_prompt_copies (
+  prompt_id  INT NOT NULL REFERENCES lounge_prompts(id) ON DELETE CASCADE,
+  who        VARCHAR(60) NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (prompt_id, who)
+);
+-- 정렬용 숫자 (하트·복사해 간 기기·즐겨찾기)
+ALTER TABLE lounge_prompts ADD COLUMN IF NOT EXISTS hearts  INT NOT NULL DEFAULT 0;
+ALTER TABLE lounge_prompts ADD COLUMN IF NOT EXISTS copiers INT NOT NULL DEFAULT 0;
+ALTER TABLE lounge_prompts ADD COLUMN IF NOT EXISTS favs    INT NOT NULL DEFAULT 0;
+UPDATE lounge_prompts p SET favs = (SELECT count(*) FROM lounge_prompt_likes k WHERE k.prompt_id = p.id)
+ WHERE favs <> (SELECT count(*) FROM lounge_prompt_likes k WHERE k.prompt_id = p.id);
+
+-- 어느 플랫폼에서 들어왔나 (스레드·인스타·카톡… 앱 안 브라우저 표시 + 들어온 주소 + ?from= 링크)
+ALTER TABLE lounge_visits ADD COLUMN IF NOT EXISTS source VARCHAR(20);
+UPDATE lounge_visits SET source = CASE
+    WHEN ref_host ~ 'threads\.(net|com)$' THEN 'threads'
+    WHEN ref_host ~ 'instagram\.com$' THEN 'instagram'
+    WHEN ref_host ~ '(facebook\.com|fb\.me)$' THEN 'facebook'
+    WHEN ref_host ~ 'kakao' THEN 'kakaotalk'
+    WHEN ref_host ~ 'naver\.' THEN 'naver'
+    WHEN ref_host ~ '^google\.|\.google\.' THEN 'google'
+    WHEN ref_host ~ '(youtube\.com|youtu\.be)$' THEN 'youtube'
+    WHEN ref_host IS NULL THEN 'direct'
+    ELSE 'other' END
+ WHERE source IS NULL;
+-- 가입한 사람이 처음 어디서 왔는지
+ALTER TABLE users ADD COLUMN IF NOT EXISTS source VARCHAR(20);
+-- 제재: 채팅 금지 · 글/댓글 금지 · 이용 정지(강퇴)
+ALTER TABLE users ADD COLUMN IF NOT EXISTS chat_ban_until  TIMESTAMPTZ;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS write_ban_until TIMESTAMPTZ;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS ban_note        VARCHAR(300);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS prev_status     VARCHAR(20);

@@ -15,8 +15,7 @@
       <% if (p.is_hidden) { %><span class="lg-tag warn">숨김 처리됨</span><% } %>
       <h1 class="lg-h1"><%= p.title %></h1>
       <div class="lg-post-meta">
-        <span class="lg-ava"><%= (p.nick || '?').slice(0,1) %></span>
-        <b><%= p.nick %></b><%= p.role === 'admin' ? ' 👑' : '' %>
+        <% if (p.user_id) { %><%- include('_ava', { u: { id: p.user_id, nick: p.nick, avatar_id: p.avatar_id }, size: 'md' }) %><a href="/member/<%= p.user_id %>" class="lg-plink"><b><%= p.nick %></b></a> <%= L.flag(p.country) %><% } else { %><span class="lg-ava"><%= (p.nick || '?').slice(0,1) %></span><b><%= p.nick %></b><% } %><%= p.role === 'admin' ? ' 👑' : '' %>
         <span class="lg-muted">· <%= L.ago(p.created_at) %> · 조회 <%= p.views + 1 %></span>
       </div>
     </header>
@@ -74,7 +73,7 @@
       <% comments.forEach(function(cm){ %>
         <li id="c<%= cm.id %>">
           <div class="lg-cm-h">
-            <b><%= cm.nick %></b><%= cm.role === 'admin' ? ' 👑' : '' %>
+            <% if (cm.user_id) { %><%- include('_ava', { u: { id: cm.user_id, nick: cm.nick, avatar_id: cm.avatar_id }, size: 'sm' }) %><a href="/member/<%= cm.user_id %>" class="lg-plink"><b><%= cm.nick %></b></a> <%= L.flag(cm.country) %><% } else { %><b><%= cm.nick %></b><% } %><%= cm.role === 'admin' ? ' 👑' : '' %>
             <small class="lg-muted"><%= L.ago(cm.created_at) %></small>
             <span class="lg-grow"></span>
             <% if (user && (user.id === cm.user_id || isAdmin)) { %>

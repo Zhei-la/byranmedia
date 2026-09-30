@@ -24,10 +24,11 @@
       <li class="lg-muted lg-chat-empty" data-emptyrow>불러오는 중…</li>
     </ul>
     <% if (isMember) { %>
+      <% if (typeof chatBan !== 'undefined' && chatBan) { %><p class="lg-chat-lock">🚫 운영자가 채팅을 막아 뒀어요 (<%= chatBan %>)</p><% } else { %>
       <form class="lg-chat-form" data-chatform>
         <input name="body" maxlength="300" placeholder="메시지 보내기" autocomplete="off" aria-label="채팅 메시지">
         <button class="lg-btn primary sm">전송</button>
-      </form>
+      </form><% } %>
     <% } else { %>
       <a href="<%= loginTo('/community') %>" class="lg-chat-lock">💬 카카오로 가입하고 같이 이야기하기</a>
     <% } %>
@@ -80,7 +81,7 @@
               <% if (p.image_id) { %> <span class="lg-muted" title="사진 있음">📷</span><% } %>
               <% if (p.comments) { %> <em>[<%= p.comments %>]</em><% } %>
             </span>
-            <span class="m"><%= p.nick %><%= p.role === 'admin' ? ' 👑' : '' %> · <%= L.ago(p.created_at) %><% if (!isReq) { %> · ♥ <%= p.likes %><% } %></span>
+            <span class="m lg-bm"><% if (!p.guest) { %><%- include('_ava', { u: { id: p.user_id, nick: p.nick, avatar_id: p.avatar_id }, size: 'xs', link: false }) %><% } %><%= p.nick %> <%= L.flag(p.country) %><%= p.role === 'admin' ? ' 👑' : '' %> · <%= L.ago(p.created_at) %><% if (!isReq) { %> · ♥ <%= p.likes %><% } %></span>
           </a>
         </li>
       <% }); %>

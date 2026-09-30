@@ -1,0 +1,7 @@
+<%# 프로필 사진(없으면 첫 글자). u: {id, nick, avatar_id}, size: xs|sm|md|lg|xl, link: 프로필로 연결할지 %>
+<%
+  const _u = typeof u !== 'undefined' && u ? u : {};
+  const _sz = typeof size !== 'undefined' && size ? size : 'sm';
+  const _link = (typeof link === 'undefined' || link) && _u.id;
+  const _inner = _u.avatar_id ? '<img src="/u/img/' + _u.avatar_id + '" alt="" loading="lazy">' : L.esc(String(_u.nick || '?').slice(0, 1));
+%><% if (_link) { %><a href="/member/<%= _u.id %>" class="lg-pava <%= _sz %>" aria-label="<%= _u.nick %> 프로필"><%- _inner %></a><% } else { %><span class="lg-pava <%= _sz %>"><%- _inner %></span><% } %>

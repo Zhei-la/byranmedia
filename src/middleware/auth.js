@@ -9,7 +9,7 @@ async function loadUser(req, res, next) {
 
   try {
     const { rows } = await db.query(
-      `SELECT id, email, name, role, status, memo, provider, nickname, interest, country
+      `SELECT id, email, name, role, status, memo, provider, nickname, interest, country, avatar_id, chat_ban_until, write_ban_until
          FROM users WHERE id = $1`,
       [req.session.userId]
     );

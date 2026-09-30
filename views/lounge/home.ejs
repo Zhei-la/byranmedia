@@ -163,10 +163,11 @@
       <li class="lg-muted lg-chat-empty" data-emptyrow>불러오는 중…</li>
     </ul>
     <% if (user && me) { %>
+      <% if (typeof chatBan !== 'undefined' && chatBan) { %><p class="lg-chat-lock">🚫 운영자가 채팅을 막아 뒀어요 (<%= chatBan %>)</p><% } else { %>
       <form class="lg-chat-form" data-chatform>
         <input name="body" maxlength="300" placeholder="메시지 보내기" autocomplete="off" aria-label="채팅 메시지">
         <button class="lg-btn primary sm">전송</button>
-      </form>
+      </form><% } %>
     <% } else { %>
       <a href="<%= kakaoStart %>" class="lg-chat-lock">🔒 가입하면 같이 이야기할 수 있어요</a>
     <% } %>

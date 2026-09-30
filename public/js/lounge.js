@@ -125,6 +125,8 @@
         if (!data) { if (txt) txt.textContent = '이 사진은 쓸 수 없어요'; return; }
         hidden.value = data;
         if (prev) { prev.src = data; prev.hidden = false; }
+        var ini = $('[data-avainit]', form); if (ini) ini.hidden = true;
+        if (txt) txt.textContent = '사진을 골랐어요. 저장하면 바뀌어요';
         if (txt) txt.textContent = '다른 사진으로 바꾸기';
       });
     });
@@ -214,8 +216,26 @@
     b.addEventListener('click', function () {
       fetch('/prompts/' + b.getAttribute('data-plike') + '/like', { method: 'POST', headers: { Accept: 'application/json' } })
         .then(function (r) { return r.json(); })
-        .then(function (d) { b.classList.toggle('on', d.liked); var t = $('[data-liketext]', b); if (t) t.textContent = d.liked ? '즐겨찾기됨' : '즐겨찾기'; })
+        .then(function (d) { b.classList.toggle('on', d.liked); var t = $('[data-liketext]', b); if (t) t.textContent = d.liked ? '즐겨찾기됨' : '즐겨찾기'; var f = $('[data-favs]', b); if (f && d.favs != null) f.textContent = d.favs; })
         .catch(function () {});
+    });
+  });
+
+  /* 프롬프트 하트 (누구나, 다시 누르면 취소) */
+  $$('[data-pheart]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      if (b.disabled) return;
+      b.disabled = true;
+      fetch('/prompts/' + b.getAttribute('data-pheart') + '/heart', { method: 'POST', headers: { Accept: 'application/json' } })
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          b.disabled = false;
+          if (d.error) return;
+          b.classList.toggle('on', d.hearted); b.setAttribute('aria-pressed', d.hearted ? 'true' : 'false');
+          var n = $('[data-hearts]', b); if (n) n.textContent = d.hearts;
+          if (d.hearted) { b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop'); }
+        })
+        .catch(function () { b.disabled = false; });
     });
   });
 
@@ -249,18 +269,31 @@
       var li = document.createElement('li');
       li.className = 'lg-msg ' + (mine ? 'me' : 'other') + (cont ? ' cont' : '');
       li.setAttribute('data-uid', String(m.uid));
+      if (!mine) {
+        // 프로필 사진 (같은 사람이 연달아 보내면 첫 줄에만)
+        var av = document.createElement(cont ? 'span' : 'a');
+        av.className = 'lg-msg-ava' + (cont ? ' ghost' : '');
+        if (!cont) {
+          av.href = '/member/' + m.uid;
+          if (m.ava) { var im = document.createElement('img'); im.src = '/u/img/' + m.ava; im.alt = ''; im.loading = 'lazy'; av.appendChild(im); }
+          else av.textContent = String(m.nick || '?').slice(0, 1);
+        }
+        li.appendChild(av);
+      }
+      var col = document.createElement('div'); col.className = 'lg-msg-col';
+      li.appendChild(col);
       if (!mine && !cont) {
-        var who = document.createElement('div'); who.className = 'lg-msg-who';
+        var who = document.createElement('a'); who.className = 'lg-msg-who'; who.href = '/member/' + m.uid;
         if (BADGE[m.badge]) { var e = document.createElement('span'); e.className = 'lg-msg-badge ' + m.badge; e.textContent = BADGE[m.badge]; who.appendChild(e); }
         var n = document.createElement('b'); n.textContent = m.nick; who.appendChild(n);
         if (m.flag) { var f = document.createElement('span'); f.className = 'lg-msg-flag'; f.textContent = m.flag; who.appendChild(f); }
-        li.appendChild(who);
+        col.appendChild(who);
       }
       var row = document.createElement('div'); row.className = 'lg-msg-row';
       var bub = document.createElement('div'); bub.className = 'lg-msg-bub'; bub.textContent = m.body;
       var t = document.createElement('small'); t.className = 'lg-msg-t'; t.textContent = hhmm(m.at);
       row.appendChild(bub); row.appendChild(t);
-      li.appendChild(row);
+      col.appendChild(row);
       list.appendChild(li);
       while (list.children.length > 80) list.removeChild(list.firstChild);
     }

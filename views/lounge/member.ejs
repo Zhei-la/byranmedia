@@ -1,0 +1,68 @@
+<%- include('_top') %>
+<%
+  const C = L.COUNTRY[m.country];
+  const kst = (x) => new Date(x).toLocaleDateString('ko-KR', { year: 'numeric', month: 'numeric', day: 'numeric', timeZone: 'Asia/Seoul' });
+  const TABS = [['posts', '✍️ 쓴 글', m.n_posts], ['prompts', '🎨 공유한 프롬프트', m.n_prompts], ['comments', '💬 댓글', m.n_comments]];
+%>
+<section class="lg-wrap narrow lg-sec">
+  <div class="lg-card lg-mprof">
+    <%- include('_ava', { u: { id: m.id, nick: m.nickname, avatar_id: m.avatar_id }, size: 'xl', link: false }) %>
+    <div class="lg-mprof-b">
+      <h1 class="lg-h1">
+        <%= m.nickname %>
+        <% if (badge === 'admin') { %><i class="lg-kind k-admin">👑 운영자</i><% } else if (badge === 'student') { %><i class="lg-kind k-stu">🎓 수강생</i><% } %>
+      </h1>
+      <p class="lg-muted">
+        <% if (C) { %><span class="lg-mprof-c"><%= L.flag(m.country) %> <%= C.ko %></span> · <% } %>가입 <%= kst(m.lounge_at || m.created_at) %><%= m.interest ? ' · 관심: ' + m.interest : '' %>
+      </p>
+      <div class="lg-mprof-n">
+        <span><b><%= m.n_posts %></b> 글</span>
+        <span><b><%= m.n_prompts %></b> 공유 프롬프트</span>
+        <span><b><%= m.n_hearts %></b> 받은 ♥</span>
+      </div>
+      <% if (isMe) { %><a href="/onboard?edit=1&next=/member/<%= m.id %>" class="lg-btn sm">✏️ 프로필 설정 (사진·닉네임·나라)</a><% } %>
+      <% if (user && user.role === 'admin' && !isMe) { %><a href="/admin/lounge/members/<%= m.id %>" class="lg-btn sm ghost">👑 이 회원 관리 (제재·수강생·메모)</a><% } %>
+    </div>
+  </div>
+
+  <nav class="lg-cnav lg-mtabs" aria-label="활동">
+    <% TABS.forEach(function(t){ %><a href="/member/<%= m.id %><%= t[0] === 'posts' ? '' : '?t=' + t[0] %>" class="<%= tab === t[0] ? 'on' : '' %>"><%= t[1] %> <small><%= t[2] %></small></a><% }); %>
+  </nav>
+
+  <% if (tab === 'prompts') { %>
+    <% if (items.length) { %>
+      <div class="lg-pgrid lg-mgridp">
+        <% items.forEach(function(p){ %>
+          <a href="/prompts/<%= p.id %>" class="lg-pcard">
+            <div class="lg-pcard-img"><% if (p.image_ids.length) { %><img src="/u/img/<%= p.image_ids[0] %>" alt="<%= p.title %>" loading="lazy"><% } else { %><div class="lg-pcard-noimg">텍스트 프롬프트</div><% } %></div>
+            <b><%= p.title %></b>
+            <p class="lg-pcard-stats"><span>♥ <%= p.hearts %></span><span>📋 <%= p.copiers %></span><span>⭐ <%= p.favs %></span></p>
+          </a>
+        <% }); %>
+      </div>
+    <% } else { %><div class="lg-card lg-empty"><p>아직 공유한 프롬프트가 없어요.</p><% if (isMe) { %><a href="/prompts/share" class="lg-btn primary sm">＋ 프롬프트 공유하기</a><% } %></div><% } %>
+  <% } else if (tab === 'comments') { %>
+    <div class="lg-card flush">
+      <ul class="lg-board">
+        <% items.forEach(function(c){ %>
+          <li><a href="/community/<%= c.post_id %>#c<%= c.id %>"><span class="t"><%= c.body %></span><span class="m">「<%= c.title %>」에 남김 · <%= L.ago(c.created_at) %></span></a></li>
+        <% }); %>
+        <% if (!items.length) { %><li class="lg-empty-row">아직 남긴 댓글이 없어요.</li><% } %>
+      </ul>
+    </div>
+  <% } else { %>
+    <div class="lg-card flush">
+      <ul class="lg-board">
+        <% items.forEach(function(p){ var c = L.CATEGORIES[p.category] || { label: '글' }; %>
+          <li><a href="/community/<%= p.id %>">
+            <span class="lg-cat c-<%= p.category %>"><%= c.label %></span>
+            <span class="t"><% if (p.category === 'request') { %><i class="lg-reqstate <%= p.prompt_id ? 'done' : '' %>"><%= p.prompt_id ? '완료' : '접수' %></i><% } %><%= p.title %><% if (p.image_id) { %> <span class="lg-muted">📷</span><% } %><% if (p.comments) { %> <em>[<%= p.comments %>]</em><% } %></span>
+            <span class="m"><%= L.ago(p.created_at) %></span>
+          </a></li>
+        <% }); %>
+        <% if (!items.length) { %><li class="lg-empty-row">아직 쓴 글이 없어요.</li><% } %>
+      </ul>
+    </div>
+  <% } %>
+</section>
+<%- include('_bottom') %>

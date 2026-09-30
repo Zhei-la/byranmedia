@@ -13,7 +13,7 @@
     <span class="lg-ava lg"><%= (m.nickname || m.name || '?').slice(0,1) %></span>
     <div>
       <h1 class="lg-h1"><%= m.nickname || '(닉네임 없음)' %> <i class="lg-kind <%= K.cls %>"><%= K.label %></i></h1>
-      <p class="lg-muted">카카오 이름 <b><%= m.name %></b> · 회원 번호 #<%= m.id %><% tags.forEach(function(t){ %> <i class="lg-mtag"><%= t %></i><% }); %></p>
+      <p class="lg-muted"><% if (m.nickname) { %><a href="/member/<%= m.id %>">공개 프로필 보기 →</a> · <% } %>카카오 이름 <b><%= m.name %></b> · 회원 번호 #<%= m.id %><% tags.forEach(function(t){ %> <i class="lg-mtag"><%= t %></i><% }); %></p>
     </div>
   </div>
   <div class="lg-mbtns">
@@ -64,6 +64,36 @@
       <label>메모<textarea name="memo" class="lg-in" rows="5" maxlength="3000" placeholder="예: 9/29 카톡 상담 · 평생 과정 관심 · 10월 초 입금 예정"><%= m.memo || '' %></textarea></label>
       <button class="lg-btn primary">저장</button>
     </form>
+
+    <div class="lg-card" id="ban">
+      <h2 class="lg-h3">🚫 제재 <small class="lg-muted">문제 있는 회원만</small></h2>
+      <% var fmtB = function(x){ if (!x) return ''; var d = new Date(x); return d.getFullYear() > new Date().getFullYear() + 50 ? '무기한' : d.toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Seoul' }) + '까지'; }; %>
+      <ul class="lg-banstate">
+        <li>💬 채팅: <b class="<%= m.chat_banned ? 'on' : '' %>"><%= m.chat_banned ? '금지 · ' + fmtB(m.chat_ban_until) : '가능' %></b></li>
+        <li>✍️ 글·댓글·공유: <b class="<%= m.write_banned ? 'on' : '' %>"><%= m.write_banned ? '금지 · ' + fmtB(m.write_ban_until) : '가능' %></b></li>
+        <li>⛔ 강퇴(이용 정지): <b class="<%= m.status === 'suspended' ? 'on' : '' %>"><%= m.status === 'suspended' ? '정지됨' : '아님' %></b></li>
+        <% if (m.ban_note) { %><li>사유 메모: <%= m.ban_note %></li><% } %>
+      </ul>
+      <% if (m.role !== 'admin') { %>
+        <% [['chat', '💬 채팅 금지', m.chat_banned], ['write', '✍️ 글·댓글 금지', m.write_banned]].forEach(function(k){ %>
+          <form method="post" action="/admin/lounge/members/<%= m.id %>/ban" class="lg-banform">
+            <input type="hidden" name="kind" value="<%= k[0] %>">
+            <b><%= k[1] %></b>
+            <select name="days" class="lg-in"><option value="1">1일</option><option value="3">3일</option><option value="7" selected>7일</option><option value="30">30일</option><option value="36500">무기한</option></select>
+            <input name="note" class="lg-in" maxlength="300" placeholder="사유 (선택, 나만 봐요)">
+            <button class="lg-btn sm primary">걸기</button>
+            <% if (k[2]) { %><button class="lg-btn sm ghost" name="days" value="0">풀기</button><% } %>
+          </form>
+        <% }); %>
+        <form method="post" action="/admin/lounge/members/<%= m.id %>/kick" class="lg-banform" data-confirm="<%= m.status === 'suspended' ? '강퇴를 풀까요?' : (m.nickname || m.name) + '님을 강퇴할까요? 로그인해도 라운지를 쓸 수 없게 돼요.' %>">
+          <input type="hidden" name="on" value="<%= m.status === 'suspended' ? '' : '1' %>">
+          <b>⛔ 강퇴 (이용 정지)</b>
+          <% if (m.status !== 'suspended') { %><input name="note" class="lg-in" maxlength="300" placeholder="사유 (선택)"><% } %>
+          <button class="lg-btn sm <%= m.status === 'suspended' ? 'ghost' : 'danger-fill' %>"><%= m.status === 'suspended' ? '강퇴 풀기' : '강퇴하기' %></button>
+        </form>
+        <p class="lg-hint">채팅 금지: 채팅만 못 써요. 글·댓글 금지: 인증·프롬프트 요청·댓글·프롬프트 공유를 못 해요. 강퇴: 로그인해도 라운지 기능을 못 써요. 기간이 지나면 저절로 풀려요.</p>
+      <% } else { %><p class="lg-muted">운영자는 제재할 수 없어요.</p><% } %>
+    </div>
 
     <div class="lg-card">
       <h2 class="lg-h3">💎 포인트 <small class="lg-muted">지금 <%= P.fmt(m.points) %>P</small></h2>
