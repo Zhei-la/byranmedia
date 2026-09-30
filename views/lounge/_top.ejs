@@ -27,7 +27,11 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <link rel="stylesheet" href="/css/lounge.css?v=<%= assetVer %>">
 </head>
-<body class="lg">
+<%
+  const SOON = typeof soon !== 'undefined' && soon ? soon : {};
+  const soonList = Object.keys(SOON).filter(function(k){ return SOON[k]; }).join(' ');
+%>
+<body class="lg"<% if (soonList) { %> data-soon="<%= soonList %>"<% } %>>
 <%
   const TABS = [
     ['home', '/', '홈'], ['library', '/library', '자료실'], ['prompts', '/prompts', 'AI 프롬프트'],
@@ -43,13 +47,13 @@
     </a>
     <nav class="lg-nav" aria-label="주 메뉴">
       <% TABS.forEach(function(t){ %>
-        <a href="<%= t[1] %>" class="<%= active === t[0] ? 'on' : '' %>"><%= t[2] %></a>
+        <a href="<%= t[1] %>" class="<%= active === t[0] ? 'on' : '' %>"><%= t[2] %><% if (t[0] === 'library' && SOON.library) { %><i class="lg-soonchip">준비중</i><% } %></a>
       <% }); %>
       <% if (user && user.status === 'active') { %><a href="/hub" class="lg-nav-tool">도구</a><% } %>
       <% if (user && user.role === 'admin') { %><a href="/admin/lounge" class="lg-nav-admin">관리</a><% } %>
     </nav>
     <div class="lg-head-r">
-      <a href="/consult" class="lg-consult">1:1 상담</a>
+      <a href="/consult" class="lg-consult">1:1 상담<% if (SOON.consult) { %><i class="lg-soonchip">준비중</i><% } %></a>
       <% if (user && me) { %>
         <% if (typeof pts !== 'undefined' && pts !== null) { %><a href="/my#points" class="lg-ptpill" title="내 포인트">💎 <%= P.fmt(pts) %>P</a><% } %>
         <a href="/my" class="lg-mepill" title="마이페이지">
@@ -68,9 +72,9 @@
   </div>
   <nav class="lg-subnav" aria-label="메뉴">
     <% TABS.forEach(function(t){ %>
-      <a href="<%= t[1] %>" class="<%= active === t[0] ? 'on' : '' %>"><%= t[2] %></a>
+      <a href="<%= t[1] %>" class="<%= active === t[0] ? 'on' : '' %>"><%= t[2] %><% if (t[0] === 'library' && SOON.library) { %><i class="lg-soonchip">준비중</i><% } %></a>
     <% }); %>
-    <a href="/consult" class="<%= active === 'consult' ? 'on' : '' %>">1:1 상담</a>
+    <a href="/consult" class="<%= active === 'consult' ? 'on' : '' %>">1:1 상담<% if (SOON.consult) { %><i class="lg-soonchip">준비중</i><% } %></a>
     <% if (user && user.status === 'active') { %><a href="/hub">도구</a><% } %>
     <% if (user && user.role === 'admin') { %><a href="/admin/lounge">관리</a><% } %>
   </nav>

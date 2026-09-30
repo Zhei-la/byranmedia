@@ -1,6 +1,6 @@
 <%- include('_top') %>
 <%
-  const TABS = [['home','⚙️ 설정'],['prompts','🎨 프롬프트'],['library','📚 자료실'],['store','🎓 수강 과정'],['students','🎟 수강생'],['board','💬 게시판·신고'],['reviews','⭐ 후기'],['challenge','🔥 챌린지'],['members','👥 회원']];
+  const TABS = [['stats','📊 방문·가입'],['home','⚙️ 설정'],['prompts','🎨 프롬프트'],['library','📚 자료실'],['store','🎓 수강 과정'],['students','🎟 수강생'],['board','💬 게시판·신고'],['reviews','⭐ 후기'],['challenge','🔥 챌린지'],['members','👥 회원']];
   const d = (x) => x ? new Date(x).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric', timeZone: 'Asia/Seoul' }) : '';
 %>
 <section class="lg-wrap wide lg-pagehead">
@@ -8,6 +8,8 @@
   <h1 class="lg-h1">라운지 관리</h1>
   <p class="lg-muted">회원 승인·도구·문의는 <a href="/admin">기존 관리 화면</a>에서 해요.</p>
   <div class="lg-adstats">
+    <a href="/admin/lounge?tab=stats" class="lg-adstats-link"><span class="today">오늘 방문 <b><%= brief.v %></b>명</span></a>
+    <a href="/admin/lounge?tab=stats" class="lg-adstats-link"><span class="today">오늘 가입 <b><%= brief.j %></b>명</span></a>
     <span>회원 <b><%= counts.members %></b></span>
     <span>이번 주 새 회원 <b><%= counts.new7 %></b></span>
     <span>프롬프트 <b><%= counts.prompts %></b></span>
@@ -22,6 +24,48 @@
 
 <section class="lg-wrap wide lg-sec lg-admin">
 
+<% if (tab === 'stats') { var T = stats.today; var diff = function(a, b){ var n = a - b; return n > 0 ? '어제보다 +' + n : n < 0 ? '어제보다 ' + n : '어제와 같아요'; }; %>
+  <div class="lg-kpis">
+    <div class="lg-kpi hi"><small>오늘 방문자</small><b><%= T.v %>명</b><em><%= diff(T.v, T.v_y) %> (어제 <%= T.v_y %>명)</em></div>
+    <div class="lg-kpi hi"><small>오늘 가입</small><b><%= T.j %>명</b><em><%= diff(T.j, T.j_y) %> (어제 <%= T.j_y %>명)</em></div>
+    <div class="lg-kpi"><small>오늘 본 화면 수</small><b><%= T.pv %></b><em>한 사람이 여러 화면을 보면 모두 더해요</em></div>
+    <div class="lg-kpi"><small>전체 가입자</small><b><%= T.total_users %>명</b><em>오늘 프로필까지 끝낸 사람 <%= T.p %>명 · 오늘 글 <%= T.posts %>개</em></div>
+  </div>
+  <p class="lg-hint">방문자는 한국 시간 하루 기준, 같은 사람(같은 폰·브라우저)이 여러 번 와도 1명으로 세요. 운영자와 검색봇은 빼요.<% if (T.since) { %> <%= T.since.replace(/-/g, '.') %>부터 세기 시작했어요.<% } else { %> 방문 기록은 이번 업데이트부터 쌓여요.<% } %></p>
+
+  <div class="lg-two mt">
+    <div class="lg-card">
+      <h2 class="lg-h3">최근 14일</h2>
+      <table class="lg-daytable">
+        <thead><tr><th>날짜</th><th>방문자</th><th>본 화면</th><th>가입</th><th>프로필 완료</th></tr></thead>
+        <tbody>
+          <% stats.daily.forEach(function(r, i){ %>
+            <tr class="<%= i === 0 ? 'today' : '' %>"><td><%= r.label %> <small class="lg-muted">(<%= '월화수목금토일'[r.dow - 1] %>)</small><%= i === 0 ? ' 오늘' : '' %></td><td><%= r.v %></td><td><%= r.pv %></td><td><%= r.j %></td><td><%= r.p %></td></tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+    <div>
+      <div class="lg-card">
+        <h2 class="lg-h3">어디서 들어왔나 <small class="lg-muted">최근 7일</small></h2>
+        <% if (stats.refs.length) { %>
+          <ul class="lg-refs"><% stats.refs.forEach(function(r){ %><li><span><%= r.host %></span><b><%= r.n %>명</b></li><% }); %></ul>
+        <% } else { %><p class="lg-muted">아직 기록이 없어요.</p><% } %>
+      </div>
+      <div class="lg-card mt">
+        <h2 class="lg-h3">처음 들어온 화면 <small class="lg-muted">최근 7일</small></h2>
+        <% if (stats.pages.length) { %>
+          <ul class="lg-refs"><% stats.pages.forEach(function(r){ %><li><span><%= r.path %></span><b><%= r.n %>명</b></li><% }); %></ul>
+        <% } else { %><p class="lg-muted">아직 기록이 없어요.</p><% } %>
+      </div>
+      <div class="lg-card mt">
+        <h2 class="lg-h3">최근 가입</h2>
+        <ul class="lg-refs"><% stats.joins.forEach(function(u){ %><li><span><%= u.nick %><%= u.done ? '' : ' · 프로필 전' %></span><small class="lg-muted"><%= u.at %></small></li><% }); %></ul>
+      </div>
+    </div>
+  </div>
+<% } %>
+
 <% if (tab === 'home') { %>
   <form method="post" action="/admin/lounge/settings" class="lg-card lg-adform">
     <h2 class="lg-h3">기본 설정</h2>
@@ -32,6 +76,11 @@
       <label>외부 후기 모음 주소 (카페 등)<input name="review_link" class="lg-in" value="<%= S.review_link %>"></label>
       <label>대행 문의 카톡 주소<input name="agency_kakao" class="lg-in" value="<%= S.agency_kakao %>"></label>
     </div>
+    <h2 class="lg-h3 mt">🚧 준비중으로 막기</h2>
+    <label class="lg-check"><input type="hidden" name="soon_library" value="0"><input type="checkbox" name="soon_library" value="1" <%= S.soon_library === '1' ? 'checked' : '' %>> 자료실 · 자료집 — 누르면 '준비중입니다'만 뜨고 안 들어가요</label>
+    <label class="lg-check"><input type="hidden" name="soon_course" value="0"><input type="checkbox" name="soon_course" value="1" <%= S.soon_course === '1' ? 'checked' : '' %>> 수강 · 전자책 — 홈에서 숨기고, 누르면 '준비중입니다'</label>
+    <label class="lg-check"><input type="hidden" name="soon_consult" value="0"><input type="checkbox" name="soon_consult" value="1" <%= S.soon_consult === '1' ? 'checked' : '' %>> 1:1 상담 — 누르면 '준비중입니다', 홈 아래 상담 칸도 숨겨요</label>
+    <p class="lg-hint">운영자(나)는 막혀 있어도 그대로 들어가서 미리 볼 수 있어요. 준비가 끝나면 체크를 풀고 저장하세요.</p>
     <h2 class="lg-h3 mt">라이브 전용 자료 코드</h2>
     <div class="lg-adgrid">
       <label>🎟 라이브 코드 (라이브 때 알려줄 단어)<input name="live_code" class="lg-in" value="<%= S.live_code %>" placeholder="예: 타로0930"></label>

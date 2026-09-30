@@ -2,6 +2,7 @@
 <%
   const heroLines = String(S.hero_title || '').split('\n');
   const kakaoStart = '/login?next=/';
+  const SOONH = typeof soon !== 'undefined' && soon ? soon : {};
   const SEC_ICON = { '수강 안내': '🎓', '사주·타로': '🔮', '쿠팡파트너스': '🛒', '스레드 글쓰기': '✍️', 'AI 이미지': '🎨', '무료 자료': '🎁' };
 %>
 
@@ -86,13 +87,17 @@
       <a href="/library?s=<%= encodeURIComponent(s.section) %>#sec" class="lg-seccard tint-<%= si % 5 + 1 %>">
         <span class="i"><%= SEC_ICON[s.section] || '📁' %></span>
         <b><%= s.section %></b>
+        <% if (SOONH.library) { %><small><i class="lg-soonchip">준비중</i> 곧 열려요</small><% } else { %>
         <small><%= s.n %>개 자료<%= s.has_points ? ' · 💎 포인트로 열기' : '' %><%= s.has_code ? ' · 🔒 라이브 전용 포함' : '' %></small>
+        <% } %>
       </a>
     <% }); %>
+    <% if (!SOONH.course) { %>
     <a href="/library#course" class="lg-seccard tint-5">
       <span class="i">🎓</span><b>수강 · 전자책</b><small>혼자 하기 · 1:1 피드백</small>
     </a>
-    <a href="/library#agency" class="lg-seccard tint-4">
+    <% } %>
+    <a href="<%= SOONH.library ? '/agency' : '/library#agency' %>" class="lg-seccard tint-4">
       <span class="i">💼</span><b>대행 문의</b><small>스레드 · 블로그 운영 대행</small>
     </a>
   </div>
@@ -176,7 +181,7 @@
   </div>
 </section>
 
-<% if (courses.length) { %>
+<% if (courses.length && !SOONH.course) { %>
 <section class="lg-wrap lg-sec">
   <div class="lg-sec-h">
     <div><p class="lg-kicker">E-book · 1:1 Feedback</p><h2 class="lg-h2">혼자 해볼지, 같이 갈지</h2></div>
@@ -214,6 +219,7 @@
   </section>
 <% } %>
 
+<% if (!SOONH.consult) { %>
 <section class="lg-wrap lg-sec">
   <div class="lg-consult-box">
     <div>
@@ -227,6 +233,7 @@
     </div>
   </div>
 </section>
+<% } %>
 
 <% if (!user) { %>
   <section class="lg-wrap lg-sec">

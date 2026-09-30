@@ -7,6 +7,39 @@
   var toast = $('[data-toast]');
   if (toast) setTimeout(function () { toast.classList.add('hide'); }, 4200);
 
+  /* 준비중인 곳: 눌러도 들어가지 않고 알림만 */
+  var soon = (document.body.getAttribute('data-soon') || '').split(' ');
+  function isSoon(p) {
+    if (soon.indexOf('library') > -1 && /^\/library(\/\d+)?\/?$/.test(p)) return true;
+    if (soon.indexOf('course') > -1 && /^\/(course|store)\/?$/.test(p)) return true;
+    if (soon.indexOf('consult') > -1 && /^\/consult\/?$/.test(p)) return true;
+    return false;
+  }
+  var soonTimer;
+  function soonToast() {
+    var t = document.querySelector('[data-soontoast]');
+    if (!t) {
+      t = document.createElement('div');
+      t.className = 'lg-toast'; t.setAttribute('role', 'status'); t.setAttribute('data-soontoast', '');
+      t.textContent = '준비중입니다. 조금만 기다려 주세요 🙏';
+      document.body.appendChild(t);
+    }
+    t.classList.remove('hide');
+    clearTimeout(soonTimer);
+    soonTimer = setTimeout(function () { t.classList.add('hide'); }, 2600);
+  }
+  if (soon[0]) {
+    document.addEventListener('click', function (e) {
+      var a = e.target.closest && e.target.closest('a[href]');
+      if (!a || a.target === '_blank') return;
+      var u;
+      try { u = new URL(a.getAttribute('href'), location.href); } catch (err) { return; }
+      if (u.origin !== location.origin || !isSoon(u.pathname)) return;
+      e.preventDefault();
+      soonToast();
+    });
+  }
+
   /* 확인 창이 필요한 버튼 */
   $$('form[data-confirm]').forEach(function (f) {
     f.addEventListener('submit', function (e) {

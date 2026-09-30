@@ -269,3 +269,16 @@ ALTER TABLE lounge_products ADD COLUMN IF NOT EXISTS dyn_start INT;
 ALTER TABLE lounge_products ADD COLUMN IF NOT EXISTS dyn_step  INT;
 ALTER TABLE lounge_products ADD COLUMN IF NOT EXISTS dyn_every INT;
 ALTER TABLE lounge_products ADD COLUMN IF NOT EXISTS dyn_max   INT;
+
+-- 방문 기록: 하루에 브라우저(쿠키) 하나당 한 줄. views 는 그날 본 화면 수
+CREATE TABLE IF NOT EXISTS lounge_visits (
+  day        DATE        NOT NULL,
+  vid        VARCHAR(40) NOT NULL,
+  user_id    INT,
+  views      INT         NOT NULL DEFAULT 1,
+  first_path VARCHAR(200),
+  ref_host   VARCHAR(120),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (day, vid)
+);
+CREATE INDEX IF NOT EXISTS idx_visits_day ON lounge_visits (day);

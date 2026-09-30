@@ -29,11 +29,21 @@ async function locals(req, res, next) {
     res.locals.P = P;
     res.locals.pts = req.user && req.user.nickname ? await P.balance(req.user.id) : null;
     res.locals.student = req.user && req.user.nickname ? await E.isStudent(req.user.id) : false;
+    res.locals.soon = L.soonOf(res.locals.S, req.user);
+    // 아직 준비 안 된 곳은 들어가지 않고 이전 화면으로
+    if (req.method === 'GET' && L.soonBlocked(res.locals.soon, req.originalUrl.split('?')[0])) {
+      if (req.session) req.session.flash = SOON_MSG;
+      let to = back(req, '/');
+      if (L.soonBlocked(res.locals.soon, to.split('?')[0])) to = '/';
+      return res.redirect(to);
+    }
   } catch (e) {
     console.error('[라운지 공통]', e.message);
+    res.locals.soon = res.locals.soon || {};
   }
   next();
 }
+const SOON_MSG = '준비중입니다. 조금만 기다려 주세요 🙏';
 router.use([/^\/$/, ...LOUNGE_PATHS.map((p) => new RegExp('^' + p + '(?=/|$)'))], locals);
 
 function flash(req, msg) {
@@ -140,8 +150,11 @@ post('/onboard', async (req, res) => {
     if (e.code === '23505') return fail('이미 누가 쓰고 있는 닉네임이에요.');
     throw e;
   }
-  flash(req, first ? `환영해요, ${chk.value}님! 자료실에서 무료 자료집부터 챙겨 가세요 🎁` : '프로필을 바꿨어요.');
-  res.redirect(nextUrl || (first ? '/library' : '/my'));
+  const libSoon = (res.locals.soon || {}).library;
+  flash(req, first ? (libSoon ? `환영해요, ${chk.value}님! 커뮤니티에 가입 인사부터 남겨 주세요 👋` : `환영해요, ${chk.value}님! 자료실에서 무료 자료집부터 챙겨 가세요 🎁`) : '프로필을 바꿨어요.');
+  let to = nextUrl || (first ? (libSoon ? '/' : '/library') : '/my');
+  if (L.soonBlocked(res.locals.soon || {}, to.split('?')[0].split('#')[0])) to = '/';
+  res.redirect(to);
 });
 
 /* ---------------- 커뮤니티 ---------------- */

@@ -274,6 +274,9 @@ const SETTING_DEFAULTS = {
   pt_post_daily: '5',                           // 글 포인트 하루 최대 개수
   pt_review: '50',                              // 후기 1개 포인트
   pt_review_daily: '1',                         // 후기 포인트 하루 최대 개수
+  soon_library: '1',                            // 1이면 자료실·자료집을 '준비중'으로 막기
+  soon_course: '1',                             // 1이면 수강·전자책 안내를 '준비중'으로 막고 홈에서 숨기기
+  soon_consult: '1',                            // 1이면 1:1 상담을 '준비중'으로 막기
 };
 
 let settingsCache = null;
@@ -289,13 +292,28 @@ async function settings() {
   settingsAt = Date.now();
   return s;
 }
+/** 지금 '준비중'으로 막아 둔 곳. 운영자는 막지 않는다. */
+function soonOf(S, user) {
+  if (user && user.role === 'admin') return {};
+  return { library: S.soon_library === '1', course: S.soon_course === '1', consult: S.soon_consult === '1' };
+}
+/** 이 주소가 막힌 곳인지 */
+function soonBlocked(soon, p) {
+  if (soon.library && /^\/library(\/\d+)?\/?$/.test(p)) return true;
+  if (soon.course && /^\/(course|store)\/?$/.test(p)) return true;
+  if (soon.consult && /^\/consult\/?$/.test(p)) return true;
+  return false;
+}
+
 async function saveSettings(obj) {
   for (const k of Object.keys(SETTING_DEFAULTS)) {
     if (!(k in obj)) continue;
+    // 체크박스는 숨은 값(0)과 체크 값(1)이 같이 와서 배열이 된다 → 마지막 값
+    const v = Array.isArray(obj[k]) ? obj[k][obj[k].length - 1] : obj[k];
     await db.query(
       `INSERT INTO lounge_settings (key, value) VALUES ($1,$2)
        ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`,
-      [k, String(obj[k] || '').trim()]
+      [k, String(v || '').trim()]
     );
   }
   settingsCache = null;
@@ -392,6 +410,6 @@ const SECTIONS = ['수강 안내', '사주·타로', '쿠팡파트너스', '스�
 const PROMPT_CATS = ['인물/화보', '셀카/일상', '뷰티/클로즈업', '캐릭터/코스프레', '음식/제품', '일러스트', '기타'];
 
 module.exports = {
-  migrate, claimOwner, safeLink, settings, saveSettings, SETTING_DEFAULTS, esc, linkify, ago, safeUrl, saveImage,
+  migrate, claimOwner, safeLink, settings, saveSettings, soonOf, soonBlocked, SETTING_DEFAULTS, esc, linkify, ago, safeUrl, saveImage,
   checkNick, INTERESTS, CATEGORIES, RESULT_KINDS, SECTIONS, PROMPT_CATS, kstToday, priceNum, won,
 };

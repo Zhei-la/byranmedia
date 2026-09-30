@@ -61,6 +61,7 @@ app.use(
 );
 
 app.use(loadUser);
+app.use(require('./lounge/visits').track); // 오늘 방문자 세기 (운영자 화면에 표시)
 app.use((req, res, next) => {
   res.locals.siteName = process.env.SITE_NAME || '바이란미디어';
   res.locals.title = '';

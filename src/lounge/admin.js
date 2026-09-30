@@ -4,6 +4,7 @@ const db = require('../db');
 const L = require('./core');
 const P = require('./points');
 const E = require('./enroll');
+const V = require('./visits');
 const { requireAdmin } = require('../middleware/auth');
 
 const router = express.Router();
@@ -16,14 +17,14 @@ for (const m of ['get', 'post']) {
   router[m] = (p, ...h) => orig(p, ...h.map(wrap));
 }
 
-const TABS = ['home', 'prompts', 'library', 'store', 'students', 'board', 'reviews', 'challenge', 'members'];
+const TABS = ['stats', 'home', 'prompts', 'library', 'store', 'students', 'board', 'reviews', 'challenge', 'members'];
 const go = (res, tab, msg, extra = '') =>
   res.redirect(`/admin/lounge?tab=${tab}${msg ? '&msg=' + encodeURIComponent(msg) : ''}${extra}`);
 const int = (v) => (v === '' || v == null ? null : parseInt(v, 10));
 const txt = (v, n = 500) => String(v == null ? '' : v).trim().slice(0, n);
 
 router.get('/admin/lounge', async (req, res) => {
-  const tab = TABS.includes(req.query.tab) ? req.query.tab : 'home';
+  const tab = TABS.includes(req.query.tab) ? req.query.tab : 'stats';
   const q = (sql, p) => db.query(sql, p).then((r) => r.rows);
   const data = { tab, msg: req.query.msg || null, L, S: await L.settings() };
 
@@ -37,6 +38,8 @@ router.get('/admin/lounge', async (req, res) => {
             (SELECT count(*) FROM lounge_cohort_members WHERE status='pending')::int AS pending_members`
   );
   data.counts = counts;
+  data.brief = await V.todayBrief().catch(() => ({ v: 0, j: 0 }));
+  if (tab === 'stats') data.stats = await V.stats(14);
 
   if (tab === 'board') {
     data.reports = await q(
